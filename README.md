@@ -1,5 +1,5 @@
-[README.md](https://github.com/user-attachments/files/33803817/README.md)
-# 亚马逊卖家运营工具箱
+[README.md](https://github.com/user-attachments/files/33806308/README.md)
+# 亚马逊运营工具箱
 
 精选亚马逊卖家常用在线小工具，**打开网页即用，无需安装、无需注册、免费**。
 
