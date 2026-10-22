@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>新品上市成功率模拟</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>新品上市成功率模拟</h1>
+    <p class="lead">投多少钱、能进第几名、多少天回本 —— 上市前先把几档预算摊开算一遍。</p>
+  </header>
+
+  <div class="card">
+    <h2>类目门槛（两个参考点）</h2>
+    <p class="desc">选类目里任意两个已知链接（排名 + 日销量），用来拟合类目集中度 α 与头部门槛 K。</p>
+    <div class="fields">
+      <div class="field"><label>参考点 A：排名</label><input id="r1" type="number" value="1" min="1"></div>
+      <div class="field"><label>参考点 A：日销量</label><input id="u1" type="number" value="600" min="0"></div>
+      <div class="field"><label>参考点 B：排名</label><input id="r2" type="number" value="20" min="1"></div>
+      <div class="field"><label>参考点 B：日销量</label><input id="u2" type="number" value="50" min="0"></div>
+      <div class="field"><label>α（留空自动拟合）</label><input id="alpha" type="number" placeholder="自动" min="0.1" max="2" step="0.05"></div>
+      <div class="field"><label>滚动窗口</label>
+        <select id="winMode"><option value="3">近 3 天</option><option value="7" selected>近 7 天</option><option value="14">近 14 天</option></select></div>
+    </div>
+
+    <hr class="sep">
+    <h3>新品与推广参数</h3>
+    <div class="fields">
+      <div class="field"><label>目标排名（Top N）</label><input id="rTarget" type="number" value="10" min="1"></div>
+      <div class="field"><label>自然单基线 Q <span class="unit">新品填 0</span></label><input id="qNat" type="number" value="0" min="0"></div>
+      <div class="field"><label>CPC <span class="unit">USD</span></label><input id="cpc" type="number" value="0.8" min="0.01" step="0.05"></div>
+      <div class="field"><label>广告转化率 <span class="unit">%</span></label><input id="cvr" type="number" value="10" min="0.1" step="0.5"></div>
+      <div class="field"><label>单件毛利 M <span class="unit">USD</span></label><input id="margin" type="number" value="9.08" min="0" step="0.01"></div>
+      <div class="field"><label>可接受回本天数</label><input id="maxPay" type="number" value="60" min="1"></div>
+      <div class="field"><label>基准日预算 <span class="unit">USD/天</span></label><input id="budget" type="number" value="100" min="0"></div>
+    </div>
+
+    <div class="formula">
+      广告带来订单 ＝ <code>日预算 ÷ CPC × 转化率</code>　冲刺期日均 P ＝ <code>Q ＋ 广告订单</code><br>
+      目标门槛 <code>U* = K × r*^(−α)</code>；达标需长期维持 <code>P ≥ U*</code>，否则榜单seen只是昙花一现。
+    </div>
+
+    <div class="callout co-info" id="fitInfo"></div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>预算档位对比</h2>
+    <p class="desc">基准预算的 0.5 / 1 / 1.5 / 2 / 3 倍，横向比哪个最划算。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>日预算</th><th>广告单/天</th><th>冲刺 P</th><th>门槛 U*</th><th>能否达成</th><th>达成天数</th><th>总花费</th><th>回本天数</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <p class="note">回本天数 ＝ 冲刺期广告总花费 ÷（达标后日均毛利 − 日均广告维持费）。模型假设竞品静止、转化率稳定，实际建议按 1.3 倍冗余排期。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  function vals(){
+    return {
+      r1: TK.num('r1'), u1: TK.num('u1'), r2: TK.num('r2'), u2: TK.num('u2'),
+      rStar: TK.num('rTarget'), Q: TK.num('qNat'), cpc: TK.num('cpc') || 0.8,
+      cvr: TK.num('cvr') / 100, M: TK.num('margin'), maxPay: TK.num('maxPay'),
+      B: TK.num('budget'), w: TK.makeWeights(+document.getElementById('winMode').value)
+    };
+  }
+  function alphaOf(v){
+    var manual = parseFloat(document.getElementById('alpha').value);
+    if (manual && !isNaN(manual) && manual > 0) return { a: manual, auto: false };
+    var f = TK.fitAlpha(v.r1, v.u1, v.r2, v.u2);
+    return f ? { a: f, auto: true } : { a: 0.85, auto: false };
+  }
+
+  function render(){
+    var v = vals(), fit = alphaOf(v), a = fit.a;
+    var K = TK.calcK(v.u1, v.r1, a);
+    var Ustar = K * Math.pow(v.rStar, -a);
+
+    document.getElementById('fitInfo').innerHTML =
+      '拟合：<b>' + (fit.auto ? '双点自动拟合' : '手动 α') + '</b>　α = <b>' + a.toFixed(3) +
+      '</b>　K ≈ <b>' + K.toFixed(0) + '</b> 单/天　→　<b>Top ' + v.rStar + '</b> 门槛 U* = <b>' +
+      Ustar.toFixed(0) + '</b> 单/天';
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    var best = null;
+    [0.5, 1, 1.5, 2, 3].forEach(function(mul){
+      var b = v.B * mul;
+      if (b <= 0) return;
+      var adOrders = (b / v.cpc) * v.cvr;
+      var P = v.Q + adOrders;
+      var res = TK.run({ mode: 'flat', base: v.Q, push: P, target: Ustar, weights: v.w });
+      var spend = res.days ? b * res.days : 0;
+      var dailyNet = Ustar * v.M - b;
+      var payback = (res.days && dailyNet > 0) ? spend / dailyNet : Infinity;
+
+      var ok = res.reachable && !res.temporary;
+      if (ok && payback <= v.maxPay && (!best || b < best.b)) best = { b: b, mul: mul, days: res.days, payback: payback };
+
+      TK.rows(tb, '<tr><td class="num">' + TK.money0(b) + '</td>' +
+        '<td class="num">' + adOrders.toFixed(0) + '</td>' +
+        '<td class="num">' + P.toFixed(0) + '</td>' +
+        '<td class="num">' + Ustar.toFixed(0) + '</td>' +
+        '<td>' + (P < Ustar
+            ? '<span class="badge b-bad">P 不够</span>'
+            : (res.reachable ? '<span class="badge b-ok">可达成</span>' : '<span class="badge b-warn">超窗口</span>')) + '</td>' +
+        '<td class="num">' + (res.days ? res.days + ' 天' : '—') + '</td>' +
+        '<td class="num">' + (spend ? TK.money0(spend) : '—') + '</td>' +
+        '<td class="num">' + (payback === Infinity ? '不回本' : Math.ceil(payback) + ' 天') + '</td></tr>');
+    });
+
+    var cls, txt;
+    if (!best){
+      cls = 'co-bad';
+      txt = '<b>当前参数下没有合适档位。</b>要么所有预算档的冲刺单量都够不到 Top ' + v.rStar +
+        ' 的门槛 ' + Ustar.toFixed(0) + ' 单/天，要么回本超过 ' + v.maxPay +
+        ' 天。建议：① 提高日预算 ② 降低目标（比如先冲 Top 20）③ 先优化转化率和 CPC，让同样的钱买到更多单。';
+    } else {
+      cls = 'co-ok';
+      txt = '<b>推荐：日预算 ' + TK.money0(best.b) + '</b>（基准的 ' + best.mul + 'x）。' +
+        '约 ' + best.days + ' 天进入 Top ' + v.rStar + '，' + Math.ceil(best.payback) +
+        ' 天回本（在 ' + v.maxPay + ' 天可接受范围内）。这是满足条件里最省的一档 —— 没必要一上来就砸最高预算。';
+    }
+    document.getElementById('verdict').className = 'callout ' + cls;
+    document.getElementById('verdict').innerHTML = txt;
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

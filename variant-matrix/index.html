@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多变体盈亏矩阵</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>多变体盈亏矩阵</h1>
+    <p class="lead">从后台导出或 Excel 直接复制粘贴，一眼看出哪个变体在吸血、该砍谁。</p>
+  </header>
+
+  <div class="card">
+    <h2>粘贴变体数据</h2>
+    <p class="desc">在 Excel 里选中数据复制，直接粘到下面。列顺序：<b>变体名 / 售价 / 单位成本 / 月销量 / 月广告费 / 退货率% / 仓储分摊(件)</b></p>
+    <div class="fields">
+      <div class="field full"><textarea id="data" rows="9">
+黑色-M	29.99	6.5	320	180	5	0.4
+黑色-L	29.99	6.8	410	210	6	0.4
+红色-M	29.99	6.5	90	95	12	0.4
+红色-L	31.99	6.8	55	70	15	0.4
+蓝色-XL	32.99	7.2	18	45	22	0.4</textarea></div>
+      <div class="field"><label>目标毛利率 <span class="unit">%</span></label><input id="target" type="number" value="25" min="0" step="1"></div>
+      <div class="field"><label>占比过低线 <span class="unit">总毛利占比低于此值建议砍</span></label><input id="lowShare" type="number" value="5" min="0" step="1"></div>
+    </div>
+
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>变体盈利明细</h2>
+    <p class="desc">按「月毛利」从高到低排。徽章是建议动作。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>变体</th><th>月销量</th><th>售价</th><th>广告/件</th><th>毛利/件</th><th>毛利率</th><th>月毛利</th><th>占总毛利</th><th>建议</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <p class="note">口径：有效收入＝售价×(1−退货率)；单位成本含采购与仓储分摊；广告按该变体月度广告费摊到每件。若你的广告费无法拆分到变体，可用「曝光份额」或销量占比近似分摊，但要注意这会让估算变粗。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  function parse(text){
+    return text.split(/\r?\n/).map(function(line){
+      var parts = line.indexOf('\t') >= 0 ? line.split('\t') : line.split(',');
+      return parts.map(function(s){ return s.trim(); });
+    }).filter(function(p){ return p.length >= 4 && p[0] !== ''; });
+  }
+
+  function render(){
+    var rowsRaw = parse(document.getElementById('data').value);
+    var target = TK.num('target') / 100;
+    var lowShare = TK.num('lowShare') / 100;
+
+    var items = rowsRaw.map(function(p){
+      var name = p[0];
+      var price = parseFloat(p[1]) || 0;
+      var cost = parseFloat(p[2]) || 0;
+      var units = parseFloat(p[3]) || 0;
+      var ad = parseFloat(p[4]) || 0;
+      var ret = (parseFloat(p[5]) || 0) / 100;
+      var store = parseFloat(p[6]) || 0;
+
+      var effRev = price * (1 - ret);
+      var unitCost = cost + store;
+      var adPer = units > 0 ? ad / units : ad;
+      var per = effRev - unitCost - adPer;
+      var monthProfit = per * units;
+      var margin = price > 0 ? per / price : 0;
+      return { name:name, price:price, units:units, adPer:adPer, ad:ad, per:per,
+               monthProfit:monthProfit, margin:margin, costTotal:cost * units };
+    });
+
+    var totalProfit = items.reduce(function(s, i){ return s + i.monthProfit; }, 0);
+    var totalUnits = items.reduce(function(s, i){ return s + i.units; }, 0);
+
+    items.forEach(function(i){
+      i.share = totalProfit > 0 ? i.monthProfit / totalProfit : 0;
+      if (i.per <= 0){ i.act = 'bad'; i.label = '立即砍掉'; }
+      else if (i.margin >= target){ i.act = 'ok'; i.label = '主推'; }
+      else if (i.share < lowShare){ i.act = 'bad'; i.label = '建议砍掉'; }
+      else { i.act = 'warn'; i.label = '保留观察'; }
+    });
+
+    var cut = items.filter(function(i){ return i.act === 'bad'; });
+    var push = items.filter(function(i){ return i.act === 'ok'; });
+    var freedCash = cut.reduce(function(s, i){ return s + i.costTotal; }, 0);
+    var freedAd = cut.reduce(function(s, i){ return s + i.ad; }, 0);
+    var lostProfit = cut.reduce(function(s, i){ return s + i.monthProfit; }, 0);
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">变体数量</div><div class="v">' + items.length + '</div></div>' +
+      '<div class="box"><div class="k">月度总毛利</div><div class="v">' + TK.money0(totalProfit) + '</div></div>' +
+      '<div class="box"><div class="k">主推变体</div><div class="v">' + push.length + ' 个</div></div>' +
+      '<div class="box"><div class="k">建议砍掉</div><div class="v">' + cut.length + ' 个</div></div>' +
+      '<div class="box"><div class="k">可释放库存资金</div><div class="v">' + TK.money0(freedCash) + '</div></div>' +
+      '<div class="box"><div class="k">可释放广告预算</div><div class="v">' + TK.money0(freedAd) + '</div></div>';
+
+    var cls, txt;
+    if (!items.length){
+      cls = 'co-info';
+      txt = '等待输入数据 —— 把 Excel 里的变体数据复制粘贴到上面的框里。';
+    } else if (cut.length){
+      cls = cut.length >= items.length / 2 ? 'co-bad' : 'co-warn';
+      txt = '<b>有 ' + cut.length + ' 个变体在拖后腿：</b>' + cut.map(function(i){ return i.name; }).join('、') +
+        '。砍掉它们会损失 ' + TK.money0(lostProfit) + ' 月毛利（占 ' + TK.pct(totalProfit > 0 ? lostProfit / totalProfit : 0, 1) +
+        '），但能释放 ' + TK.money0(freedCash) + ' 库存资金和 ' + TK.money0(freedAd) +
+        '/月广告预算 —— 这些钱投到主推变体上，产出的毛利远大于此。' +
+        (lostProfit < 0 ? '注意：其中部分变体月度毛利为负，等于在倒贴卖。' : '');
+    } else {
+      cls = 'co-ok';
+      txt = '<b>变体结构健康。</b>所有变体毛利均为正且无人占总毛利比过低，暂无必要调整结构。可以继续保持并定期复算。';
+    }
+    document.getElementById('verdict').className = 'callout ' + cls;
+    document.getElementById('verdict').innerHTML = txt;
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    items.slice().sort(function(a, b){ return b.monthProfit - a.monthProfit; }).forEach(function(i){
+      var badge = i.act === 'bad' ? 'b-bad' : (i.act === 'ok' ? 'b-ok' : 'b-warn');
+      TK.rows(tb, '<tr><td><b>' + i.name + '</b></td>' +
+        '<td class="num">' + i.units + '</td>' +
+        '<td class="num">' + i.price.toFixed(2) + '</td>' +
+        '<td class="num">' + i.adPer.toFixed(2) + '</td>' +
+        '<td class="num"' + (i.per < 0 ? ' style="color:var(--bad)"' : '') + '>' + i.per.toFixed(2) + '</td>' +
+        '<td class="num">' + TK.pct(i.margin) + '</td>' +
+        '<td class="num">' + TK.money0(i.monthProfit) + '</td>' +
+        '<td class="num">' + TK.pct(i.share) + '</td>' +
+        '<td><span class="badge ' + badge + '">' + i.label + '</span></td></tr>');
+    });
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

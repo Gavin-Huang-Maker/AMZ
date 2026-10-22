@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>搜索词报告解剖器</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>搜索词报告解剖器</h1>
+    <p class="lead">粘贴或导入后台搜索词报告，自动做词根聚类，直接输出「该否定谁 / 该重点投谁」的可执行清单。</p>
+  </header>
+
+  <div class="card">
+    <h2>第一步：导入数据</h2>
+    <p class="desc">支持亚马逊后台导出的 CSV（中文表头）。数据只在你的浏览器里处理，不会上传到任何服务器。</p>
+    <div class="fields">
+      <div class="field full"><label>方式一：选择文件 <span class="unit">支持 .csv</span></label><input id="file" type="file" accept=".csv,.txt"></div>
+      <div class="field"><label>文件编码 <span class="unit">乱码就换另一个</span></label>
+        <select id="enc"><option value="utf-8">UTF-8</option><option value="gbk">GBK / GB18030</option></select></div>
+      <div class="field"><label>产出口径</label>
+        <select id="mode"><option value="total">含光环（全部成交）</option><option value="promoted">仅推广商品自身</option></select></div>
+    </div>
+    <div class="fields" style="margin-top:13px">
+      <div class="field full"><label>方式二：直接粘贴（从 Excel 全选复制）</label><textarea id="paste" rows="4" placeholder="也可以把 CSV 内容直接粘到这里"></textarea></div>
+    </div>
+    <div class="fields" style="margin-top:13px">
+      <div class="field"><label>目标 ACOS <span class="unit">%</span></label><input id="tAcos" type="number" value="35" min="0" step="1"></div>
+      <div class="field"><label>判断所需最少点击 <span class="unit">低于则样本不足</span></label><input id="minCk" type="number" value="10" min="1"></div>
+      <div class="field"><label>否定词花费门槛 <span class="unit">CAD，超过才建议否</span></label><input id="negSpend" type="number" value="5" min="0" step="0.5"></div>
+      <div class="field"><label>词根最小花费 <span class="unit">CAD</span></label><input id="rootSpend" type="number" value="20" min="0" step="1"></div>
+    </div>
+    <div class="callout co-info" id="status">等待导入数据 —— 选文件或粘贴内容后自动分析。</div>
+  </div>
+
+  <div class="card">
+    <h2>总览</h2>
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>词清单</h2>
+    <p class="desc">按侧重点切换查看，每张表的结论都可以直接拿去后台执行。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="tab-btn on" data-p="neg">建议否定词</button>
+      <button class="tab-btn" data-p="push">建议加投词</button>
+      <button class="tab-btn" data-p="tune">有产出但超 ACOS</button>
+      <button class="tab-btn" data-p="weak">高曝光低点击</button>
+      <button class="tab-btn" data-p="asin">ASIN 定投词</button>
+      <button class="tab-btn" data-p="all">全部词</button>
+    </div>
+    <div class="scroll">
+      <table id="termTbl">
+        <thead><tr id="thead"><th>搜索词</th><th>曝光</th><th>点击</th><th>花费</th><th>订单</th><th>销售额</th><th>ACOS</th><th>CPA</th><th>建议</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="note" id="termNote"></p>
+  </div>
+
+  <div class="card">
+    <h2>词根聚类</h2>
+    <p class="desc">把长尾词拆成单词统计，判断哪个「词」在持续吸钱、哪个值得单独建词组。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>词根</th><th>包含词数</th><th>曝光</th><th>点击</th><th>花费</th><th>订单</th><th>销售额</th><th>ACOS</th><th>建议</th></tr></thead>
+        <tbody id="rootTbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>导出</h2>
+    <p class="desc">复制或下载，直接粘到亚马逊后台的「否定关键词」或新建广告组。</p>
+    <div class="fields">
+      <div class="field full"><label>建议否定词清单</label><textarea id="outNeg" rows="6" readonly></textarea></div>
+      <div class="field full"><label>建议加投词清单</label><textarea id="outPush" rows="6" readonly></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="tab-btn" id="btnNeg">下载否定词 .txt</button>
+      <button class="tab-btn" id="btnCsv">下载完整分析 .csv</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var STOP={a:1,an:1,the:1,and:1,or:1,for:1,with:1,of:1,to:1,in:1,on:1,at:1,is:1,it:1,by:1,as:1,from:1,up:1};
+  var COLS={
+    term:['搜索词'], impr:['展示量'], clicks:['点击量'], ctr:['点击率'], spend:['总成本','花费','总花费'],
+    orders:['购买量'], sales:['销售额'], units:['已售商品数量'], cpa:['单次购买成本'], roas:['ROAS'], cvr:['购买率'],
+    oPromo:['推广商品的购买量'], sPromo:['推广商品的销量'],
+    camp:['广告活动名称'], grp:['广告组名称'], date:['日期范围']
+  };
+  var state={ rows:[], agg:[], terms:[], roots:[], panel:'neg' };
+
+  /* ---------- CSV 解析 ---------- */
+  function parseCSV(s){
+    s=s.replace(/^\uFEFF/,'');
+    var rows=[], row=[], cur='', i=0, inQ=false, c;
+    while(i<s.length){
+      c=s.charAt(i);
+      if(inQ){
+        if(c==='"'){ if(s.charAt(i+1)==='"'){ cur+='"'; i+=2; continue; } inQ=false; i++; continue; }
+        cur+=c; i++; continue;
+      }
+      if(c==='"'){ inQ=true; i++; continue; }
+      if(c===','){ row.push(cur); cur=''; i++; continue; }
+      if(c==='\r'){ i++; continue; }
+      if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; i++; continue; }
+      cur+=c; i++;
+    }
+    row.push(cur); rows.push(row);
+    return rows.filter(function(r){ return r.some(function(x){ return x!==''; }); });
+  }
+  function cleanCell(v){
+    var s=String(v==null?'':v).trim();
+    s=s.replace(/^="/,'').replace(/"$/,'').trim();
+    return s;
+  }
+  function numCell(v){
+    var s=String(v==null?'':v).trim();
+    if(!s||s==='-'||s==='null'||s==='N/A') return 0;
+    s=s.replace(/[CAD$￥€£,\s%]/g,'');
+    var n=parseFloat(s);
+    return isNaN(n)?0:n;
+  }
+  function findCol(header, names){
+    for(var i=0;i<header.length;i++){
+      var h=cleanCell(header[i]);
+      for(var j=0;j<names.length;j++){ if(h===names[j]) return i; }
+    }
+    return -1;
+  }
+
+  /* ---------- 主分析 ---------- */
+  function analyze(text){
+    var rows=parseCSV(text);
+    if(!rows.length) return { err:'没有读到内容' };
+    var hi=-1,k;
+    for(k=0;k<Math.min(rows.length,5);k++){
+      if(findCol(rows[k],COLS.term)>=0){ hi=k; }
+    }
+    if(hi<0) return { err:'没找到「搜索词」表头，请确认导出的是搜索词报告。' };
+    var H=rows[hi];
+    var ix={};
+    Object.keys(COLS).forEach(function(key){ ix[key]=findCol(H,COLS[key]); });
+    if(ix.term<0) return { err:'缺少搜索词列' };
+
+    var usePromo=document.getElementById('mode').value==='promoted';
+    var oi=usePromo?ix.oPromo:ix.orders, si=usePromo?ix.sPromo:ix.sales;
+    if(oi<0) oi=ix.orders; if(si<0) si=ix.sales;
+
+    var dates={}, terms={}, skipped=0;
+    for(k=hi+1;k<rows.length;k++){
+      var r=rows[k];
+      if(r.length<3) { skipped++; continue; }
+      var term=cleanCell(r[ix.term]);
+      if(!term){ skipped++; continue; }
+      if(ix.date>=0) dates[cleanCell(r[ix.date])]=1;
+      var t;
+      if(!terms[term]){
+        t=terms[term]={ term:term, impr:0, clicks:0, spend:0, orders:0, sales:0, camp:{} };
+      } else t=terms[term];
+      t.impr+=numCell(r[ix.impr]);
+      t.clicks+=numCell(r[ix.clicks]);
+      t.spend+=numCell(r[ix.spend]);
+      t.orders+=numCell(r[oi]);
+      t.sales+=numCell(r[si]);
+      if(ix.camp>=0){ var cn=cleanCell(r[ix.camp]); if(cn) t.camp[cn]=1; }
+    }
+    var list=Object.keys(terms).map(function(k){ return terms[k]; });
+    return { list:list, skipped:skipped, dates:Object.keys(dates), usePromo:usePromo };
+  }
+
+  function enrich(list){
+    list.forEach(function(t){
+      t.acos=t.sales>0?t.spend/t.sales*100:Infinity;
+      t.cpa=t.orders>0?t.spend/t.orders:Infinity;
+      t.ctr=t.impr>0?t.clicks/t.impr*100:0;
+      t.cvr=t.clicks>0?t.orders/t.clicks*100:0;
+      t.isOther=t.term==='(Other)';
+      t.isAsin=/^[Bb]0[A-Z0-9]{8}$/.test(t.term);
+      t.camps=Object.keys(t.camp);
+    });
+    return list;
+  }
+
+  function classify(res){
+    var tA=+document.getElementById('tAcos').value||35;
+    var minC=+document.getElementById('minCk').value||10;
+    var negS=+document.getElementById('negSpend').value||15;
+    res.list.forEach(function(t){
+      if(t.isOther){ t.cls='other'; t.act='聚合长尾'; return; }
+      if(t.isAsin){ t.cls='asin'; t.act='ASIN 定投'; return; }
+      if(t.orders===0){
+        if(t.spend>=negS){ t.cls='neg'; t.act='建议否定'; }
+        else if(t.clicks>0){ t.cls='watch'; t.act='观察（花费尚低）'; }
+        else { t.cls='noimp'; t.act='无点击'; }
+        return;
+      }
+      if(t.clicks<minC){ t.cls='small'; t.act='样本不足，别急动'; return; }
+      if(t.acos<=tA){ t.cls='push'; t.act='建议加投'; return; }
+      if(t.acos<=tA*1.5){ t.cls='tune'; t.act='有产出·需控 AC'; return; }
+      t.cls='weak'; t.act='超 AC·降价或观察';
+    });
+  }
+
+  function buildRoots(res){
+    var minS=+document.getElementById('rootSpend').value||20;
+    var tA=+document.getElementById('tAcos').value||35;
+    var map={};
+    res.list.forEach(function(t){
+      if(t.isOther||t.isAsin) return;
+      var words=t.term.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean);
+      words.forEach(function(w){
+        if(w.length<=1||STOP[w]) return;
+        if(!map[w]) map[w]={ w:w, n:0, impr:0, clicks:0, spend:0, orders:0, sales:0 };
+        var r=map[w];
+        r.n++; r.impr+=t.impr; r.clicks+=t.clicks; r.spend+=t.spend; r.orders+=t.orders; r.sales+=t.sales;
+      });
+    });
+    var roots=Object.keys(map).map(function(k){ return map[k]; })
+      .filter(function(r){ return r.spend>=minS; })
+      .sort(function(a,b){ return b.spend-a.spend; });
+    roots.forEach(function(r){
+      r.acos=r.sales>0?r.spend/r.sales*100:Infinity;
+      if(r.orders===0) r.act='吸血词根 · 建议词组否定';
+      else if(r.acos<=tA) r.act='高效词根 · 建议单建词组';
+      else r.act='偏贵 · 控 bid 或观察';
+    });
+    return roots;
+  }
+
+  /* ---------- 渲染 ---------- */
+  function fmtInf(v){ return isFinite(v)?TK.pct(v/100,0):'—'; }
+  function money(v){ return v.toFixed(2); }
+
+  function render(){
+    var res=state.res;
+    if(!res||res.err){
+      document.getElementById('status').innerHTML=res&&res.err?('<b>读取失败：</b>'+res.err):'等待导入数据。';
+      return;
+    }
+    var list=res.list;
+    var tot=list.reduce(function(a,t){ return { impr:a.impr+t.impr, clicks:a.clicks+t.clicks,
+      spend:a.spend+t.spend, orders:a.orders+t.orders, sales:a.sales+t.sales }; },
+      { impr:0, clicks:0, spend:0, orders:0, sales:0 });
+    var other=list.filter(function(t){ return t.isOther; })
+      .reduce(function(a,t){ return { impr:a.impr+t.impr, spend:a.spend+t.spend }; }, { impr:0, spend:0 });
+    var negList=list.filter(function(t){ return t.cls==='neg'; });
+    var pushList=list.filter(function(t){ return t.cls==='push'; });
+    var zeroList=list.filter(function(t){ return t.orders===0&&!t.isOther&&!t.isAsin; });
+    var waste=negList.reduce(function(s,t){ return s+t.spend; },0);
+    var zeroWaste=zeroList.reduce(function(s,t){ return s+t.spend; },0);
+
+    document.getElementById('status').innerHTML=
+      '已读取 <b>'+list.length+'</b> 个搜索词（其中 '+list.filter(function(t){return t.isOther;}).length+
+      ' 个 (Other) 聚合行、'+list.filter(function(t){return t.isAsin;}).length+' 个 ASIN 词）'+
+      '　·　表内日期范围 '+res.dates.length+' 段'+
+      '　·　当前口径：<b>'+(res.usePromo?'仅推广商品自身':'含光环全部成交')+'</b>';
+
+    document.getElementById('kv1').innerHTML=
+      '<div class="box"><div class="k">总花费</div><div class="v">'+money(tot.spend)+'</div></div>'+
+      '<div class="box"><div class="k">总订单</div><div class="v">'+tot.orders+'</div></div>'+
+      '<div class="box"><div class="k">总销售额</div><div class="v">'+money(tot.sales)+'</div></div>'+
+      '<div class="box"><div class="k">整体 ACOS</div><div class="v">'+fmtInf(tot.sales>0?tot.spend/tot.sales*100:Infinity)+'</div></div>'+
+      '<div class="box"><div class="k">整体 CPA</div><div class="v">'+(tot.orders>0?money(tot.spend/tot.orders):'—')+'</div></div>'+
+      '<div class="box"><div class="k">零转化词数 / 烧掉</div><div class="v">'+zeroList.length+' 个 / '+money(zeroWaste)+'</div></div>';
+
+    var cls,txt;
+    var zeroPct=tot.spend>0?zeroWaste/tot.spend*100:0;
+    if(zeroPct>40){
+      cls='co-bad';
+      txt='<b>浪费偏高。</b>零转化词烧掉了 '+money(zeroWaste)+'，占总花费 '+zeroPct.toFixed(1)+
+        '%。其中符合否定门槛的有 '+negList.length+' 个，先否掉这批就能回收 '+money(waste)+
+        ' —— 这是立即可执行的省钱动作，建议当周就做。';
+    } else if(zeroPct>20){
+      cls='co-warn';
+      txt='<b>还有优化空间。</b>零转化词占花费 '+zeroPct.toFixed(1)+'%，可回收 '+money(waste)+
+        '。同时有 '+pushList.length+' 个词已经跑出低于目标 ACOS 的成绩，把省下的钱挪过去效率更高。';
+    } else {
+      cls='co-ok';
+      txt='<b>词结构健康。</b>零转化词只占 '+zeroPct.toFixed(1)+'%。重点是继续放大 '+pushList.length+
+        ' 个高效词，同时看下面「词根聚类」有没有值得单独建组的方向。';
+    }
+    if(pushList.length){
+      var topP=pushList.slice().sort(function(a,b){ return b.sales-a.sales; }).slice(0,5)
+        .map(function(t){ return t.term+'（ACOS '+t.acos.toFixed(0)+'%）'; }).join('、');
+      txt+='<br><b>优先加投：</b>'+topP+'。';
+    }
+    /* 自适应提示：账户花费分散时，单个长尾词够不到门槛，要用「词组否定」按词根批量处理 */
+    if(!negList.length && zeroList.length){
+      var sp=zeroList.map(function(t){ return t.spend; }).sort(function(a,b){ return a-b; });
+      var med=sp[Math.floor(sp.length/2)]||0;
+      var suggest=Math.max(2, Math.ceil(med*2));
+      txt+='<br><b>注意：这个账户的花费很分散。</b>零转化词共 '+zeroList.length+
+        ' 个（中位花费约 '+(med).toFixed(2)+'），但单个词都够不到 '+negS+
+        ' 的门槛。建议把门槛调到约 '+suggest+'，或者更省事的做法——<b>别一个个否词</b>，直接按下面「词根聚类」里偏贵的词根做<b>词组否定</b>，效率差好几倍。';
+    }
+    document.getElementById('verdict').className='callout '+cls;
+    document.getElementById('verdict').innerHTML=txt;
+
+    /* 词表 */
+    var p=state.panel, rows;
+    if(p==='neg') rows=list.filter(function(t){ return t.cls==='neg'; }).sort(function(a,b){ return b.spend-a.spend; });
+    else if(p==='push') rows=pushList.slice().sort(function(a,b){ return b.sales-a.sales; });
+    else if(p==='tune') rows=list.filter(function(t){ return t.cls==='tune'||t.cls==='weak'; }).sort(function(a,b){ return b.spend-a.spend; });
+    else if(p==='weak') rows=list.filter(function(t){ return t.impr>=100&&t.ctr<0.3; }).sort(function(a,b){ return b.impr-a.impr; });
+    else if(p==='asin') rows=list.filter(function(t){ return t.isAsin; }).sort(function(a,b){ return b.spend-a.spend; });
+    else rows=list.slice().sort(function(a,b){ return b.spend-a.spend; }).slice(0,300);
+
+    var note={
+      neg:'判定：有花费但零订单，且花费超过门槛。这些词建议加为「否定关键词」，低成本直接止血。多语言词（非投放语种）尤其要否。',
+      push:'判定：订单数达标且 ACOS 低于目标。建议单独建词组投放或提高 bid，把曝光位从低价位抢过来。',
+      tune:'判定：有产出但 ACOS 超过目标。降价或收紧投放，不要直接否定 —— 它们还在赚钱，只是不够便宜。',
+      weak:'判定：曝光够多但点击率低。通常是相关性问题（主图、价格、标题不匹配），先修 Listing 再谈投放。',
+      asin:'商品定投的来源ASIN。看它们是赚是亏，产出差的直接从商品投放里剔除。',
+      all:'按花费排序的全部词，用于人工复核。注意 (Other) 是亚马逊对长尾词的聚合行，不可否定。'
+    };
+    document.getElementById('termNote').innerHTML=note[p]||'';
+
+    var tb=document.getElementById('tbody');
+    TK.clear(tb);
+    rows.slice(0,200).forEach(function(t){
+      var b=t.cls==='neg'?'b-bad':(t.cls==='push'?'b-ok':(t.cls==='tune'||t.cls==='weak'?'b-warn':'b-idle'));
+      TK.rows(tb,'<tr><td>'+t.term+(t.isOther?' <span class="tag">(聚合)</span>':'')+'</td>'+
+        '<td class="num">'+t.impr+'</td><td class="num">'+t.clicks+'</td>'+
+        '<td class="num">'+money(t.spend)+'</td><td class="num">'+t.orders+'</td>'+
+        '<td class="num">'+(t.sales?money(t.sales):'—')+'</td>'+
+        '<td class="num">'+fmtInf(t.acos)+'</td>'+
+        '<td class="num">'+(isFinite(t.cpa)?money(t.cpa):'—')+'</td>'+
+        '<td><span class="badge '+b+'">'+t.act+'</span></td></tr>');
+    });
+    if(!rows.length) TK.rows(tb,'<tr><td colspan="9"><span class="tag">当前条件下没有符合条件的词</span></td></tr>');
+
+    /* 词根表 */
+    var rtb=document.getElementById('rootTbl');
+    TK.clear(rtb);
+    state.roots.slice(0,40).forEach(function(r){
+      var b=r.orders===0?'b-bad':(r.acos<=+document.getElementById('tAcos').value?'b-ok':'b-warn');
+      TK.rows(rtb,'<tr><td><b>'+r.w+'</b></td><td class="num">'+r.n+'</td>'+
+        '<td class="num">'+r.impr+'</td><td class="num">'+r.clicks+'</td>'+
+        '<td class="num">'+money(r.spend)+'</td><td class="num">'+r.orders+'</td>'+
+        '<td class="num">'+(r.sales?money(r.sales):'—')+'</td>'+
+        '<td class="num">'+fmtInf(r.acos)+'</td>'+
+        '<td><span class="badge '+b+'">'+r.act+'</span></td></tr>');
+    });
+
+    /* 导出文本 */
+    document.getElementById('outNeg').value=list.filter(function(t){ return t.cls==='neg'; })
+      .sort(function(a,b){ return b.spend-a.spend; }).map(function(t){ return t.term; }).join('\n');
+    document.getElementById('outPush').value=pushList.slice().sort(function(a,b){ return b.sales-a.sales; })
+      .map(function(t){ return t.term; }).join('\n');
+  }
+
+  function recompute(text){
+    state.res=analyze(text);
+    if(state.res.err){ render(); return; }
+    enrich(state.res.list);
+    classify(state.res);
+    state.roots=buildRoots(state.res);
+    render();
+  }
+
+  function download(name, content, type){
+    var blob=new Blob(['\uFEFF'+content],{type:(type||'text/plain')+';charset=utf-8'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('.tab-btn[data-p]');
+    if(b){
+      document.querySelectorAll('.tab-btn[data-p]').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); state.panel=b.dataset.p; render(); return;
+    }
+    if(e.target.id==='btnNeg'){
+      download('否定词清单.txt', document.getElementById('outNeg').value);
+    }
+    if(e.target.id==='btnCsv'){
+      var head='搜索词,曝光,点击,花费,订单,销售额,ACOS%,CPA,建议\n';
+      var body=state.res.list.slice().sort(function(a,b){ return b.spend-a.spend; }).map(function(t){
+        return '"'+t.term.replace(/"/g,'""')+'",'+t.impr+','+t.clicks+','+t.spend.toFixed(2)+','+t.orders+','+
+          t.sales.toFixed(2)+','+(isFinite(t.acos)?t.acos.toFixed(1):'')+','+(isFinite(t.cpa)?t.cpa.toFixed(2):'')+','+t.act;
+      }).join('\n');
+      download('搜索词分析.csv', head+body, 'text/csv');
+    }
+  });
+
+  document.getElementById('file').addEventListener('change',function(e){
+    var f=e.target.files[0]; if(!f) return;
+    var enc=document.getElementById('enc').value;
+    var fr=new FileReader();
+    fr.onload=function(){ recompute(String(fr.result)); };
+    fr.readAsText(f,enc);
+  });
+  TK.bindAll(render);
+  document.getElementById('paste').addEventListener('input',function(){ recompute(this.value); });
+})();
+</script>
+</body>
+</html>

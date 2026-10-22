@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>账号绩效红线预警</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>账号绩效红线预警</h1>
+    <p class="lead">把账号健康指标换算成「离红线还有多远」，并按紧急程度排出该做的事。</p>
+  </header>
+
+  <div class="card">
+    <h2>填写当前数值</h2>
+    <p class="desc">数据来自卖家后台「账户状况 / 业绩通知」。红线值可按你的站点调整。</p>
+    <div class="fields">
+      <div class="field"><label>订单缺陷率 ODR <span class="unit">%</span></label><input id="odr" type="number" value="0.35" min="0" step="0.01"></div>
+      <div class="field"><label>ODR 红线 <span class="unit">%</span></label><input id="odrL" type="number" value="1" min="0" step="0.1"></div>
+      <div class="field"><label>订单取消率 <span class="unit">%</span></label><input id="cancel" type="number" value="1.2" min="0" step="0.01"></div>
+      <div class="field"><label>取消率红线 <span class="unit">%</span></label><input id="cancelL" type="number" value="2.5" min="0" step="0.1"></div>
+      <div class="field"><label>迟发率 <span class="unit">%</span></label><input id="late" type="number" value="2.0" min="0" step="0.01"></div>
+      <div class="field"><label>迟发率红线 <span class="unit">%</span></label><input id="lateL" type="number" value="4" min="0" step="0.1"></div>
+      <div class="field"><label>有效追踪率 <span class="unit">%</span></label><input id="track" type="number" value="93" min="0" step="0.5"></div>
+      <div class="field"><label>追踪率红线 <span class="unit">%</span></label><input id="trackL" type="number" value="95" min="0" step="0.5"></div>
+      <div class="field"><label>24 小时回复率 <span class="unit">%</span></label><input id="reply" type="number" value="88" min="0" step="1"></div>
+      <div class="field"><label>回复率红线 <span class="unit">%</span></label><input id="replyL" type="number" value="90" min="0" step="1"></div>
+    </div>
+
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>各项体检</h2>
+    <p class="desc">绿色＝安全，黄色＝接近红线，红色＝已超标或已不达标。</p>
+    <div id="list"></div>
+  </div>
+
+  <div class="card">
+    <h2>处理优先级</h2>
+    <p class="desc">从上往下做，别挑顺序。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>优先级</th><th>指标</th><th>状态</th><th>建议动作</th></tr></thead>
+        <tbody id="acts"></tbody>
+      </table>
+    </div>
+    <p class="note">不同站点的具体红线标准可能略有差异，请以卖家中心「账户状况」页面显示的为准。本工具用于自我体检与优先级排序，不替代亚马逊官方判定。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var METRICS = [
+    { key:'odr', name:'订单缺陷率 ODR', dir:'low', unit:'%',
+      act:'排查差评、A-to-Z 索赔和信用卡拒付集中在哪些 SKU；先暂停问题链接的广告投放，检查实物与页面描述是否一致，必要时下架整改。' },
+    { key:'cancel', name:'订单取消率', dir:'low', unit:'%',
+      act:'核对库存数量与系统同步，避免超卖；检查是否有订单因价格设置错误或缺货被动取消，优先修复库存同步链路。' },
+    { key:'late', name:'迟发率', dir:'low', unit:'%',
+      act:'提前备好库存，确认假期/周末的发货时效设置是否正确；必要时切换更快的头程或启用多渠道发货分流。' },
+    { key:'track', name:'有效追踪率', dir:'high', unit:'%',
+      act:'自发货订单统一使用可追踪的物流渠道，并在后台如实填写承运商名称，避免填写不被识别的承运商导致无法计入。' },
+    { key:'reply', name:'24 小时回复率', dir:'high', unit:'%',
+      act:'设置常见问题自动回复模板，安排值班响应；把高频问题整理成模板库，压缩首次响应时间。' }
+  ];
+
+  function evaluate(m){
+    var val = TK.num(m.key), lim = TK.num(m.key + 'L') || TK.num(m.key + 'L');
+    var limEl = document.getElementById(m.key + 'L');
+    lim = limEl ? parseFloat(limEl.value) : 0;
+    var level, used, remain, note;
+    if (m.dir === 'low'){
+      used = lim > 0 ? val / lim : 0;
+      if (val > lim){ level = 'bad'; }
+      else if (used >= 0.7){ level = 'warn'; }
+      else { level = 'ok'; }
+      remain = lim - val;
+      note = '距红线还剩 ' + remain.toFixed(2) + ' 个百分点（已用额度 ' + Math.round(used * 100) + '%）';
+    } else {
+      used = val / 100;
+      if (val >= lim){ level = 'ok'; }
+      else if (val >= lim - 5){ level = 'warn'; }
+      else { level = 'bad'; }
+      remain = val - lim;
+      note = remain >= 0
+        ? '已达标，高出红线 ' + remain.toFixed(1) + ' 个百分点'
+        : '距红线还差 ' + Math.abs(remain).toFixed(1) + ' 个百分点';
+    }
+    /* 「越大越差」类指标：(lim - val) 是余量；两个方向统一换算成安全余量百分比 */
+    var headroom = m.dir === 'low'
+      ? (lim > 0 ? (lim - val) / lim : 0)
+      : (val / Math.max(lim, 0.01));
+    return { m: m, val: val, lim: lim, level: level, used: m.dir === 'low' ? used : used, headroom: headroom, note: note };
+  }
+
+  function render(){
+    var results = METRICS.map(evaluate);
+    var bad = results.filter(function(r){ return r.level === 'bad'; });
+    var warn = results.filter(function(r){ return r.level === 'warn'; });
+    var score = Math.max(0, 100 - bad.length * 30 - warn.length * 12);
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">健康分</div><div class="v">' + score + ' / 100</div></div>' +
+      '<div class="box"><div class="k">已超标 / 未达标项</div><div class="v">' + bad.length + ' 项</div></div>' +
+      '<div class="box"><div class="k">接近红线项</div><div class="v">' + warn.length + ' 项</div></div>' +
+      '<div class="box"><div class="k">安全项</div><div class="v">' + results.filter(function(r){ return r.level === 'ok'; }).length + ' 项</div></div>';
+
+    var cls, txt;
+    if (bad.length){
+      cls = 'co-bad';
+      txt = '<b>立刻处理。</b>有 ' + bad.length + ' 项已经越过红线：' +
+        bad.map(function(r){ return r.m.name; }).join('、') +
+        '。账号被停用往往不是慢慢变差，而是某一个指标突然爆掉 —— 今天就该动手。';
+    } else if (warn.length){
+      cls = 'co-warn';
+      txt = '<b>需要盯紧。</b>没有超标项，但有 ' + warn.length + ' 项已接近红线（余量不足 30%）：' +
+        warn.map(function(r){ return r.m.name; }).join('、') +
+        '。建议在它们变红之前就修掉，成本比事后申诉低得多。';
+    } else {
+      cls = 'co-ok';
+      txt = '<b>账号健康。</b>各项指标均有充足余量，保持当前的监控频率即可。建议每周固定看一次，别等指标红了才处理。';
+    }
+    document.getElementById('verdict').className = 'callout ' + cls;
+    document.getElementById('verdict').innerHTML = txt;
+
+    var order = { bad: 0, warn: 1, ok: 2 };
+    var sorted = results.slice().sort(function(a, b){ return order[a.level] - order[b.level]; });
+
+    document.getElementById('list').innerHTML = sorted.map(function(r){
+      var badge = r.level === 'bad' ? '<span class="badge b-bad">危险</span>'
+                : r.level === 'warn' ? '<span class="badge b-warn">接近</span>'
+                : '<span class="badge b-ok">安全</span>';
+      return '<div class="risk">' +
+        '<div class="top"><span class="nm">' + r.m.name + ' ' + badge + '</span>' +
+        '<span class="vl">' + r.val + r.m.unit + ' <span class="tag">/ 红线 ' + r.lim + r.m.unit + '</span></span></div>' +
+        '<div class="sub">' + r.note + '</div>' +
+        TK.barHTML(r.m.dir === 'low' ? r.val / Math.max(r.lim, 0.01) : r.val / 100, r.level) +
+        '</div>';
+    }).join('');
+
+    var tb = document.getElementById('acts');
+    TK.clear(tb);
+    sorted.forEach(function(r, i){
+      if (r.level === 'ok') return;
+      tb.insertAdjacentHTML('beforeend',
+        '<tr><td>' + (i + 1) + '</td><td>' + r.m.name + '</td>' +
+        '<td>' + (r.level === 'bad' ? '<span class="badge b-bad">危险</span>' : '<span class="badge b-warn">接近</span>') + '</td>' +
+        '<td>' + r.m.act + '</td></tr>');
+    });
+    if (!tb.children.length){
+      tb.insertAdjacentHTML('beforeend', '<tr><td colspan="4"><span class="tag">全部达标，暂无待办动作</span></td></tr>');
+    }
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

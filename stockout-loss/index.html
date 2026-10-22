@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>断货损失与恢复成本测算</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>断货损失与恢复成本测算</h1>
+    <p class="lead">断货几天 → 排名掉多少 → 要花多少钱才能恢复？把「看不见的损失」算成具体金额。</p>
+  </header>
+
+  <div class="card">
+    <h2>参数设置</h2>
+    <p class="desc">填正常时期的经营数据，再填断货天数。</p>
+
+    <div class="fields">
+      <div class="field"><label>断货前排名 r_now</label><input id="rNow" type="number" value="8" min="1"></div>
+      <div class="field"><label>正常情况下日均单量 U</label><input id="uNow" type="number" value="50" min="0"></div>
+      <div class="field"><label>参考链接排名 r_ref</label><input id="rRef" type="number" value="1" min="1"></div>
+      <div class="field"><label>参考链接日均 U_ref</label><input id="uRef" type="number" value="600" min="0"></div>
+      <div class="field"><label>α（留空自动拟合）</label><input id="alpha" type="number" placeholder="自动" min="0.1" max="2" step="0.05"></div>
+      <div class="field"><label>滚动窗口</label>
+        <select id="winMode"><option value="3">近 3 天</option><option value="7" selected>近 7 天</option><option value="14">近 14 天</option></select></div>
+    </div>
+
+    <hr class="sep">
+    <h3>断货与恢复</h3>
+    <div class="fields">
+      <div class="field"><label>断货天数 D</label><input id="stockD" type="number" value="7" min="0"></div>
+      <div class="field"><label>窗口记忆常数 τ <span class="unit">默认 3 天</span></label><input id="tau" type="number" value="3" min="0.5" step="0.5"></div>
+      <div class="field"><label>补货后日均目标 P</label><input id="pushP" type="number" value="400" min="0"></div>
+      <div class="field"><label>补货后自然单 Q <span class="unit">不用广告也能卖的</span></label><input id="qNat" type="number" value="50" min="0"></div>
+      <div class="field"><label>单件毛利 M <span class="unit">USD</span></label><input id="margin" type="number" value="9.08" min="0" step="0.01"></div>
+      <div class="field"><label>恢复期广告 CPA <span class="unit">USD/单</span></label><input id="cpa" type="number" value="4.58" min="0" step="0.01"></div>
+    </div>
+
+    <div class="formula">
+      断货后有效销量衰减 <code>η = e^(−D/τ)</code>　→　断货后排名 <code>r' = r_now × η^(−1/α)</code><br>
+      恢复到原排名需重新把加权分推回 U（原日均销量）。总损失 ＝ 断货期损失毛利 ＋ 恢复期广告花费。
+    </div>
+
+    <div class="callout co-info" id="fitInfo"></div>
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>不同断货天数的影响对比</h2>
+    <p class="desc">看一眼就知道：多断一天，要多烧多少钱。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>断货天数</th><th>跌后排名</th><th>名次跌幅</th><th>恢复天数</th><th>恢复花费</th><th>毛利损失</th><th>合计损失</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <p class="note">模型说明：断货期间销量视为衰减而非直接归零（少量由其他在售变体/自然搜索残留贡献）；τ 越大表示类目对历史销量"记得越久"，恢复越慢。合计损失不含断货期间广告费照常投放的浪费部分。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  function vals(){
+    return {
+      rNow: TK.num('rNow'), U: TK.num('uNow'), rRef: TK.num('rRef'), Uref: TK.num('uRef'),
+      D: TK.num('stockD'), tau: TK.num('tau') || 3, P: TK.num('pushP'),
+      Q: TK.num('qNat'), M: TK.num('margin'), cpa: TK.num('cpa'),
+      w: TK.makeWeights(+document.getElementById('winMode').value)
+    };
+  }
+  function alphaOf(v){
+    var manual = parseFloat(document.getElementById('alpha').value);
+    if (manual && !isNaN(manual) && manual > 0) return { a: manual, auto: false };
+    var f = TK.fitAlpha(v.rNow, v.U, v.rRef, v.Uref);
+    return f ? { a: f, auto: true } : { a: 0.85, auto: false };
+  }
+  /* 核心：给定断货天数 D，算跌后排名 / 恢复天数 / 损失 */
+  function analyze(v, a, D){
+    var K = TK.calcK(v.U, v.rNow, a);
+    var eta = Math.exp(-D / v.tau);
+    var Ueff = v.U * eta;
+    var rAfter = TK.rankOf(K, Ueff, a);
+    var res = TK.run({ mode: 'flat', base: Ueff, push: v.P, target: v.U, weights: v.w });
+    var adUnits = Math.max(0, v.P - v.Q);
+    var adCost = res.days ? adUnits * res.days * v.cpa : 0;
+    var lostMargin = v.U * D * v.M;
+    return { rAfter: rAfter, drop: rAfter - v.rNow, days: res.days, adCost: adCost,
+             lostMargin: lostMargin, total: adCost + lostMargin, K: K };
+  }
+
+  function render(){
+    var v = vals(), fit = alphaOf(v), a = fit.a;
+    document.getElementById('fitInfo').innerHTML =
+      '拟合方式：<b>' + (fit.auto ? '双点自动拟合' : '手动指定 α') + '</b>　α = <b>' + a.toFixed(3) +
+      '</b>　K（≈BSR1 门槛）= <b>' + v.U * Math.pow(v.rNow, a) + '</b> 单/天';
+
+    var R = analyze(v, a, v.D);
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">断货前排名</div><div class="v">#' + v.rNow.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">断货后预估排名</div><div class="v">#' + (isFinite(R.rAfter) ? R.rAfter.toFixed(0) : '—') + '</div></div>' +
+      '<div class="box"><div class="k">恢复所需天数</div><div class="v">' + (R.days ? R.days + ' 天' : '无法恢复') + '</div></div>' +
+      '<div class="box"><div class="k">恢复广告花费</div><div class="v">' + TK.money0(R.adCost) + '</div></div>' +
+      '<div class="box"><div class="k">断货毛利损失</div><div class="v">' + TK.money0(R.lostMargin) + '</div></div>' +
+      '<div class="box"><div class="k">合计损失</div><div class="v">' + TK.money0(R.total) + '</div></div>';
+
+    var cls, txt;
+    if (v.D === 0){ cls = 'co-ok'; txt = '<b>没有断货，零损失。</b>不断货就是最省钱的策略 —— 相比出事后几万块的恢复费，提前补货的物流提速通常便宜得多。'; }
+    else if (!R.days){
+      cls = 'co-bad';
+      txt = '<b>恢复不了。</b>补货后目标日均 ' + v.P + ' 单，低于恢复所需门槛 ' + v.U.toFixed(0) +
+        ' 单/天，这样投下去永远回不到第 ' + v.rNow + ' 名。要么把 P 提到 ' + v.U.toFixed(0) + ' 以上，要么接受降档经营。';
+    } else if (R.drop > 200){
+      cls = 'co-bad';
+      txt = '<b>重伤。</b>断货 ' + v.D + ' 天会让排名从 #' + v.rNow + ' 掉到约 #' + R.rAfter.toFixed(0) +
+        '，需要 ' + R.days + ' 天、花 ' + TK.money0(R.adCost) + ' 才可能恢复，合计损失约 ' + TK.money0(R.total) +
+        '。这类断货基本等于「重做一个新品」，务必提前备货。';
+    } else if (R.drop > 30){
+      cls = 'co-warn';
+      txt = '<b>明显受损。</b>排名约跌到 #' + R.rAfter.toFixed(0) + '，恢复需 ' + R.days + ' 天 / ' +
+        TK.money0(R.adCost) + '，合计损失约 ' + TK.money0(R.total) + '。断货前补货的物流提速费用，通常远低于这个数字。';
+    } else {
+      cls = 'co-ok';
+      txt = '<b>影响可控。</b>短期断货 ' + v.D + ' 天排名约跌到 #' + R.rAfter.toFixed(0) + '，' +
+        (R.days ? R.days + ' 天内可恢复' : '') + '，合计损失约 ' + TK.money0(R.total) + '。属于可承受范围。';
+    }
+    document.getElementById('verdict').className = 'callout ' + cls;
+    document.getElementById('verdict').innerHTML = txt;
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    [0, 3, 7, 14, 30].forEach(function(D){
+      var r = analyze(v, a, D);
+      TK.rows(tb, '<tr><td>' + D + ' 天</td>' +
+        '<td class="num">#' + (isFinite(r.rAfter) ? r.rAfter.toFixed(0) : '—') + '</td>' +
+        '<td class="num">' + (D === 0 ? '—' : '↓' + r.drop.toFixed(0)) + '</td>' +
+        '<td class="num">' + (r.days ? r.days + ' 天' : '—') + '</td>' +
+        '<td class="num">' + (r.adCost ? TK.money0(r.adCost) : '—') + '</td>' +
+        '<td class="num">' + (r.lostMargin ? TK.money0(r.lostMargin) : '—') + '</td>' +
+        '<td class="num"><b>' + (r.total ? TK.money0(r.total) : '—') + '</b></td></tr>');
+    });
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

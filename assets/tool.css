@@ -1,0 +1,83 @@
+/* 亚马逊卖家运营工具箱 - 公共样式 v1.0
+   所有工具共用，改这里等于改全部工具的外观 */
+:root{
+  --app-bg:#f5f6f8; --card:#ffffff; --text:#1a1d21; --muted:#6b7280; --hint:#9aa1ab;
+  --border:#e4e7eb; --border-strong:#d0d5dd; --accent:#e8590c;
+  --accent-soft:#fff2e9; --row-alt:#fafbfc;
+  --ok:#0f7b4f; --warn:#b45309; --bad:#b91c1c;
+  --oksoft:#e9f6ef; --warnsoft:#fdf3e3; --badsoft:#fbecec;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --app-bg:#0e1014; --card:#171a20; --text:#e8eaed; --muted:#a2a8b3; --hint:#6b7280;
+    --border:#282d36; --border-strong:#3a4150; --accent:#ff7a33;
+    --accent-soft:#241a14; --row-alt:#1c2027;
+    --ok:#4ec98c; --warn:#f0b458; --bad:#f28b82;
+    --oksoft:#12241b; --warnsoft:#241d10; --badsoft:#2a1616;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--app-bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  line-height:1.6;padding:28px 16px;-webkit-font-smoothing:antialiased;}
+.page{max-width:900px;margin:0 auto;}
+.back{display:inline-block;font-size:13px;color:var(--muted);text-decoration:none;margin-bottom:14px;}
+.back:hover{color:var(--accent);}
+header{margin-bottom:20px;}
+h1{font-size:23px;font-weight:600;margin-bottom:6px;letter-spacing:-.3px;}
+.lead{color:var(--muted);font-size:13.5px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:16px;}
+.card h2{font-size:16px;font-weight:600;margin-bottom:6px;}
+.card .desc{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+.card h3{font-size:14px;font-weight:600;margin:18px 0 10px;}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:13px;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.field .unit{color:var(--hint);font-weight:400;}
+.field input,.field select,.field textarea{width:100%;padding:9px 11px;font-size:14px;
+  border:1px solid var(--border-strong);border-radius:10px;background:var(--card);
+  color:var(--text);outline:none;font-family:inherit;font-variant-numeric:tabular-nums;}
+.field textarea{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.7;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.full{grid-column:1/-1;}
+hr.sep{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.callout{font-size:13px;padding:12px 14px;border-radius:10px;margin:14px 0;line-height:1.75;}
+.co-info{background:var(--accent-soft);}
+.co-ok{background:var(--oksoft);color:var(--ok);}
+.co-warn{background:var(--warnsoft);color:var(--warn);}
+.co-bad{background:var(--badsoft);color:var(--bad);}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin:14px 0;}
+.kv .box{background:var(--row-alt);border-radius:10px;padding:12px 14px;}
+.kv .k{font-size:12px;color:var(--muted);margin-bottom:3px;}
+.kv .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top;}
+th{color:var(--muted);font-weight:500;font-size:12px;white-space:nowrap;}
+tbody tr:nth-child(even){background:var(--row-alt);}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.tag{color:var(--hint);font-size:12px;}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:500;}
+.b-ok{background:var(--oksoft);color:var(--ok);}
+.b-warn{background:var(--warnsoft);color:var(--warn);}
+.b-bad{background:var(--badsoft);color:var(--bad);}
+.b-idle{background:var(--row-alt);color:var(--muted);}
+.formula{font-size:13px;color:var(--muted);background:var(--row-alt);padding:12px 14px;
+  border-radius:10px;line-height:1.85;margin:12px 0;}
+code{background:rgba(128,128,128,.16);padding:1px 5px;border-radius:5px;font-size:12px;}
+.note{font-size:12px;color:var(--hint);margin-top:13px;line-height:1.75;}
+ul.n,ol.n{padding-left:20px;font-size:13px;color:var(--muted);}
+ul.n li,ol.n li{margin-bottom:6px;}
+ul.n b,ol.n b{color:var(--text);font-weight:500;}
+.scroll{overflow-x:auto;}
+footer{text-align:center;color:var(--hint);font-size:12px;margin-top:20px;line-height:1.8;}
+/* 进度条：用于红线预警类工具 */
+.bar{height:8px;border-radius:999px;background:var(--row-alt);overflow:hidden;margin-top:6px;}
+.bar > i{display:block;height:100%;border-radius:999px;}
+.bar-ok > i{background:var(--ok);}
+.bar-warn > i{background:var(--warn);}
+.bar-bad > i{background:var(--bad);}
+.mrow{display:grid;grid-template-columns:1fr;gap:14px;}
+.risk{background:var(--row-alt);border-radius:10px;padding:13px 15px;margin-bottom:10px;}
+.risk .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.risk .nm{font-size:13.5px;font-weight:500;}
+.risk .vl{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;}
+.risk .sub{font-size:12px;color:var(--muted);margin-top:2px;}

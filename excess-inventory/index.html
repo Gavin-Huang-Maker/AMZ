@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>冗余库存处置决策</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>冗余库存处置决策</h1>
+    <p class="lead">继续屯 / 降价清货 / 弃置移除 —— 三种方案各自的落袋现金算清楚，直接给推荐。</p>
+  </header>
+
+  <div class="card">
+    <h2>库存与销售</h2>
+    <div class="fields">
+      <div class="field"><label>冗余库存件数 Q</label><input id="qty" type="number" value="800" min="1"></div>
+      <div class="field"><label>单位成本 C <span class="unit">USD（已沉没）</span></label><input id="cost" type="number" value="6.5" min="0" step="0.01"></div>
+      <div class="field"><label>当前售价 P <span class="unit">USD</span></label><input id="price" type="number" value="29.99" min="0" step="0.01"></div>
+      <div class="field"><label>当前月销量 <span class="unit">件/月</span></label><input id="rate" type="number" value="60" min="0"></div>
+      <div class="field"><label>单件配送等变动成本 <span class="unit">USD</span></label><input id="varcost" type="number" value="5.4" min="0" step="0.01"></div>
+      <div class="field"><label>月度仓储费 <span class="unit">USD/件</span></label><input id="store" type="number" value="0.75" min="0" step="0.01"></div>
+    </div>
+
+    <hr class="sep">
+    <h3>时间成本</h3>
+    <div class="fields">
+      <div class="field"><label>长期仓储触发月数</label><input id="ltsMonth" type="number" value="12" min="1"></div>
+      <div class="field"><label>长期仓储附加费 <span class="unit">USD/件/月</span></label><input id="ltsFee" type="number" value="1.5" min="0" step="0.1"></div>
+      <div class="field"><label>月度资金成本率 <span class="unit">%</span></label><input id="finRate" type="number" value="1" min="0" step="0.1"></div>
+    </div>
+
+    <hr class="sep">
+    <h3>处置方案参数</h3>
+    <div class="fields">
+      <div class="field"><label>清货折扣率 <span class="unit">%</span></label><input id="disc" type="number" value="40" min="0" max="100" step="5"></div>
+      <div class="field"><label>打折后销量倍数 <span class="unit">倍</span></label><input id="lift" type="number" value="3" min="0.1" step="0.5"></div>
+      <div class="field"><label>弃置费 <span class="unit">USD/件</span></label><input id="dispose" type="number" value="0.6" min="0" step="0.1"></div>
+      <div class="field"><label>移除运费 <span class="unit">USD/件</span></label><input id="remove" type="number" value="1.2" min="0" step="0.1"></div>
+      <div class="field"><label>移除后残值 <span class="unit">USD/件</span></label><input id="salvage" type="number" value="0" min="0" step="0.1"></div>
+    </div>
+
+    <div class="formula">
+      只比较<b>从今天起的未来现金流</b> —— 采购成本 C 已经沉没，三个方案都一样，不影响谁更优。<br>
+      现金 ＝ 销售毛利总额 − 仓储费累计 − 长期仓储附加费 − 资金占用成本（或处置费用）
+    </div>
+
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>方案对比</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>方案</th><th>清完需</th><th>销售毛利</th><th>仓储与附加费</th><th>资金成本</th><th>其他费用</th><th>净现金</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="wait"></div>
+    <p class="note">销量预测为静态估算，实际打折后的销量提升幅度建议用小批量测试验证再全量执行。若产品有季节性，清货时机宜放在旺季前，不要等到长期仓储费开始累积才处理。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var MAXM = 36;
+
+  /* 模拟清仓：返回 { months, gross, carry, fin } */
+  function sell(Q, unitMargin, monthly, finRate, unitValue){
+    var left = Q, m = 0, gross = 0, carry = 0, fin = 0, sold;
+    var ltsM = TK.num('ltsMonth'), ltsF = TK.num('ltsFee');
+    while (left > 0 && m < MAXM){
+      m++;
+      carry += left * TK.num('store');
+      if (m > ltsM) carry += left * ltsF;
+      fin += left * unitValue * finRate / 100;
+      sold = Math.min(left, monthly);
+      gross += sold * unitMargin;
+      left -= sold;
+    }
+    return { months: m, gross: gross, carry: carry, fin: fin, leftover: left };
+  }
+
+  function render(){
+    var Q = TK.num('qty'), C = TK.num('cost'), P = TK.num('price'), varc = TK.num('varcost');
+    var monthly = TK.num('rate'), finRate = TK.num('finRate');
+    var disc = TK.num('disc') / 100, lift = TK.num('lift');
+
+    /* A: 原价继续卖 */
+    var mA = P - varc;
+    var rA = sell(Q, mA, monthly, finRate, C);
+    var cashA = rA.gross - rA.carry - rA.fin;
+
+    /* B: 降价清货 */
+    var p2 = P * (1 - disc), mB = p2 - varc, rate2 = monthly * lift;
+    var rB = sell(Q, mB, rate2, finRate, C);
+    var cashB = rB.gross - rB.carry - rB.fin;
+
+    /* C: 弃置；D: 移除（有残值） */
+    var cashC = -Q * TK.num('dispose');
+    var cashD = Q * (TK.num('salvage') - TK.num('remove'));
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">方案 A 继续卖</div><div class="v">' + TK.money0(cashA) + '</div></div>' +
+      '<div class="box"><div class="k">方案 B 降价清货</div><div class="v">' + TK.money0(cashB) + '</div></div>' +
+      '<div class="box"><div class="k">方案 C 弃置</div><div class="v">' + TK.money0(cashC) + '</div></div>' +
+      '<div class="box"><div class="k">方案 D 移除转运</div><div class="v">' + TK.money0(cashD) + '</div></div>';
+
+    var opts = [
+      { n:'A 按原价继续卖', m:rA.months, g:rA.gross, c:rA.carry, f:rA.fin, o:0, cash:cashA },
+      { n:'B 降价 ' + (disc * 100).toFixed(0) + '% 清货', m:rB.months, g:rB.gross, c:rB.carry, f:rB.fin, o:0, cash:cashB },
+      { n:'C 弃置', m:0, g:0, c:0, f:0, o:Q * TK.num('dispose'), cash:cashC },
+      { n:'D 移除转运', m:0, g:0, c:0, f:0, o:Q * TK.num('remove'), cash:cashD }
+    ];
+    var bestCash = Math.max.apply(null, opts.map(function(o){ return o.cash; }));
+    var best = opts.filter(function(o){ return o.cash === bestCash; })[0];
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    opts.forEach(function(o){
+      var star = o.cash === bestCash ? ' <span class="badge b-ok">最优</span>' : '';
+      var neg = o.cash < 0 ? ' style="color:var(--bad)"' : '';
+      TK.rows(tb, '<tr><td>' + o.n + star + '</td>' +
+        '<td class="num">' + (o.m ? o.m + ' 个月' : '立即') + '</td>' +
+        '<td class="num">' + (o.g ? TK.money0(o.g) : '—') + '</td>' +
+        '<td class="num">' + (o.c ? TK.money0(o.c) : '—') + '</td>' +
+        '<td class="num">' + (o.f ? TK.money0(o.f) : '—') + '</td>' +
+        '<td class="num">' + (o.o ? TK.money0(o.o) : '—') + '</td>' +
+        '<td class="num"><b' + neg + '>' + TK.money0(o.cash) + '</b></td></tr>');
+    });
+
+    var cls, txt;
+    if (bestCash <= 0){
+      cls = 'co-bad';
+      txt = '<b>所有方案都在亏。</b>最好的做法是 ' + best.n + '，净现金 ' + TK.money0(bestCash) +
+        '。出现这种情况通常说明这批货当初就不该进 —— 建议复盘选品与首单量，避免重演。';
+    } else if (best.n.indexOf('B') === 0){
+      cls = 'co-warn';
+      txt = '<b>推荐降价清货。</b>' + best.n + ' 净现金最高（' + TK.money0(bestCash) + '），约 ' + best.m +
+        ' 个月清完。继续屯着要多付 ' + TK.money0(Math.abs(cashA - cashB)) +
+        ' 的仓储和资金成本 —— 库存不是资产，是不断贬值的负债。';
+    } else if (best.n.indexOf('A') === 0){
+      cls = 'co-ok';
+      txt = '<b>推荐继续按原价卖。</b>当前动销还能在一 ' + best.m + ' 个月内清完，降价反而少赚 ' +
+        TK.money0(Math.abs(cashA - cashB)) + '。但如果动销继续下滑，建议每月重算一次。';
+    } else {
+      cls = 'co-warn';
+      txt = '<b>推荐 ' + best.n + '。</b>卖出去已经不划算，直接处置反而止损最多，净现金 ' +
+        TK.money0(bestCash) + '。这种情况常见于过季品或严重滞销品。';
+    }
+    document.getElementById('verdict').className = 'callout ' + cls;
+    document.getElementById('verdict').innerHTML = txt;
+
+    var oneMonth = Q * TK.num('store') + Q * C * finRate / 100;
+    document.getElementById('wait').className = 'callout co-info';
+    document.getElementById('wait').innerHTML =
+      '<b>拖延成本：</b>每多放一个月，约多付出 <b>' + TK.money0(oneMonth) +
+      '</b>（仓储 ' + TK.money0(Q * TK.num('store')) + ' ＋ 资金占用 ' + TK.money0(Q * C * finRate / 100) +
+      '）。超过长期仓储月数后还要再加 ' + TK.money0(Q * TK.num('ltsFee')) + '/月 —— 犹豫本身是有价的。';
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>
