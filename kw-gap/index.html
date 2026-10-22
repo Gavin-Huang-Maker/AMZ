@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>关键词流量缺口地图</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>关键词流量缺口地图</h1>
+    <p class="lead">一堆关键词，先打哪个？把词表黏进来，算出每个词「打上去能多赚多少」「要花多久回本」，排出真正的攻坚顺序。</p>
+  </header>
+
+  <div class="card">
+    <h2>第一步：粘贴关键词表</h2>
+    <p class="desc">从 Excel 里直接框选复制即可（支持 Tab 和逗号分隔）。表头只要包含「关键词 / 搜索量 / 排名」三列就能识别，CPC 列可省略。</p>
+    <div class="fields">
+      <div class="field full"><label>粘贴内容 <span class="unit">含表头</span></label>
+        <textarea id="raw" rows="7" placeholder="关键词	月搜索量	当前排名	CPC&#10;snorkel mask	24000	18	0.85&#10;full face snorkel mask	18000	32	1.10"></textarea></div>
+      <div class="field"><label>转化率 CVR <span class="unit">%</span></label><input id="cvr" type="number" value="11" min="0" step="0.5"></div>
+      <div class="field"><label>单件毛利 M <span class="unit">USD</span></label><input id="mg" type="number" value="9.08" min="0" step="0.01"></div>
+      <div class="field"><label>默认 CPC <span class="unit">表里没有则用此值</span></label><input id="cpc" type="number" value="0.90" min="0" step="0.01"></div>
+      <div class="field"><label>目标排名</label><input id="tr" type="number" value="3" min="1" max="48"></div>
+      <div class="field"><label>位置流量衰减指数 b</label><input id="bb" type="number" value="1.05" min="0.3" max="3" step="0.05"></div>
+      <div class="field"><label>攻坚期 <span class="unit">月</span></label><input id="hold" type="number" value="2" min="1" max="12" step="1"></div>
+      <div class="field"><label>占住后维持投入比例 <span class="unit">% of 攻坚期</span></label><input id="keep" type="number" value="30" min="0" max="100" step="5"></div>
+      <div class="field"><label>排序方式</label>
+        <select id="sortBy">
+          <option value="net" selected>稳态月净增毛利</option>
+          <option value="roi">投入产出比 ROI</option>
+          <option value="pb">回本速度</option>
+          <option value="gap">流量缺口大小</option>
+        </select></div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <button id="demo" style="padding:9px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--row-alt);color:var(--text);font-size:13px;cursor:pointer">填入示例数据</button>
+      <button id="exp" style="padding:9px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--row-alt);color:var(--text);font-size:13px;cursor:pointer">导出分析表 CSV</button>
+    </div>
+    <div class="callout co-info" id="parseInfo"></div>
+  </div>
+
+  <div class="card">
+    <h2>总账：全部打上去值多少</h2>
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="top"></div>
+    <div class="formula">
+      位置份额 <code>share(r) = r^(−b) ÷ Σ(1…48) r^(−b)</code>　（前 48 个自然位归一化，合计 100%；b 越大流量越集中在头部，常见取值在 0.9～1.2 之间）<br>
+      月点击缺口 ＝ 月搜索量 ×（share(目标位) − share(当前位)）　→　月订单缺口 ＝ 月点击缺口 × CVR<br>
+      攻坚月投入 ＝ 月订单缺口 ÷ CVR × CPC　（把缺的那部分成交密度先用广告补上）<br>
+      稳态月净增毛利 ＝ 月增量毛利 − 维持投入（占住名次后广告可以大幅下调）　｜　回本 ＝ 攻坚期总投入 ÷ 稳态月净增毛利
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>攻坚优先级清单</h2>
+    <p class="desc">默认按「稳态月净增毛利」排序 —— 也就是打完之后每月真正多留下多少钱。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>关键词</th><th>月搜索量</th><th>当前位/份额</th><th>月订单缺口</th><th>攻坚月投入</th><th>增量毛利</th><th>稳态净增毛利</th><th>ROI</th><th>回本</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>前五个词怎么打</h2>
+    <div id="acts"></div>
+    <p class="note">模型说明：只算「位置流量份额差」带来的增量，不区分自然位与广告位的点击率差异（广告位点击率通常低于同等自然位）。「当前排名」请填自然搜索位；若主要靠广告位出单，请折算成等效自然位。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var ROWS = [];
+
+  function shareAt(r, b){
+    if (r < 1 || r > 48) return 0;
+    var s = 0, i;
+    for (i = 1; i <= 48; i++) s += Math.pow(i, -b);
+    return Math.pow(r, -b) / s;
+  }
+
+  function findIdx(heads, keys){
+    var i, j;
+    for (i = 0; i < heads.length; i++)
+      for (j = 0; j < keys.length; j++)
+        if (heads[i].indexOf(keys[j]) >= 0) return i;
+    return -1;
+  }
+
+  function splitRow(line, sep){
+    var out = [], cur = '', q = false, i, c;
+    for (i = 0; i < line.length; i++){
+      c = line[i];
+      if (c === '"'){ if (q && line[i+1] === '"'){ cur += '"'; i++; } else q = !q; }
+      else if (c === sep && !q){ out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(function(x){ return x.trim().replace(/^="|"$/g, ''); });
+  }
+
+  function parse(text){
+    var lines = text.replace(/\r/g, '').split('\n').filter(function(l){ return l.trim(); });
+    if (!lines.length) return { rows: [], msg: '' };
+    var cells0 = lines[0];
+    var sep = (cells0.split('\t').length >= cells0.split(',').length) ? '\t' : ',';
+    var head = splitRow(cells0, sep);
+    var iK = findIdx(head, ['关键词','搜索词','keyword']);
+    var iV = findIdx(head, ['搜索量','月搜索','search volume']);
+    var iR = findIdx(head, ['排名','自然位','自然排名','位置','rank']);
+    var iC = findIdx(head, ['CPC','cpc','单次点击']);
+    if (iK < 0 || iV < 0)
+      return { rows: [], msg: '没能识别出「关键词」和「搜索量」两列。请确认粘贴的内容带了表头。' };
+    var rows = [], skipped = 0, i, cs, kw, vol, rk, cpc;
+    for (i = 1; i < lines.length; i++){
+      cs = splitRow(lines[i], sep);
+      kw = (cs[iK] || '').replace(/"/g, '');
+      vol = parseFloat((cs[iV] || '').replace(/[,%\s]/g, ''));
+      rk = iR >= 0 ? parseFloat((cs[iR] || '').replace(/[,%\s]/g, '')) : NaN;
+      cpc = iC >= 0 ? parseFloat((cs[iC] || '').replace(/[,$%\s]/g, '')) : NaN;
+      if (!kw || isNaN(vol)){ skipped++; continue; }
+      if (isNaN(rk) || rk < 1) rk = 999;
+      rows.push({ kw: kw, vol: vol, rank: rk, cpc: isNaN(cpc) ? null : cpc });
+    }
+    return { rows: rows, msg: '已识别 <b>' + rows.length + '</b> 个词' +
+      (skipped ? '，跳过 ' + skipped + ' 行无法识别的数据' : '') + '。' };
+  }
+
+  function build(){
+    var cvr = Math.max(0.0001, TK.num('cvr') / 100), mg = TK.num('mg'),
+        dcpc = TK.num('cpc'), tr = TK.num('tr'), b = TK.num('bb') || 1.05,
+        hold = Math.max(1, TK.num('hold')), keep = TK.num('keep') / 100;
+    var P = parse(document.getElementById('raw').value);
+    ROWS = P.rows.map(function(x){
+      var shNow = shareAt(x.rank, b), shTar = shareAt(Math.min(tr, x.rank), b);
+      var gapClick = Math.max(0, x.vol * (shTar - shNow));
+      var gapOrder = gapClick * cvr;
+      var spend = (gapOrder / cvr) * (x.cpc === null ? dcpc : x.cpc);
+      var addMargin = gapOrder * mg;
+      var maintain = spend * keep;
+      var net = addMargin - maintain;
+      var totalSpend = spend * hold;
+      return {
+        kw:x.kw, vol:x.vol, rank:x.rank, cpc:(x.cpc === null ? dcpc : x.cpc),
+        shNow:shNow, shTar:shTar, gapClick:gapClick, gapOrder:gapOrder,
+        spend:spend, addMargin:addMargin, maintain:maintain, net:net, totalSpend:totalSpend,
+        roi: spend > 0 ? addMargin / spend : (addMargin > 0 ? 99 : 0),
+        payback: net > 0 ? totalSpend / net : null
+      };
+    });
+    var by = document.getElementById('sortBy').value;
+    ROWS.sort(function(p, q){
+      if (by === 'roi') return q.roi - p.roi;
+      if (by === 'gap') return q.gapClick - p.gapClick;
+      if (by === 'pb'){
+        var a = p.payback === null ? 1e9 : p.payback, c = q.payback === null ? 1e9 : q.payback;
+        return a - c;
+      }
+      return q.net - p.net;
+    });
+    return P.msg;
+  }
+
+  function render(){
+    var msg = build();
+    document.getElementById('parseInfo').innerHTML = msg ||
+      '把关键词表粘贴到上面即可开始分析（也可以点「填入示例数据」先看效果）。';
+
+    var T = { click:0, order:0, spend:0, margin:0, maintain:0, net:0, total:0 };
+    ROWS.forEach(function(x){
+      T.click += x.gapClick; T.order += x.gapOrder; T.spend += x.spend;
+      T.margin += x.addMargin; T.maintain += x.maintain; T.net += x.net; T.total += x.totalSpend;
+    });
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">月点击缺口合计</div><div class="v">' + Math.round(T.click).toLocaleString('en-US') + '</div></div>' +
+      '<div class="box"><div class="k">月订单缺口合计</div><div class="v">' + T.order.toFixed(1) + '</div></div>' +
+      '<div class="box"><div class="k">攻坚期总投入</div><div class="v">' + TK.money0(T.total) + '</div></div>' +
+      '<div class="box"><div class="k">打完后月增量毛利</div><div class="v">' + TK.money0(T.margin) + '</div></div>' +
+      '<div class="box"><div class="k">打完后稳态月净增毛利</div><div class="v">' + TK.money0(T.net) + '</div></div>' +
+      '<div class="box"><div class="k">整体回本周期</div><div class="v">' + (T.net > 0 ? (T.total / T.net).toFixed(1) + ' 个月' : '不回本') + '</div></div>';
+
+    var el = document.getElementById('top');
+    if (!ROWS.length){
+      el.className = 'callout co-info';
+      el.innerHTML = '还没有数据。';
+    } else if (T.net <= 0){
+      el.className = 'callout co-bad';
+      el.innerHTML = '<b>按现在的 CPC 与毛利，这些词整体打上去是不划算的。</b>' +
+        '稳态月净增毛利为 ' + TK.money0(T.net) + ' —— 意味着即使占住了名次，每月进项也覆盖不了维持广告。' +
+        '这时该解决的不是「选哪些词」，而是<b>提高 CVR 或降低 CPC</b>。';
+    } else {
+      var good = ROWS.filter(function(x){ return x.net > 0 && x.payback !== null && x.payback <= 3; });
+      el.className = 'callout co-ok';
+      el.innerHTML = '全部打完后，稳态每月多赚 <b>' + TK.money0(T.net) + '</b>，' +
+        '需要投入 <b>' + TK.money0(T.total) + '</b> 的攻坚资金，整体 <b>' + (T.total / T.net).toFixed(1) + ' 个月</b>回本。' +
+        '其中 3 个月内能回本的词有 <b>' + good.length + '</b> 个 —— <b>建议只先打这 ' + Math.min(good.length, 5) +
+        ' 个</b>，别把所有词一起铺开，那样每个词都形成不了足够的成交密度，结果往往是钱花了名次没动。';
+    }
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    ROWS.forEach(function(x, i){
+      var badge = x.net <= 0 ? '<span class="badge b-bad">不划算</span>'
+                : (x.payback !== null && x.payback <= 3 ? '<span class="badge b-ok">主攻</span>'
+                : (x.payback !== null && x.payback <= 6 ? '<span class="badge b-warn">次轮</span>'
+                : '<span class="badge b-idle">观望</span>'));
+      TK.rows(tb, '<tr><td class="num">' + (i + 1) + '</td>' +
+        '<td><b>' + x.kw + '</b></td>' +
+        '<td class="num">' + Math.round(x.vol).toLocaleString('en-US') + '</td>' +
+        '<td class="num">' + (x.rank > 48 ? '48 名外' : '#' + x.rank) + '<br><span class="tag">' + TK.pct(x.shNow, 1) + '</span></td>' +
+        '<td class="num">' + x.gapOrder.toFixed(1) + '</td>' +
+        '<td class="num">' + TK.money0(x.spend) + '</td>' +
+        '<td class="num">' + TK.money0(x.addMargin) + '</td>' +
+        '<td class="num"><b>' + TK.money0(x.net) + '</b></td>' +
+        '<td class="num">' + (x.roi >= 99 ? '∞' : x.roi.toFixed(2)) + '</td>' +
+        '<td class="num">' + badge + '<br><span class="tag">' + (x.payback === null ? '—' : x.payback.toFixed(1) + ' 个月') + '</span></td></tr>');
+    });
+
+    var acts = document.getElementById('acts');
+    acts.innerHTML = '';
+    var main = ROWS.filter(function(x){ return x.net > 0; }).slice(0, 5);
+    if (!main.length){
+      acts.innerHTML = '<div class="risk"><div class="sub">没有净收益为正的词。当前 CPC 相对你的毛利和转化率偏高 —— ' +
+        '建议先回到「流量漏斗诊断」提升转化率，或降低 Bid，而不是硬砸名次。</div></div>';
+    } else {
+      var budgetTotal = 0;
+      main.forEach(function(x, i){
+        budgetTotal += x.spend;
+        acts.innerHTML += '<div class="risk"><div class="top">' +
+          '<span class="nm">' + (i + 1) + '. ' + x.kw + '</span>' +
+          '<span class="vl">日预算 ' + TK.money(x.spend / 30) + '</span></div>' +
+          '<div class="sub">需要在该词上形成约 <b>' + (x.gapOrder / 30).toFixed(2) + ' 单/天</b>的成交密度。' +
+          '做法：单独开该词的<b>精准匹配广告组</b>，日预算 ' + TK.money(x.spend / 30) + '，连打 ' +
+          '14 天后看自然位有没有前移；位置不动就说明相关性或 Listing 承接有问题，及时止损。</div></div>';
+      });
+      acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">合计日预算</span>' +
+        '<span class="vl">' + TK.money(budgetTotal / 30) + ' / 天</span></div>' +
+        '<div class="sub">同时打这 ' + main.length + ' 个词的日均广告预算。请确认这个数字在承受范围内再动手 —— ' +
+        '可以先跑 2 个词试两周，跑通了再往上加。</div></div>';
+    }
+  }
+
+  document.getElementById('demo').addEventListener('click', function(){
+    document.getElementById('raw').value =
+      '关键词\t月搜索量\t当前排名\tCPC\n' +
+      'snorkel mask\t24000\t18\t0.85\n' +
+      'full face snorkel mask\t18000\t32\t1.10\n' +
+      'kids snorkel set\t12000\t8\t0.75\n' +
+      'snorkel set adult\t31000\t6\t1.25\n' +
+      'dive mask\t8600\t99\t0.70\n' +
+      'snorkel fins\t5400\t24\t0.65\n' +
+      'best snorkel mask\t15000\t41\t0.95\n' +
+      'anti fog snorkel mask\t7200\t12\t0.80';
+    render();
+  });
+
+  document.getElementById('exp').addEventListener('click', function(){
+    if (!ROWS.length) return;
+    var csv = ['#,关键词,月搜索量,当前排名,当前份额,目标份额,月点击缺口,月订单缺口,攻坚月投入,月增量毛利,稳态月净增毛利,ROI,回本月数'];
+    ROWS.forEach(function(x, i){
+      csv.push([i + 1, '"' + x.kw.replace(/"/g, '""') + '"', Math.round(x.vol),
+        (x.rank > 48 ? '48+' : x.rank), (x.shNow * 100).toFixed(2) + '%', (x.shTar * 100).toFixed(2) + '%',
+        Math.round(x.gapClick), x.gapOrder.toFixed(2), x.spend.toFixed(2), x.addMargin.toFixed(2),
+        x.net.toFixed(2), (x.roi >= 99 ? '-' : x.roi.toFixed(2)),
+        (x.payback === null ? '-' : x.payback.toFixed(1))].join(','));
+    });
+    var blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '关键词流量缺口分析.csv';
+    a.click();
+  });
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

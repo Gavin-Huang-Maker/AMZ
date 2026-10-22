@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Business Report 流量漏斗诊断</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>Business Report 流量漏斗诊断</h1>
+    <p class="lead">订单掉了，到底是流量少了还是转化差了？黏一组业务报告的数字进去，自动拆开每一层漏斗，算出「补哪一层最值钱」。</p>
+  </header>
+
+  <div class="card">
+    <h2>本期漏斗数据</h2>
+    <p class="desc">来源：卖家后台 → 数据报告 → 业务报告 → 按子 ASIN → 「详情页面的销售和流量」。曝光量来自广告后台或品牌分析（ABA）。</p>
+    <div class="fields">
+      <div class="field"><label>买家访问次数 Sessions</label><input id="s1" type="number" value="320" min="0"></div>
+      <div class="field"><label>订单商品数量 Units</label><input id="u1" type="number" value="38" min="0"></div>
+      <div class="field"><label>销售额 <span class="unit">USD</span></label><input id="amt1" type="number" value="1020" min="0" step="0.01"></div>
+      <div class="field"><label>曝光量 Impressions <span class="unit">可留空</span></label><input id="imp" type="number" value="90000" min="0"></div>
+      <div class="field"><label>页面浏览量 Page Views</label><input id="pv" type="number" value="620" min="0"></div>
+      <div class="field"><label>加入购物车次数 <span class="unit">可留空</span></label><input id="atc" type="number" placeholder="可留空" min="0"></div>
+      <div class="field"><label>Buy Box 赢得率 <span class="unit">%</span></label><input id="bb" type="number" value="96" min="0" max="100" step="0.1"></div>
+      <div class="field"><label>单件毛利 M <span class="unit">USD</span></label><input id="mg" type="number" value="9.08" min="0" step="0.01"></div>
+    </div>
+
+    <hr class="sep">
+    <h3>上期对比（判断「掉了什么」）</h3>
+    <div class="fields">
+      <div class="field"><label>上期 Sessions</label><input id="s0" type="number" value="360" min="0"></div>
+      <div class="field"><label>上期 Units</label><input id="u0" type="number" value="45" min="0"></div>
+      <div class="field"><label>统计周期天数 <span class="unit">用于折算成月</span></label><input id="pdays" type="number" value="30" min="1"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>类目基准值</h2>
+    <p class="desc">判断「好还是差」的标尺。默认值取自多数非标小类的常见水平，请按你自己类目改 —— 基准定得准，结论才可信。</p>
+    <div class="fields">
+      <div class="field"><label>基准点击率 CTR <span class="unit">%</span></label><input id="bCtr" type="number" value="0.40" min="0" step="0.01"></div>
+      <div class="field"><label>基准 PV / Session</label><input id="bPv" type="number" value="1.80" min="0" step="0.05"></div>
+      <div class="field"><label>基准加购率 <span class="unit">%</span></label><input id="bAtc" type="number" value="20" min="0" step="0.5"></div>
+      <div class="field"><label>基准转化率 CVR <span class="unit">%</span></label><input id="bCvr" type="number" value="12" min="0" step="0.5"></div>
+    </div>
+    <div class="callout co-info" id="top"></div>
+    <div class="kv" id="kv1"></div>
+  </div>
+
+  <div class="card">
+    <h2>漏斗逐层体检</h2>
+    <p class="desc">每一层「实际 vs 基准」，以及单独把这一层补到基准能多赚多少毛利。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>环节</th><th>实际值</th><th>基准值</th><th>判定</th><th>补到基准后月增毛利</th></tr></thead>
+        <tbody id="funnel"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="verdict"></div>
+    <div class="formula">
+      估算口径：单独补某一层时，下游各项比率<b>保持现状不变</b>（保守估计，真实改善往往还能带动整条链路）。<br>
+      因此各行的金额是「<b>各自单独</b>修复的收益」，<b>不能直接相加</b>；同时修复多项时，实际收益会小于各行之和。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>环比归因拆分</h2>
+    <p class="desc">订单变化 = 流量变化带来的 + 转化率变化带来的，两项之和正好等于全部变化。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>项目</th><th>上期</th><th>本期</th><th>变化</th><th>对件数变化的贡献</th></tr></thead>
+        <tbody id="decomp"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="decompVerdict"></div>
+    <div class="formula">
+      拆分方法：<code>U = S × CVR</code>；<code>ΔU ≈ (S₁−S₀)×CVR₀ + S₁×(CVR₁−CVR₀)</code><br>
+      前项是「流量贡献」，后项是「转化贡献」，两项相加恰好等于总变化量，没有残差。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>按「值多少钱」排序的改进清单</h2>
+    <p class="desc">排序依据是：补到类目基准后能带来的月增毛利，而不是凭感觉排先后。</p>
+    <div id="actions"></div>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  function n0(v){ return Math.round(v).toLocaleString('en-US'); }
+
+  function V(){
+    return {
+      s1:TK.num('s1'), u1:TK.num('u1'), amt1:TK.num('amt1'), imp:TK.num('imp'), pv:TK.num('pv'),
+      atc:TK.num('atc'), bb:TK.num('bb'), mg:TK.num('mg'),
+      s0:TK.num('s0'), u0:TK.num('u0'), pdays:TK.num('pdays') || 30,
+      bCtr:TK.num('bCtr')/100, bPv:TK.num('bPv'), bAtc:TK.num('bAtc')/100, bCvr:TK.num('bCvr')/100
+    };
+  }
+
+  function judge(ratio){
+    if (ratio >= 1.05) return '<span class="badge b-ok">优于基准</span>';
+    if (ratio >= 0.90) return '<span class="badge b-idle">接近基准</span>';
+    if (ratio >= 0.70) return '<span class="badge b-warn">低于基准</span>';
+    return '<span class="badge b-bad">严重偏低</span>';
+  }
+
+  function buildLevers(v){
+    var f = 30 / v.pdays;                     /* 折算成月度 */
+    var k = v.mg;
+    var cvr = v.s1 > 0 ? v.u1 / v.s1 : 0;     /* 件数转化 */
+    var kPv  = v.pv  > 0 ? v.u1  / v.pv  : 0; /* 每浏览量成交件数 */
+    var kAtc = v.atc > 0 ? v.u1  / v.atc : 0; /* 每加购成交件数 */
+    var L = [];
+
+    L.push({
+      name:'会话 → 成交（转化率）',
+      act:cvr, bench:v.bCvr, fmt:'pct', ratio: v.bCvr>0 ? cvr/v.bCvr : 1,
+      gain:function(){ return Math.max(0, v.s1 * (v.bCvr - cvr)); },
+      unit:'件', tip:'评价与星级、Review 数量、有没有 Coupon 标、配送时效、变体是否断货 —— 都会落在这里。'
+    });
+
+    if (v.imp > 0){
+      var ctr = v.s1 / v.imp;
+      L.push({
+        name:'曝光 → 会话（主图点击率）',
+        act:ctr, bench:v.bCtr, fmt:'pct', ratio: v.bCtr>0 ? ctr/v.bCtr : 1,
+        gain:function(){ return Math.max(0, v.imp * (v.bCtr - ctr) * cvr); },
+        unit:'件', tip:'主图在手机端是不是看不清、价格跟竞品比有没有明显贵、星级有没有低于竞品 —— 买家看到的一瞬间就决定了点不点。'
+      });
+    }
+
+    if (v.pv > 0){
+      var pvps = v.pv / v.s1;
+      L.push({
+        name:'会话 → 页面浏览（浏览深度）',
+        act:pvps, bench:v.bPv, fmt:'raw', ratio: v.bPv>0 ? pvps/v.bPv : 1,
+        gain:function(){ return Math.max(0, v.s1 * (v.bPv - pvps) * kPv); },
+        unit:'件', tip:'买家点进来却没往下翻 → 加视频、做 A+、把 QA 和对比表往前放。'
+      });
+    }
+
+    if (v.atc > 0){
+      var atcRate = v.atc / v.s1;
+      L.push({
+        name:'会话 → 加购（购买意愿）',
+        act:atcRate, bench:v.bAtc, fmt:'pct', ratio: v.bAtc>0 ? atcRate/v.bAtc : 1,
+        gain:function(){ return Math.max(0, v.s1 * (v.bAtc - atcRate) * kAtc); },
+        unit:'件', tip:'想买但没下单 —— 多半是价格触到了心理线、缺促销活动，或者想要的颜色/尺码缺货。'
+      });
+    }
+
+    if (v.bb > 0 && v.bb < 100){
+      L.push({
+        name:'Buy Box 赢得率',
+        act:v.bb/100, bench:1, fmt:'pct', ratio:v.bb/100,
+        gain:function(){ return Math.min(v.u1 * 2, Math.max(0, v.u1 * (100/v.bb - 1))); },
+        unit:'件', tip:'没拿到购物车的时间段，买家只能去别家买 —— 检查是否被跟卖、价格是否被系统判定为不具竞争力。'
+      });
+    }
+
+    L.forEach(function(x){
+      x.extraUnits = x.gain();
+      x.extraMargin = x.extraUnits * f * k;
+    });
+    return L;
+  }
+
+  function render(){
+    var v = V();
+    var f = 30 / v.pdays;
+    var cvr = v.s1 > 0 ? v.u1 / v.s1 : 0;
+    var aov = v.u1 > 0 ? v.amt1 / v.u1 : 0;
+    var monthMargin = v.u1 * f * v.mg;
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">会话数（本期）</div><div class="v">' + n0(v.s1) + '</div></div>' +
+      '<div class="box"><div class="k">转化率 Unit Session %</div><div class="v">' + TK.pct(cvr, 2) + '</div></div>' +
+      '<div class="box"><div class="k">销售件数（本期）</div><div class="v">' + n0(v.u1) + '</div></div>' +
+      '<div class="box"><div class="k">件单价</div><div class="v">' + TK.money(aov) + '</div></div>' +
+      '<div class="box"><div class="k">销售额（本期）</div><div class="v">' + TK.money0(v.amt1) + '</div></div>' +
+      '<div class="box"><div class="k">折合月度毛利</div><div class="v">' + TK.money0(monthMargin) + '</div></div>';
+
+    var L = buildLevers(v);
+    /* 漏斗表：保持原始顺序，价值列用箭头提示 */
+    var tb = document.getElementById('funnel');
+    TK.clear(tb);
+    L.forEach(function(x){
+      var actTxt = x.fmt === 'pct' ? TK.pct(x.act, x.fmt === 'pct' && x.act < 0.02 ? 3 : 2)
+                                   : x.act.toFixed(2);
+      var benTxt = x.fmt === 'pct' ? TK.pct(x.bench, x.bench < 0.02 ? 3 : 2)
+                                   : x.bench.toFixed(2);
+      var mv = x.extraMargin > 0.5
+        ? '<b>+' + TK.money0(x.extraMargin) + '</b><span class="tag">（+' + x.extraUnits.toFixed(1) + ' 件/期）</span>'
+        : '<span class="tag">已达标</span>';
+      TK.rows(tb, '<tr><td>' + x.name + '</td><td class="num">' + actTxt +
+        '</td><td class="num">' + benTxt + '</td><td>' + judge(x.ratio) + '</td><td>' + mv + '</td></tr>');
+    });
+
+    /* 最有价值短板 */
+    var sorted = L.slice().sort(function(a,b){ return b.extraMargin - a.extraMargin; });
+    var best = sorted[0];
+    var t;
+    if (best && best.extraMargin > 0.5){
+      t = '<b>最大短板：' + best.name + '。</b>目前 ' +
+          (best.fmt === 'pct' ? TK.pct(best.act, best.act < 0.02 ? 3 : 2) : best.act.toFixed(2)) +
+          '，基准是 ' + (best.fmt === 'pct' ? TK.pct(best.bench, best.bench < 0.02 ? 3 : 2) : best.bench.toFixed(2)) +
+          '。单独把它补到基准，预计每期多卖 <b>' + best.extraUnits.toFixed(1) + ' 件</b>，' +
+          '折合每月多赚 <b>' + TK.money0(best.extraMargin) + '</b>。' +
+          (v.pdays !== 30 ? '（已按 ' + v.pdays + ' 天周期折算为月度）' : '');
+    } else {
+      t = '<b>各环节均达到或超过基准。</b>链路本身没有明显短板了 —— 这时候再想增长，就不是"修问题"，而是扩大前端曝光（加投关键词、拓 variant、站外引流）。用 BSR 反超测算器算一下目标名次需要多少曝光与单量。';
+    }
+    document.getElementById('top').innerHTML = t;
+
+    var gapCount = L.filter(function(x){ return x.ratio < 0.9; }).length;
+    var vHtml, vCls;
+    if (gapCount === 0){ vCls = 'co-ok'; vHtml = '<b>链路健康。</b>所有环节都在基准之上，增长瓶颈在流量规模而非效率。'; }
+    else if (gapCount === 1){ vCls = 'co-warn'; vHtml = '<b>有 1 处短板。</b>单点修复即可，注意别在别的地方乱改，否则无法判断效果。'; }
+    else if (gapCount === 2){ vCls = 'co-warn'; vHtml = '<b>有 ' + gapCount + ' 处短板。</b>建议先动金额最大的那个，跑 2 周确认有效再动第二个 —— 同时改多项会让归因失效。'; }
+    else { vCls = 'co-bad'; vHtml = '<b>有 ' + gapCount + ' 处同时偏低。</b>这种情况往往是价格或评分出了系统性问题（而非单点运营瑕疵），先把它们和类目均值做一次对标，再决定改哪些。'; }
+    var el = document.getElementById('verdict');
+    el.className = 'callout ' + vCls; el.innerHTML = vHtml;
+
+    /* ---- 环比归因 ---- */
+    var cvr0 = v.s0 > 0 ? v.u0 / v.s0 : 0;
+    var dU = v.u1 - v.u0;
+    var cS = (v.s1 - v.s0) * cvr0;
+    var cC = v.s1 * (cvr - cvr0);
+    var d2 = document.getElementById('decomp');
+    TK.clear(d2);
+    TK.rows(d2, '<tr><td>会话 Sessions</td><td class="num">' + n0(v.s0) + '</td><td class="num">' + n0(v.s1) +
+      '</td><td class="num">' + (v.s1 >= v.s0 ? '+' : '') + n0(v.s1 - v.s0) +
+      '</td><td class="num"><b>' + (cS >= 0 ? '+' : '') + cS.toFixed(1) + ' 件</b></td></tr>');
+    TK.rows(d2, '<tr><td>转化率 Unit Session %</td><td class="num">' + TK.pct(cvr0, 2) + '</td><td class="num">' +
+      TK.pct(cvr, 2) + '</td><td class="num">' + ((cvr - cvr0) >= 0 ? '+' : '') + TK.pct(cvr - cvr0, 2) +
+      '</td><td class="num"><b>' + (cC >= 0 ? '+' : '') + cC.toFixed(1) + ' 件</b></td></tr>');
+    TK.rows(d2, '<tr><td><b>合计销售件数</b></td><td class="num"><b>' + n0(v.u0) + '</b></td><td class="num"><b>' +
+      n0(v.u1) + '</b></td><td class="num"><b>' + (dU >= 0 ? '+' : '') + n0(dU) +
+      '</b></td><td class="num"><b>' + (dU >= 0 ? '+' : '') + dU.toFixed(1) + ' 件</b></td></tr>');
+
+    var dv = document.getElementById('decompVerdict');
+    if (Math.abs(dU) < 0.5){
+      dv.className = 'callout co-info';
+      dv.innerHTML = '两期基本持平，无明显变化。';
+    } else if (dU > 0){
+      var big = cS >= cC ? '流量增长' : '转化率提升';
+      dv.className = 'callout co-ok';
+      dv.innerHTML = '<b>件数增加了 ' + dU.toFixed(0) + ' 件，主要靠' + big + '。</b>' +
+        '其中流量贡献 ' + cS.toFixed(1) + ' 件、转化贡献 ' + cC.toFixed(1) + ' 件。' +
+        '记住这个结构：下阶段的投放重点就应该放在贡献大的那一侧。';
+    } else {
+      var bad = cS <= cC ? '流量下滑' : '转化率下滑';
+      dv.className = 'callout co-bad';
+      var sideTip = Math.abs(cS) > Math.abs(cC)
+        ? ' 流量侧掉得多：先看曝光量是不是也在掉（广告预算有没有被砍、有没有差评导致搜索降权），再说转化率。'
+        : ' 转化掉得多：这种情况通常不是流量问题，去核对评分、价格、有没有新增差评或跟卖。';
+      dv.innerHTML = '<b>件数减少了 ' + Math.abs(dU).toFixed(0) + ' 件，主因是' + bad + '。</b>' +
+        '其中流量贡献 ' + cS.toFixed(1) + ' 件、转化贡献 ' + cC.toFixed(1) + ' 件。' + sideTip;
+    }
+
+    /* ---- 行动清单 ---- */
+    var act = document.getElementById('actions');
+    act.innerHTML = '';
+    var list = L.filter(function(x){ return x.extraMargin > 0.5; })
+                .sort(function(a,b){ return b.extraMargin - a.extraMargin; });
+    if (!list.length){
+      act.innerHTML = '<div class="risk"><div class="top"><span class="nm">当前没有明显短板</span></div>' +
+        '<div class="sub">所有环节都在基准之上。下一步的重点是放大前端流量，而不是继续优化详情页 —— 边际收益已经很小。</div></div>';
+    } else {
+      list.forEach(function(x, i){
+        act.innerHTML += '<div class="risk"><div class="top">' +
+          '<span class="nm">' + (i + 1) + '. ' + x.name + '</span>' +
+          '<span class="vl">+' + TK.money0(x.extraMargin) + ' / 月</span></div>' +
+          '<div class="sub">' + x.tip + '</div></div>';
+      });
+    }
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

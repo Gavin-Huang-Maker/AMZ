@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大促节奏与预算规划器</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>大促节奏与预算规划器</h1>
+    <p class="lead">大促到底是赚了还是亏了？把预热、爆发、收尾三段的单量曲线、折扣让利和广告投放一起算，输出每天该花多少钱、整体能不能挣钱。</p>
+  </header>
+
+  <div class="card">
+    <h2>日常经营参数</h2>
+    <div class="fields">
+      <div class="field"><label>平日日均销量 Q</label><input id="q" type="number" value="60" min="0"></div>
+      <div class="field"><label>日常转化率 CVR <span class="unit">%</span></label><input id="cvr" type="number" value="12" min="0" step="0.5"></div>
+      <div class="field"><label>CPC <span class="unit">USD</span></label><input id="cpc" type="number" value="0.95" min="0" step="0.01"></div>
+      <div class="field"><label>日常售价 <span class="unit">USD</span></label><input id="price" type="number" value="29.99" min="0" step="0.01"></div>
+      <div class="field"><label>平日单件毛利 <span class="unit">USD</span></label><input id="mg" type="number" value="9.08" min="0" step="0.01"></div>
+      <div class="field"><label>可用库存 <span class="unit">件</span></label><input id="stock" type="number" value="3000" min="0"></div>
+    </div>
+
+    <hr class="sep">
+    <h3>大促节奏</h3>
+    <div class="fields">
+      <div class="field"><label>预热期 <span class="unit">天</span></label><input id="wd" type="number" value="7" min="0"></div>
+      <div class="field"><label>活动期 <span class="unit">天</span></label><input id="dd" type="number" value="4" min="1"></div>
+      <div class="field"><label>恢复期 <span class="unit">天</span></label><input id="rd" type="number" value="7" min="0"></div>
+      <div class="field"><label>预热末期单量倍数</label><input id="wMult" type="number" value="1.2" min="0.5" step="0.1"></div>
+      <div class="field"><label>活动期单量倍数</label><input id="dMult" type="number" value="3.0" min="0.5" step="0.1"></div>
+      <div class="field"><label>活动首日爆发系数</label><input id="firstDay" type="number" value="1.4" min="1" step="0.1"></div>
+      <div class="field"><label>活动期转化提升</label><input id="cvrUp" type="number" value="1.5" min="1" step="0.1"></div>
+      <div class="field"><label>计划折扣 <span class="unit">% off</span></label><input id="disc" type="number" value="15" min="0" max="90" step="1"></div>
+      <div class="field"><label>折扣弹性 <span class="unit">每 +5pp 折扣带来的销量增幅</span></label><input id="elast" type="number" value="25" min="0" step="5"></div>
+    </div>
+
+    <div class="callout co-info" id="top"></div>
+    <div class="kv" id="kv1"></div>
+  </div>
+
+  <div class="card">
+    <h2>三档力度对比</h2>
+    <p class="desc">同一个活动，折扣深浅完全不同结果。这里按你填的弹性自动推演出两档变体，挑净利最高的那档。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>方案</th><th>折扣</th><th>活动期日均</th><th>周期总单量</th><th>总销售额</th><th>总毛利</th><th>广告总投入</th><th>周期净利</th><th>库存是否够</th></tr></thead>
+        <tbody id="cmpTbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="cmpVerdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>逐日节奏（按当前方案）</h2>
+    <p class="desc">柱子是每天的预计单量，橙色部分是需要靠广告拉出来的部分。</p>
+    <div id="chart"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>天</th><th>阶段</th><th>预计单量</th><th>其中靠广告</th><th>当日广告预算</th><th>当日售价</th><th>当日毛利</th><th>累计库存消耗</th></tr></thead>
+        <tbody id="dayTbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>执行要点</h2>
+    <div id="acts"></div>
+    <div class="formula">
+      当日增量 ＝ max(0, 当日目标单量 − 平日单量 Q)　｜　需要点击 ＝ 增量 ÷（日常 CVR × 阶段转化提升）　｜　当日广告预算 ＝ 需要点击 × CPC<br>
+      当日毛利 ＝ 当日单量 × 单件毛利(已扣折扣) − 当日广告预算<br>
+      <b>口径说明</b>：广告只承担「超出平日水平的那部分单量」，平日就有的销量不重复计费。这样算出来的预算是「额外需要的投入」，而不是日常预算的一部分 —— 别在这之上再加预算。
+    </div>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  function V(){
+    return {
+      q:TK.num('q'), cvr:Math.max(0.001, TK.num('cvr') / 100), cpc:TK.num('cpc'),
+      price:TK.num('price'), mg:TK.num('mg'), stock:TK.num('stock'),
+      wd:TK.num('wd'), dd:Math.max(1, TK.num('dd')), rd:TK.num('rd'),
+      wMult:TK.num('wMult'), dMult:TK.num('dMult'), firstDay:TK.num('firstDay'),
+      cvrUp:TK.num('cvrUp'), disc:TK.num('disc') / 100, elast:TK.num('elast') / 100
+    };
+  }
+
+  /* 生成逐日倍数与目标单量 */
+  function timeline(v, actMult){
+    var days = [], t, mult, i;
+    for (t = -v.wd; t <= v.dd + v.rd; t++){
+      if (t < 0){
+        var p = v.wd > 0 ? (v.wd + t) / v.wd : 1;      /* 预热：从 0.9 线性升到 wMult */
+        mult = 0.9 + (v.wMult - 0.9) * p;
+        days.push({ t:t, phase:'预热', mult:mult, cvrMul:0.85, discOn:false });
+      } else if (t < v.dd){
+        mult = actMult * (t === 0 ? v.firstDay : 1);
+        days.push({ t:t, phase:'爆发', mult:mult, cvrMul:v.cvrUp, discOn:true });
+      } else if (t === v.dd){
+        mult = actMult * 0.55;
+        days.push({ t:t, phase:'收尾', mult:mult, cvrMul:1.2, discOn:false });
+      } else {
+        var pr = v.rd > 0 ? (t - v.dd) / v.rd : 1;
+        mult = Math.max(1, actMult * 0.45) + (1 - Math.max(1, actMult * 0.45)) * pr;
+        days.push({ t:t, phase:'恢复', mult:mult, cvrMul:1.0, discOn:false });
+      }
+    }
+    days.forEach(function(d, idx){
+      d.orders = v.q * d.mult;
+      d.inc = Math.max(0, d.orders - v.q);
+      var clicks = d.inc / (v.cvr * d.cvrMul);
+      d.spend = clicks * v.cpc;
+      d.unitPrice = d.discOn ? v.price * (1 - v.disc) : v.price;
+      d.unitMargin = d.discOn ? v.mg - v.price * v.disc : v.mg;
+      d.dayMargin = d.orders * d.unitMargin - d.spend;
+      d.cumUnits = 0;
+      if (idx > 0) d.cumUnits = days[idx - 1].cumUnits + d.orders;
+    });
+    return days;
+  }
+
+  function summarize(days, baseQ, baseM){
+    var S = { units:0, rev:0, gross:0, spend:0, net:0 };
+    days.forEach(function(d){
+      S.units += d.orders;
+      S.rev += d.orders * d.unitPrice;
+      S.gross += d.orders * d.unitMargin;
+      S.spend += d.spend;
+    });
+    S.net = S.gross - S.spend;
+    /* 基线：同样天数、不做活动时按平日水平能赚到的毛利 */
+    S.baseProfit = baseQ * baseM * days.length;
+    S.lift = S.net - S.baseProfit;
+    return S;
+  }
+
+  function scenarios(v){
+    var base = v.dMult;
+    return [
+      { name:'保守', disc:v.disc, mult:base },
+      { name:'标准', disc:v.disc + 0.05, mult:base * (1 + v.elast) },
+      { name:'激进', disc:v.disc + 0.10, mult:base * (1 + v.elast * 2) }
+    ];
+  }
+
+  function render(){
+    var v = V();
+    var days = timeline(v, v.dMult);
+    var S = summarize(days, v.q, v.mg);
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">活动周期</div><div class="v">' + (v.wd + v.dd + v.rd) + ' 天</div></div>' +
+      '<div class="box"><div class="k">周期总单量</div><div class="v">' + S.units.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">总销售额</div><div class="v">' + TK.money0(S.rev) + '</div></div>' +
+      '<div class="box"><div class="k">广告总投入</div><div class="v">' + TK.money0(S.spend) + '</div></div>' +
+      '<div class="box"><div class="k">周期净利</div><div class="v">' + TK.money0(S.net) + '</div></div>' +
+      '<div class="box"><div class="k">相比不做活动</div><div class="v">' +
+        (S.lift >= 0 ? '+' : '') + TK.money0(S.lift) + '</div></div>';
+
+    var el = document.getElementById('top');
+    el.className = 'callout co-' + (S.lift > 0 ? 'ok' : 'bad');
+    el.innerHTML = (S.lift > 0
+      ? '<b>做这场活动是划算的。</b>周期净利 ' + TK.money0(S.net) + '，比同样天数不做活动多赚 ' +
+        TK.money0(S.lift) + '。<b>但要看清楚这部分增量里有多少是提前透支的需求</b> —— 恢复期如果明显低于平日，说明只是把后面的单提前卖了。'
+      : '<b>这场活动实际上在亏钱。</b>周期净利 ' + TK.money0(S.net) + '，比不做活动少赚 ' + TK.money0(-S.lift) +
+        '。折扣 ' + (v.disc * 100).toFixed(0) + '% 让掉的毛利加上' + TK.money0(S.spend) +
+        ' 的广告，没有被放大的销量补回来。建议减折扣或缩短活动期。');
+
+    /* 三档对比 */
+    var tb = document.getElementById('cmpTbl');
+    TK.clear(tb);
+    var best = null;
+    scenarios(v).forEach(function(sc){
+      var vv = JSON.parse(JSON.stringify(v));
+      vv.disc = sc.disc;
+      var ds = timeline(vv, sc.mult);
+      var s = summarize(ds, v.q, v.mg);
+      var totalUnits = s.units;
+      var enough = v.stock >= totalUnits;
+      var shortageDay = null, i2;
+      for (i2 = 0; i2 < ds.length; i2++){ if (ds[i2].cumUnits > v.stock){ shortageDay = i2 + 1; break; } }
+      if (!best || s.net > best.net) best = { name:sc.name, net:s.net, disc:sc.disc, s:s, ok:enough, sd:shortageDay };
+      TK.rows(tb, '<tr><td><b>' + sc.name + '</b></td>' +
+        '<td class="num">' + (sc.disc * 100).toFixed(0) + '%</td>' +
+        '<td class="num">' + (v.q * sc.mult).toFixed(0) + '</td>' +
+        '<td class="num">' + totalUnits.toFixed(0) + '</td>' +
+        '<td class="num">' + TK.money0(s.rev) + '</td>' +
+        '<td class="num">' + TK.money0(s.gross) + '</td>' +
+        '<td class="num">' + TK.money0(s.spend) + '</td>' +
+        '<td class="num"><b>' + TK.money0(s.net) + '</b></td>' +
+        '<td>' + (enough ? '<span class="badge b-ok">够</span>'
+                         : '<span class="badge b-bad">第 ' + shortageDay + ' 天断货</span>') + '</td></tr>');
+    });
+
+    var cv = document.getElementById('cmpVerdict');
+    cv.className = 'callout co-' + (best.ok ? 'ok' : 'warn');
+    cv.innerHTML = '<b>推荐「' + best.name + '」档</b>（折扣 ' + (best.disc * 100).toFixed(0) +
+      '%，周期净利 ' + TK.money0(best.net) + '）。' +
+      (best.ok ? '' : '<b>但这一档会在第 ' + best.sd + ' 天把库存卖穿</b> —— 要么提前补货，要么降到更保守的一档，不要带着断货风险上活动。') +
+      '<br>提醒：这里的「激进」档是按你填的折扣弹性推出来的估算，<b>折扣越深并不意味着销量一定按比例上升</b> —— ' +
+      '弹性这个数字，只有你自己的历史数据最可靠。';
+
+    drawChart(days, v);
+
+    var dt = document.getElementById('dayTbl');
+    TK.clear(dt);
+    days.forEach(function(d, i){
+      var ph = d.phase === '爆发' ? '<span class="badge b-ok">爆发</span>'
+             : (d.phase === '预热' ? '<span class="badge b-warn">预热</span>'
+             : (d.phase === '收尾' ? '<span class="badge b-idle">收尾</span>' : '<span class="badge b-idle">恢复</span>'));
+      var over = d.cumUnits > v.stock;
+      TK.rows(dt, '<tr><td class="num">第 ' + (i + 1) + ' 天' + (i === v.wd ? '<br><span class="tag">活动首日</span>' : '') + '</td>' +
+        '<td>' + ph + '</td>' +
+        '<td class="num"><b>' + d.orders.toFixed(0) + '</b></td>' +
+        '<td class="num">' + d.inc.toFixed(0) + '</td>' +
+        '<td class="num">' + TK.money0(d.spend) + '</td>' +
+        '<td class="num">' + TK.money(d.unitPrice) + '</td>' +
+        '<td class="num">' + TK.money0(d.dayMargin) + '</td>' +
+        '<td class="num"' + (over ? ' style="color:var(--bad)"' : '') + '>' + d.cumUnits.toFixed(0) +
+          (over ? '<br><span class="tag">缺货</span>' : '') + '</td></tr>');
+    });
+
+    var acts = document.getElementById('acts');
+    var peakSpend = Math.max.apply(null, days.map(function(d){ return d.spend; }));
+    var totalSpend = S.spend;
+    acts.innerHTML = '';
+    acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">预算怎么放</span>' +
+      '<span class="vl">峰值 ' + TK.money0(peakSpend) + ' / 天</span></div>' +
+      '<div class="sub">爆发期的日预算要远高于预热期，别平摊。整个活动的广告预算合计约 ' + TK.money0(totalSpend) +
+      '，请提前确认这笔钱在现金流里留得出来 —— 大促的钱是先花后回的。</div></div>';
+    acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">活动结束后别立刻停投</span>' +
+      '<span class="vl">恢复期 ' + v.rd + ' 天</span></div>' +
+      '<div class="sub">大促期间冲上去的名次有滞后效应 —— <b>滚动窗口里还带着活动期的销量</b>，此时突然停投，' +
+      '相当于把刚排在好位置的自然流量白白丢掉。恢复期按表中金额维持几天，再逐步降回日常水平。</div></div>';
+    acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">一个容易被忽略的成本</span>' +
+      '<span class="vl">折扣让掉的毛利</span></div>' +
+      '<div class="sub">活动期每单你实际少赚 ' + TK.money(v.price * v.disc) +
+      '。' + (v.disc > 0.2
+        ? '折扣已经超过 20%，这时<b>重要的是先把 EI 库存消化掉还是真要靠活动挣钱</b> —— 目的不同，评判标准也不同。'
+        : '折扣温和，重点应该放在能不能靠新增曝光把整体盘子做大，而不是只看活动期间的盈亏。') + '</div></div>';
+  }
+
+  function drawChart(days, v){
+    var W = 660, H = 240, pad = 30, n = days.length;
+    var maxO = Math.max.apply(null, days.map(function(d){ return d.orders; })) * 1.12;
+    var bw = (W - pad - 14) / n;
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto">';
+    days.forEach(function(d, i){
+      var h = (H - pad - 26) * d.orders / maxO;
+      var hBase = (H - pad - 26) * Math.min(d.orders, v.q) / maxO;
+      var x = pad + i * bw;
+      svg += '<rect x="' + (x + bw * 0.15).toFixed(1) + '" y="' + (H - pad - h).toFixed(1) +
+        '" width="' + (bw * 0.7).toFixed(1) + '" height="' + Math.max(1, h).toFixed(1) +
+        '" fill="var(--accent)" fill-opacity=".85" rx="2"/>';
+      svg += '<rect x="' + (x + bw * 0.15).toFixed(1) + '" y="' + (H - pad - hBase).toFixed(1) +
+        '" width="' + (bw * 0.7).toFixed(1) + '" height="' + Math.max(1, hBase).toFixed(1) +
+        '" fill="var(--hint)" fill-opacity=".5" rx="2"/>';
+    });
+    svg += '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - 14) + '" y2="' + (H - pad) + '" stroke="var(--border-strong)"/>';
+    svg += '<line x1="' + pad + '" y1="' + (H - pad - (H - pad - 26) * v.q / maxO).toFixed(1) +
+      '" x2="' + (W - 14) + '" y2="' + (H - pad - (H - pad - 26) * v.q / maxO).toFixed(1) +
+      '" stroke="var(--text)" stroke-dasharray="4 4" stroke-opacity=".5"/>';
+    days.forEach(function(d, i){
+      if (i % 3 === 0 || i === n - 1)
+        svg += '<text x="' + (pad + i * bw + bw / 2).toFixed(1) + '" y="' + (H - pad + 14) + '" font-size="9.5" text-anchor="middle" fill="var(--muted)">' + (i + 1) + '</text>';
+    });
+    svg += '<text x="' + pad + '" y="' + (pad - 10) + '" font-size="10.5" fill="var(--muted)">深橙＝平日水平　浅橙＝需要靠广告拉出的增量　虚线＝平日单量</text>';
+    svg += '</svg>';
+    document.getElementById('chart').innerHTML = svg;
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>履约方式全成本对比</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>履约方式全成本对比</h1>
+    <p class="lead">FBA、海外仓、自发货到底哪个划算？不只是比运费 —— 关键在于<b>不同履约方式会改变你的转化率</b>，这一层往往比运费本身更贵。</p>
+  </header>
+
+  <div class="card">
+    <h2>通用参数</h2>
+    <div class="fields">
+      <div class="field"><label>售价 <span class="unit">USD</span></label><input id="price" type="number" value="29.99" min="0" step="0.01"></div>
+      <div class="field"><label>单件采购成本 <span class="unit">USD</span></label><input id="cost" type="number" value="6.50" min="0" step="0.01"></div>
+      <div class="field"><label>平台佣金率 <span class="unit">%</span></label><input id="fee" type="number" value="15" min="0" max="100" step="0.5"></div>
+      <div class="field"><label>退货率 <span class="unit">%</span></label><input id="rr" type="number" value="5" min="0" max="100" step="0.5"></div>
+      <div class="field"><label>单件退货处理成本 <span class="unit">USD</span></label><input id="ret" type="number" value="2.50" min="0" step="0.1"></div>
+      <div class="field"><label>月会话量 Sessions</label><input id="sess" type="number" value="9600" min="0"></div>
+      <div class="field"><label>基准转化率 <span class="unit">%（用 FBA 时）</span></label><input id="cvr" type="number" value="12" min="0" step="0.1"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>三种方案的具体成本</h2>
+    <p class="desc">每种履约方式都会额外改变转化率：没 Prime 标、配送慢，买家就是不买 —— 这一栏是整份对比里影响最大的数字。</p>
+    <div class="fields">
+      <div class="field"><label>① FBA 单件配送费</label><input id="f1" type="number" value="5.20" min="0" step="0.1"></div>
+      <div class="field"><label>① FBA 月仓储 <span class="unit">每件</span></label><input id="f2" type="number" value="0.35" min="0" step="0.01"></div>
+      <div class="field"><label>① 平均在库月数</label><input id="f3" type="number" value="2" min="0" step="0.5"></div>
+      <div class="field"><label>① 转化影响 <span class="unit">% ，基准</span></label><input id="f4" type="number" value="0" step="1"></div>
+      <div class="field"><label>① 月固定费用</label><input id="f5" type="number" value="0" min="0" step="10"></div>
+
+      <div class="field"><label>② 海外仓头程 <span class="unit">每件</span></label><input id="w1" type="number" value="1.10" min="0" step="0.1"></div>
+      <div class="field"><label>② 海外仓仓储 <span class="unit">每件/月</span></label><input id="w2" type="number" value="0.25" min="0" step="0.01"></div>
+      <div class="field"><label>② 操作费 <span class="unit">每件</span></label><input id="w3" type="number" value="0.90" min="0" step="0.1"></div>
+      <div class="field"><label>② 尾程配送 <span class="unit">每件</span></label><input id="w4" type="number" value="4.20" min="0" step="0.1"></div>
+      <div class="field"><label>② 平均在库月数</label><input id="w5" type="number" value="2" min="0" step="0.5"></div>
+      <div class="field"><label>② 转化影响 <span class="unit">% ，多为负数</span></label><input id="w6" type="number" value="-5" step="1"></div>
+      <div class="field"><label>② 月固定费用</label><input id="w7" type="number" value="150" min="0" step="10"></div>
+
+      <div class="field"><label>③ 自发货国际运费 <span class="unit">每件</span></label><input id="s1" type="number" value="8.50" min="0" step="0.1"></div>
+      <div class="field"><label>③ 打包人工 <span class="unit">每件</span></label><input id="s2" type="number" value="0.60" min="0" step="0.1"></div>
+      <div class="field"><label>③ 国内操作费 <span class="unit">每件</span></label><input id="s3" type="number" value="0.40" min="0" step="0.1"></div>
+      <div class="field"><label>③ 转化影响 <span class="unit">% ，多为负数</span></label><input id="s4" type="number" value="-15" step="1"></div>
+      <div class="field"><label>③ 月固定费用</label><input id="s5" type="number" value="0" min="0" step="10"></div>
+    </div>
+
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="top"></div>
+  </div>
+
+  <div class="card">
+    <h2>逐方案对比</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>方案</th><th>履约侧成本/件</th><th>含佣金与退货的总成本</th><th>单件毛利</th><th>毛利率</th><th>实际转化率</th><th>月订单</th><th>月毛利</th><th>排名</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <div class="formula">
+      单件毛利 ＝ 售价 − 采购成本 − 平台佣金 − 退货损失 − 履约各项成本 − （在库月数 × 月仓储）<br>
+      月订单 ＝ 月会话量 × 基准转化率 ×（1 ＋ 转化影响）　｜　月毛利 ＝ 月订单 × 单件毛利 − 月固定费用
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>关键假设检验：转化到底能掉多少</h2>
+    <p class="desc">「转化影响」这一栏通常是拍脑袋填的，但它恰恰决定了结论。下表算出每个方案<b>要追平最优方案，转化至少要达到什么水平</b>。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>方案</th><th>当前填的转化影响</th><th>每月差多少</th><th>追平所需的转化影响</th><th>判断</th></tr></thead>
+        <tbody id="tbl2"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="verdict"></div>
+    <p class="note">「追平所需的转化影响」为正数，说明这个方案需要<b>转化率反过来高于 FBA</b> 才追得上（基本不可能）—— 这种情况下，省下的运费补不回转化的损失。<br>
+    为负数，则说明即使转化按某个幅度下降，它依然不输 —— 负得越多，方案的容错空间越大。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  function plans(){
+    var price = TK.num('price'), cost = TK.num('cost'), fee = TK.num('fee') / 100,
+        rr = TK.num('rr') / 100, ret = TK.num('ret'), sess = TK.num('sess'), cvr = TK.num('cvr') / 100;
+    var common = { price: price, cost: cost, comm: price * fee, retLoss: rr * ret, sess: sess, cvr: cvr };
+    var list = [
+      { name: 'FBA', own: TK.num('f1') + TK.num('f2') * TK.num('f3'), adj: TK.num('f4') / 100, fixed: TK.num('f5'),
+        detail: '配送费 ' + TK.money(TK.num('f1')) + ' ＋ 仓储 ' + TK.money(TK.num('f2') * TK.num('f3')) },
+      { name: '海外仓（第三方）', own: TK.num('w1') + TK.num('w2') * TK.num('w5') + TK.num('w3') + TK.num('w4'),
+        adj: TK.num('w6') / 100, fixed: TK.num('w7'),
+        detail: '头程 ' + TK.money(TK.num('w1')) + ' ＋ 尾程 ' + TK.money(TK.num('w4')) + ' ＋ 仓储操作 ' +
+                TK.money(TK.num('w2') * TK.num('w5') + TK.num('w3')) },
+      { name: '国内自发货', own: TK.num('s1') + TK.num('s2') + TK.num('s3'), adj: TK.num('s4') / 100, fixed: TK.num('s5'),
+        detail: '国际运费 ' + TK.money(TK.num('s1')) + ' ＋ 人工操作 ' + TK.money(TK.num('s2') + TK.num('s3')) }
+    ];
+    list.forEach(function(p){
+      p.totalCost = common.cost + common.comm + common.retLoss + p.own;
+      p.margin = common.price - p.totalCost;
+      p.marginRate = common.price > 0 ? p.margin / common.price : 0;
+      p.cvrEff = common.cvr * (1 + p.adj);
+      p.orders = common.sess * p.cvrEff;
+      p.monthProfit = p.orders * p.margin - p.fixed;
+      p.common = common;
+    });
+    return list;
+  }
+
+  function render(){
+    var L = plans();
+    var best = L.slice().sort(function(a, b){ return b.monthProfit - a.monthProfit; })[0];
+    var sorted = L.slice().sort(function(a, b){ return b.monthProfit - a.monthProfit; });
+    sorted.forEach(function(p, i){ p.rank = i + 1; });
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">最优方案</div><div class="v" style="font-size:16px">' + best.name + '</div></div>' +
+      '<div class="box"><div class="k">最优月毛利</div><div class="v">' + TK.money0(best.monthProfit) + '</div></div>' +
+      '<div class="box"><div class="k">vs 最差方案</div><div class="v">' +
+        TK.money0(best.monthProfit - sorted[sorted.length - 1].monthProfit) + ' / 月</div></div>' +
+      '<div class="box"><div class="k">全年差距</div><div class="v">' +
+        TK.money0((best.monthProfit - sorted[sorted.length - 1].monthProfit) * 12) + '</div></div>';
+
+    var el = document.getElementById('top');
+    el.className = 'callout co-' + (best.name === 'FBA' ? 'ok' : 'warn');
+    el.innerHTML = '<b>按当前参数，' + best.name + ' 最划算</b>（月毛利 ' + TK.money0(best.monthProfit) +
+      '，比第二名的 ' + TK.money0(sorted[1].monthProfit) + ' 高 ' +
+      TK.money0(best.monthProfit - sorted[1].monthProfit) + '）。' +
+      '<b>注意</b>：这个结论高度依赖「转化影响」那一栏 —— 那才是拉开差距的地方，运费本身反而常常只是次要项。';
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    sorted.forEach(function(p){
+      var rk = p.rank === 1 ? '<span class="badge b-ok">第 1</span>' : '<span class="badge b-idle">第 ' + p.rank + '</span>';
+      TK.rows(tb, '<tr><td><b>' + p.name + '</b><br><span class="tag">' + p.detail + '</span></td>' +
+        '<td class="num">' + TK.money(p.own) + '</td>' +
+        '<td class="num">' + TK.money(p.totalCost) + '</td>' +
+        '<td class="num"><b>' + TK.money(p.margin) + '</b></td>' +
+        '<td class="num">' + TK.pct(p.marginRate, 1) + '</td>' +
+        '<td class="num">' + TK.pct(p.cvrEff, 2) + '<br><span class="tag">' +
+          (p.adj >= 0 ? '+' : '') + (p.adj * 100).toFixed(0) + '%</span></td>' +
+        '<td class="num">' + p.orders.toFixed(0) + '</td>' +
+        '<td class="num"><b>' + TK.money0(p.monthProfit) + '</b></td>' +
+        '<td>' + rk + '</td></tr>');
+    });
+
+    var t2 = document.getElementById('tbl2');
+    TK.clear(t2);
+    L.forEach(function(p){
+      var gapNow = best.monthProfit - p.monthProfit;
+      /* 追平所需：(sess*cvr)*(1+adj')*margin - fixed = bestProfit → adj' = (bestProfit+fixed)/(sess*cvr*margin) - 1 */
+      var needAdj = (best.monthProfit + p.fixed) / Math.max(1e-6, p.common.sess * p.common.cvr * p.margin) - 1;
+      var ok = p.monthProfit >= best.monthProfit - 0.5;
+      var judge = ok ? '<span class="badge b-ok">当前最优</span>'
+                : (p.adj >= needAdj ? '<span class="badge b-ok">已达标</span>'
+                                    : '<span class="badge b-bad">差 ' + ((needAdj - p.adj) * 100).toFixed(1) + ' 个百分点</span>');
+      TK.rows(t2, '<tr><td><b>' + p.name + '</b></td>' +
+        '<td class="num">' + (p.adj >= 0 ? '+' : '') + (p.adj * 100).toFixed(0) + '%</td>' +
+        '<td class="num">' + (gapNow > 0.5 ? TK.money0(gapNow) : '—') + '</td>' +
+        '<td class="num">' + (p.margin > 0 ? (needAdj >= 0 ? '+' : '') + (needAdj * 100).toFixed(1) + '%' : '不盈利') + '</td>' +
+        '<td>' + judge + '</td></tr>');
+    });
+
+    var v2 = document.getElementById('verdict');
+    var others2 = L.filter(function(p){ return p !== best; })
+      .map(function(p){
+        var need = (best.monthProfit + p.fixed) / (p.common.sess * p.common.cvr * p.margin) - 1;
+        return { p: p, need: need, gap: need - p.adj };
+      })
+      .sort(function(a, b){ return a.gap - b.gap; });
+    var c = others2[0];
+    v2.className = 'callout co-info';
+    v2.innerHTML = '最接近的是 <b>' + c.p.name + '</b>：它要追平最优方案，转化影响需要达到 <b>' +
+      (c.need * 100).toFixed(1) + '%</b>，而你填的是 <b>' + (c.p.adj * 100).toFixed(0) + '%</b>，中间差 <b>' +
+      (c.gap * 100).toFixed(1) + ' 个百分点</b>。<br>' +
+      (c.gap <= 0
+        ? '也就是说，只要实际转化损失没你估的那么狠，这个方案就能赢 —— 值得拿真实后台数据重估一次。'
+        : '这个差距不小：它需要先在成本上再降 ' +
+          TK.money(Math.max(0, best.monthProfit / Math.max(1, c.p.orders) - c.p.margin)) +
+          ' / 件，或者把转化差距补回来，才谈得上。短期内别抱期待。');
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

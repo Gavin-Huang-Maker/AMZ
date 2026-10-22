@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>库存与补货预警表</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>库存与补货预警表</h1>
+    <p class="lead">库存还能卖多少天？最晚哪天必须下单？要不要为了赶时间改走空运？一个工具全算清楚，连「拖一天的代价」都给你。</p>
+  </header>
+
+  <div class="card">
+    <h2>库存现状</h2>
+    <div class="fields">
+      <div class="field"><label>当前可售库存 <span class="unit">件</span></label><input id="q0" type="number" value="680" min="0"></div>
+      <div class="field"><label>近 7 天日均销量</label><input id="d7" type="number" value="26" min="0" step="0.1"></div>
+      <div class="field"><label>近 30 天日均销量 <span class="unit">留空则用上项</span></label><input id="d30" type="number" placeholder="留空" min="0" step="0.1"></div>
+      <div class="field"><label>销量周增速 <span class="unit">%，下滑填负数</span></label><input id="g" type="number" value="3" step="0.5"></div>
+      <div class="field"><label>在途库存 <span class="unit">件</span></label><input id="qin" type="number" value="500" min="0"></div>
+      <div class="field"><label>在途预计到达 <span class="unit">天后</span></label><input id="eta" type="number" value="18" min="0"></div>
+    </div>
+
+    <hr class="sep">
+    <h3>补货参数</h3>
+    <div class="fields">
+      <div class="field"><label>下单到入仓可售所需天数 L</label><input id="lead" type="number" value="45" min="0"></div>
+      <div class="field"><label>目标库存覆盖天数 cover</label><input id="cover" type="number" value="45" min="0"></div>
+      <div class="field"><label>安全库存天数 SS</label><input id="ss" type="number" value="14" min="0"></div>
+      <div class="field"><label>起订批量 MOQ</label><input id="moq" type="number" value="200" min="0"></div>
+      <div class="field"><label>单件采购成本 <span class="unit">USD</span></label><input id="cost" type="number" value="6.50" min="0" step="0.01"></div>
+      <div class="field"><label>单件毛利 M <span class="unit">USD</span></label><input id="mg" type="number" value="9.08" min="0" step="0.01"></div>
+    </div>
+
+    <hr class="sep">
+    <h3>两种物流方案（用于判断要不要改快线）</h3>
+    <div class="fields">
+      <div class="field"><label>快线到仓天数 <span class="unit">空运/快递</span></label><input id="fastD" type="number" value="12" min="0"></div>
+      <div class="field"><label>快线单件头程 <span class="unit">USD</span></label><input id="fastC" type="number" value="4.50" min="0" step="0.01"></div>
+      <div class="field"><label>慢线到仓天数 <span class="unit">海运/铁路</span></label><input id="slowD" type="number" value="40" min="0"></div>
+      <div class="field"><label>慢线单件头程 <span class="unit">USD</span></label><input id="slowC" type="number" value="1.20" min="0" step="0.01"></div>
+    </div>
+
+    <div class="callout co-info" id="top"></div>
+    <div class="kv" id="kv1"></div>
+  </div>
+
+  <div class="card">
+    <h2>物流方案对比</h2>
+    <p class="desc">同样的订单，走快线和慢线分别在什么时候到货、各断几天、总成本（头程 + 断货损失）多少钱。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>方案</th><th>到仓日</th><th>到货前断货</th><th>60 天内总断货</th><th>头程运费</th><th>断货损失</th><th>合计成本</th></tr></thead>
+        <tbody id="shipTbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="shipVerdict"></div>
+    <div class="formula">
+      合计成本 ＝ 头程运费（单件头程 × 下单量）＋ 断货损失（断货天数 × 当日日均销量 × 单件毛利）。<br>
+      注意：此处断货损失只算了<b>当期直接少赚的毛利</b>，<b>没有</b>算断货导致的排名下跌与后续恢复费用 —— 那部分会用 <b>断货损失与恢复成本测算</b> 工具单独算，实际代价会更高。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>日销波动敏感性</h2>
+    <p class="desc">销量比预期高或低时，上面那个建议会不会失效 —— 一眼看清容错空间。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>日均销量情景</th><th>实际日销</th><th>断货日</th><th>60 天内断货天数</th><th>建议下单量</th><th>占压资金</th></tr></thead>
+        <tbody id="sensTbl"></tbody>
+      </table>
+    </div>
+    <p class="note">建议下单量按「目标覆盖天数 + 提前期 + 安全库存」天数的需求量减去现有库存与在途计算，并考虑了销量增速。销量预测越不准，cover 和 SS 就应设得越宽松 —— 这两个数字本质上是为「预测误差」买的保险。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var HORIZON = 120;
+
+  function V(){
+    var d30 = parseFloat(document.getElementById('d30').value);
+    var d0 = isNaN(d30) || d30 <= 0 ? TK.num('d7') : d30;
+    return {
+      q0:TK.num('q0'), d0:d0, g:TK.num('g')/100,
+      qin:TK.num('qin'), eta:TK.num('eta'),
+      lead:TK.num('lead'), cover:TK.num('cover'), ss:TK.num('ss'), moq:TK.num('moq'),
+      cost:TK.num('cost'), mg:TK.num('mg'),
+      fastD:TK.num('fastD'), fastC:TK.num('fastC'), slowD:TK.num('slowD'), slowC:TK.num('slowC')
+    };
+  }
+
+  /* 第 t 天（t 从 1 开始）的预测销量 */
+  function demand(v, t){ return v.d0 * Math.pow(1 + v.g, (t - 1) / 7); }
+
+  /* 未来 days 天的累计需求量 */
+  function need(v, days){
+    var s = 0, t;
+    for (t = 1; t <= days; t++) s += demand(v, t);
+    return s;
+  }
+
+  /* 逐日仿真：events = [{day, qty}]，day 天后到货补入 */
+  function sim(v, events, horizon){
+    var stock = v.q0, lost = 0, firstOut = null, outDays = 0, minStock = v.q0, t, i;
+    horizon = horizon || HORIZON;
+    for (t = 1; t <= horizon; t++){
+      stock += 0;
+      if (events) for (i = 0; i < events.length; i++) if (events[i].day === t) stock += events[i].qty;
+      stock -= demand(v, t);
+      if (stock < 0){ if (firstOut === null) firstOut = t; lost += -stock; outDays++; stock = 0; }
+      if (stock < minStock) minStock = stock;
+    }
+    return { firstOut: firstOut, outDays: outDays, lostUnits: lost, endStock: stock, minStock: minStock };
+  }
+
+  /* 没有任何补货时的可售天数 */
+  function runOut(v){
+    var s = v.q0, t;
+    for (t = 1; t <= 365; t++){ s -= demand(v, t); if (s < 0) return t; }
+    return null;
+  }
+
+  function fmtDate(offsetDays){
+    var d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+
+  function render(){
+    var v = V();
+    var base = need(v, Math.max(1, v.lead + v.cover + v.ss));
+    var raw = base - v.q0 - v.qin;
+    var order = Math.max(0, raw);
+    if (v.moq > 0) order = Math.ceil(order / v.moq) * v.moq;
+
+    var noBuy = sim(v, [{ day: v.eta, qty: v.qin }], 120);
+    var roDays = runOut(v);
+
+    /* 最晚下单日：让货在断货当天到仓 */
+    var lastOrderDay = roDays === null ? null : roDays - v.slowD;
+    var today = new Date();
+
+    var cash = order * v.cost;
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">不补货可撑</div><div class="v">' + (roDays === null ? '>365' : roDays) + ' 天</div></div>' +
+      '<div class="box"><div class="k">库存约在</div><div class="v" style="font-size:16px">' + (roDays === null ? '安全' : fmtDate(roDays)) + '</div></div>' +
+      '<div class="box"><div class="k">最晚下单日</div><div class="v" style="font-size:16px">' + (lastOrderDay === null ? '充裕' : (lastOrderDay <= 0 ? '已来不及' : fmtDate(lastOrderDay))) + '</div></div>' +
+      '<div class="box"><div class="k">建议下单量</div><div class="v">' + Math.round(order).toLocaleString('en-US') + ' 件</div></div>' +
+      '<div class="box"><div class="k">占压资金</div><div class="v">' + TK.money0(cash) + '</div></div>' +
+      '<div class="box"><div class="k">未来 60 天断货天数</div><div class="v">' + (sim(v,[{day:v.eta,qty:v.qin}],60).outDays) + ' 天</div></div>';
+
+    /* 主结论 */
+    var t,cls;
+    if (roDays === null){
+      cls = 'co-ok';
+      t = '<b>库存过剩。</b>按当前预测未来一年都卖不完。这时候不该继续补货了，先用<b>冗余库存处置决策</b>工具算算降价清货还是移除更划算。';
+    } else if (lastOrderDay !== null && lastOrderDay < 0){
+      cls = 'co-bad';
+      t = '<b>已经来不及走常规物流了。</b>库存 ' + roDays + ' 天后见底，而下单到入仓要 ' + v.lead +
+          ' 天。现在唯一的选择是走快线（' + v.fastD + ' 天到仓）抢时间，或者主动降 bid 压速度，把库存匀得更久一点 —— 二选一，不能两个都不做。';
+    } else if (lastOrderDay !== null && lastOrderDay <= 7){
+      cls = 'co-bad';
+      t = '<b>红色预警：' + roDays + ' 天后断货，最晚 ' + fmtDate(lastOrderDay) + ' 必须下单。</b>' +
+          '再拖就会进入需要用快线补时间的状态。建议今天就把单下出去。';
+    } else if (lastOrderDay !== null && lastOrderDay <= 21){
+      cls = 'co-warn';
+      t = '<b>黄色预警：距最晚下单日还有 ' + lastOrderDay + ' 天。</b>库存可撑 ' + roDays +
+          ' 天，建议下单量约 <b>' + Math.round(order).toLocaleString('en-US') + ' 件</b>（占压资金 ' + TK.money0(cash) +
+          '）。这段时间别再拖了，拖到红色预警就只能加钱改走快线。';
+    } else {
+      cls = 'co-ok';
+      t = '<b>库存健康。</b>可撑 ' + roDays + ' 天，最晚下单日是 ' + fmtDate(lastOrderDay) +
+          '，还有充裕时间。但要留意：' + (v.g > 0 ? '销量正在以每周 ' + (v.g * 100).toFixed(1) + '% 的速度上涨，实际会更快见底。' : '销量没有明显增速，注意别过度备货。');
+    }
+    var el = document.getElementById('top'); el.className = 'callout ' + cls; el.innerHTML = t;
+
+    /* 物流对比 */
+    var rF = sim(v, [{ day: v.fastD, qty: order }], 60);
+    var rS = sim(v, [{ day: v.slowD, qty: order }], 60);
+    var rN = sim(v, null, 60);
+    var costF = order * v.fastC, costS = order * v.slowC;
+    var lossF = rF.outDays * v.d0 * v.mg, lossS = rS.outDays * v.d0 * v.mg;
+    var totF = costF + lossF, totS = costS + lossS;
+    var tb = document.getElementById('shipTbl');
+    TK.clear(tb);
+    TK.rows(tb, '<tr><td><b>快线</b>（' + v.fastD + ' 天）</td><td class="num">' + fmtDate(v.fastD) + '</td>' +
+      '<td class="num">' + (rF.firstOut ? '第 ' + rF.firstOut + ' 天起' : '不会断') + '</td>' +
+      '<td class="num">' + rF.outDays + ' 天</td><td class="num">' + TK.money0(costF) + '</td>' +
+      '<td class="num">' + TK.money0(lossF) + '</td><td class="num"><b>' + TK.money0(totF) + '</b></td></tr>');
+    TK.rows(tb, '<tr><td><b>慢线</b>（' + v.slowD + ' 天）</td><td class="num">' + fmtDate(v.slowD) + '</td>' +
+      '<td class="num">' + (rS.firstOut ? '第 ' + rS.firstOut + ' 天起' : '不会断') + '</td>' +
+      '<td class="num">' + rS.outDays + ' 天</td><td class="num">' + TK.money0(costS) + '</td>' +
+      '<td class="num">' + TK.money0(lossS) + '</td><td class="num"><b>' + TK.money0(totS) + '</b></td></tr>');
+    TK.rows(tb, '<tr><td class="tag">都不发货</td><td class="num">—</td>' +
+      '<td class="num">' + (rN.firstOut ? '第 ' + rN.firstOut + ' 天起' : '不会断') + '</td>' +
+      '<td class="num">' + rN.outDays + ' 天</td><td class="num">—</td>' +
+      '<td class="num">' + TK.money0(rN.outDays * v.d0 * v.mg) + '</td>' +
+      '<td class="num"><b>' + TK.money0(rN.outDays * v.d0 * v.mg) + '</b></td></tr>');
+
+    var sv = document.getElementById('shipVerdict');
+    if (rS.outDays === 0 && rF.outDays === 0){
+      sv.className = 'callout co-ok';
+      sv.innerHTML = '<b>两种都不会断货，直接走慢线。</b>快线只是多花 ' + TK.money0(costF - costS) +
+        ' 运费，却没有换来任何额外销量，这笔钱是白扔的。';
+    } else if (totF < totS){
+      sv.className = 'callout co-warn';
+      sv.innerHTML = '<b>该走快线。</b>多花 ' + TK.money0(costF - costS) + ' 运费，但少断 ' +
+        (rS.outDays - rF.outDays) + ' 天，省下 ' + TK.money0(lossS - lossF) + ' 毛利损失，净划算 ' +
+        TK.money0(totS - totF) + '。这还没算断货造成的排名下跌 —— 算上之后差距会更大。';
+    } else {
+      sv.className = 'callout co-ok';
+      sv.innerHTML = '<b>慢线更划算。</b>慢线虽然多断 ' + (rS.outDays - rF.outDays) +
+        ' 天、损失 ' + TK.money0(lossS - lossF) + '，但省下 ' + TK.money0(costF - costS) +
+        ' 运费，净省 ' + TK.money0(totF - totS) + '。<b>但要注意</b>：这里只算当期少赚的毛利，不含排名下跌。' +
+        (rS.outDays >= 7 ? ' 断货 ' + rS.outDays + ' 天已经会明显掉名次了，建议用断货测算工具再核一次长期代价。' : '');
+    }
+
+    /* 敏感性 */
+    var st = document.getElementById('sensTbl');
+    TK.clear(st);
+    [-30, -15, 0, 15, 30, 50].forEach(function(p){
+      var vv = JSON.parse(JSON.stringify(v));
+      vv.d0 = v.d0 * (1 + p / 100);
+      var needQ = Math.max(0, need(vv, Math.max(1, v.lead + v.cover + v.ss)) - vv.q0 - vv.qin);
+      if (v.moq > 0) needQ = Math.ceil(needQ / v.moq) * v.moq;
+      var rr = sim(vv, [{ day: v.eta, qty: v.qin }], 60);
+      TK.rows(st, '<tr><td>' + (p > 0 ? '+' : '') + p + '%</td><td class="num">' + vv.d0.toFixed(1) + '</td>' +
+        '<td class="num">' + (rr.firstOut ? '第 ' + rr.firstOut + ' 天' : '不断货') + '</td>' +
+        '<td class="num">' + rr.outDays + ' 天</td>' +
+        '<td class="num">' + Math.round(needQ).toLocaleString('en-US') + '</td>' +
+        '<td class="num">' + TK.money0(needQ * v.cost) + '</td></tr>');
+    });
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

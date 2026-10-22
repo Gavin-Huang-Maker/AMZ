@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>竞品 Review 健康度检测</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>竞品 Review 健康度检测</h1>
+    <p class="lead">对手的评价数是真涨还是有水分？用稳健统计找出异常突增的窗口，剥出他真实的有机增速，再算算你多快能追上。</p>
+  </header>
+
+  <div class="card">
+    <h2>竞品累计评价数序列</h2>
+    <p class="desc">粘贴两到三列：期数（2024-01 或序号）、累计评价数、当期评分（可选）。从竞品 Listing 上定期抓取积累，<b>至少 8 期</b>才能做统计判断。</p>
+    <div class="fields">
+      <div class="field full"><label>粘贴内容</label>
+        <textarea id="raw" rows="10">期数	累计评价数	评分
+2024-01	120	4.5
+2024-02	141	4.5
+2024-03	163	4.4
+2024-04	186	4.4
+2024-05	209	4.5
+2024-06	305	4.3
+2024-07	330	4.2
+2024-08	352	4.1
+2024-09	375	4.1
+2024-10	398	4.2
+2024-11	420	4.2
+2024-12	443	4.2
+2025-01	466	4.2
+2025-02	489	4.3
+2025-03	583	4.2
+2025-04	606	4.1
+2025-05	629	4.1
+2025-06	652	4.2
+2025-07	675	4.2
+2025-08	698	4.3
+2025-09	721	4.3
+2025-10	744	4.3
+2025-11	767	4.3</textarea></div>
+      <div class="field"><label>每期天数 <span class="unit">用于折算月度</span></label><input id="pdays" type="number" value="30" min="1"></div>
+      <div class="field"><label>我的评价数</label><input id="mrev" type="number" value="420" min="0"></div>
+      <div class="field"><label>我的每月新增 <span class="unit">个</span></label><input id="mrate" type="number" value="40" min="0"></div>
+    </div>
+    <div class="callout co-info" id="parseInfo"></div>
+  </div>
+
+  <div class="card">
+    <h2>结论</h2>
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="top"></div>
+  </div>
+
+  <div class="card">
+    <h2>逐期明细</h2>
+    <p class="desc">红色标出的是异常突增窗口。注意看突增之后评分有没有掉 —— 那是典型的「刷完掉分」。</p>
+    <div id="chart"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>期数</th><th>累计评价数</th><th>本期新增</th><th>与基线倍数</th><th>当期评分</th><th>判定</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <div class="formula">
+      判定方法（稳健统计，不怕脏数据）：<br>
+      ① 取所有期增量的<b>中位数</b>作为基线；② 计算<b>中位绝对偏差 MAD</b>；③ 当期增量 &gt; max(基线×2, 基线＋3×MAD×1.4826) 时判为异常窗口。<br>
+      用中位数而不是平均数，是为了让少量突增污染不了基线本身。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>追赶测算</h2>
+    <div class="kv" id="kv2"></div>
+    <div class="callout co-info" id="catchVerdict"></div>
+    <p class="note">追赶测算用的是<b>对方剥离异常后的有机增速</b>，而不是表面增速 —— 这样才能反映真实的竞争格局。如果对方在刷，你其实只需要追他的有机速度。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var ROWS = [];
+
+  function num(s){ var v = parseFloat(String(s || '').replace(/[,%$"\s]/g, '')); return isNaN(v) ? 0 : v; }
+  function splitRow(line, sep){
+    var out = [], cur = '', q = false, i, c;
+    for (i = 0; i < line.length; i++){
+      c = line[i];
+      if (c === '"'){ if (q && line[i+1] === '"'){ cur += '"'; i++; } else q = !q; }
+      else if (c === sep && !q){ out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(function(x){ return x.trim().replace(/^="|"$/g, ''); });
+  }
+  function median(a){
+    if (!a.length) return 0;
+    var s = a.slice().sort(function(x, y){ return x - y; }), m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+
+  function parse(text){
+    var lines = text.replace(/\r/g, '').split('\n').filter(function(l){ return l.trim(); });
+    if (lines.length < 3) return [];
+    var sep = (lines[0].split('\t').length >= lines[0].split(',').length) ? '\t' : ',';
+    var out = [], i, cs, cum, rat;
+    for (i = 0; i < lines.length; i++){
+      cs = splitRow(lines[i], sep);
+      if (cs.length < 2) continue;
+      cum = num(cs[1]);
+      rat = cs.length > 2 ? num(cs[2]) : 0;
+      if (!isFinite(cum)) continue;
+      out.push({ label: cs[0], cum: cum, rating: rat });
+    }
+    out.sort(function(a, b){ return a.cum - b.cum; });
+    for (i = 1; i < out.length; i++) out[i].delta = out[i].cum - out[i - 1].cum;
+    if (out.length) out[0].delta = 0;
+    return out;
+  }
+
+  function render(){
+    ROWS = parse(document.getElementById('raw').value);
+    document.getElementById('chart').innerHTML = '';
+    document.getElementById('kv1').innerHTML = '';
+    document.getElementById('kv2').innerHTML = '';
+    TK.clear(document.getElementById('tbl'));
+
+    if (ROWS.length < 8){
+      document.getElementById('parseInfo').className = 'callout co-warn';
+      document.getElementById('parseInfo').innerHTML = '至少需要 8 期数据才能做稳健统计，当前只有 ' + ROWS.length + ' 期。';
+      document.getElementById('top').className = 'callout co-info';
+      document.getElementById('top').innerHTML = '数据不足。';
+      document.getElementById('catchVerdict').className = 'callout co-info';
+      document.getElementById('catchVerdict').innerHTML = '数据不足。';
+      return;
+    }
+
+    document.getElementById('parseInfo').className = 'callout co-info';
+    document.getElementById('parseInfo').innerHTML = '已识别 <b>' + ROWS.length + '</b> 期数据。';
+
+    var deltas = ROWS.slice(1).map(function(x){ return Math.max(0, x.delta); });
+    var med = median(deltas);
+    var mad = median(deltas.map(function(d){ return Math.abs(d - med); }));
+    mad = Math.max(mad, Math.max(0.5, med * 0.15));
+    var thr = Math.max(med * 2, med + 3 * mad * 1.4826);
+    var pd = TK.num('pdays') || 30;
+    var f = 30 / pd;
+
+    var flagCount = 0, flagSum = 0, cleanSum = 0, cleanN = 0;
+    ROWS.forEach(function(x, i){
+      x.flag = i > 0 && x.delta >= thr;
+      if (x.flag){ flagCount++; flagSum += x.delta; }
+      else if (i > 0){ cleanSum += x.delta; cleanN++; }
+    });
+    var organic = cleanN > 0 ? cleanSum / cleanN : med;
+    var totalDelta = ROWS[ROWS.length - 1].cum - ROWS[0].cum;
+    var anomShare = totalDelta > 0 ? flagSum / totalDelta : 0;
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">期间累计新增</div><div class="v">' + totalDelta.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">表面月均新增</div><div class="v">' + (totalDelta / Math.max(1, ROWS.length - 1) * f).toFixed(1) + '</div></div>' +
+      '<div class="box"><div class="k">有机月均新增</div><div class="v">' + (organic * f).toFixed(1) + '</div></div>' +
+      '<div class="box"><div class="k">异常窗口数</div><div class="v">' + flagCount + '</div></div>' +
+      '<div class="box"><div class="k">来自异常窗口的占比</div><div class="v">' + TK.pct(anomShare, 1) + '</div></div>' +
+      '<div class="box"><div class="k">评分变化</div><div class="v">' +
+        (ROWS[0].rating > 0 && ROWS[ROWS.length - 1].rating > 0
+          ? (ROWS[ROWS.length - 1].rating - ROWS[0].rating >= 0 ? '+' : '') +
+            (ROWS[ROWS.length - 1].rating - ROWS[0].rating).toFixed(1) : '未填') + '</div></div>';
+
+    var ratingDrops = [];
+    ROWS.forEach(function(x, i){
+      if (!x.flag || i + 3 >= ROWS.length) return;
+      if (ROWS[i].rating > 0 && ROWS[i + 3].rating > 0 && ROWS[i + 3].rating < ROWS[i].rating - 0.05)
+        ratingDrops.push({ at: x.label, from: ROWS[i].rating, to: ROWS[i + 3].rating });
+    });
+
+    var el = document.getElementById('top');
+    if (anomShare > 0.35){
+      el.className = 'callout co-bad';
+      el.innerHTML = '<b>新增加的评价里有 ' + TK.pct(anomShare, 0) + ' 集中在异常窗口 —— 这家有水分。</b>' +
+        '有机月均 ' + (organic * f).toFixed(1) + ' 个，表面却是 ' + (totalDelta / Math.max(1, ROWS.length - 1) * f).toFixed(1) +
+        ' 个。' + (ratingDrops.length
+          ? '<br>而且突增之后评分确实掉了（如 ' + ratingDrops[0].at + ' 之后 ' + ratingDrops[0].from.toFixed(1) + ' → ' +
+            ratingDrops[0].to.toFixed(1) + '），这是最典型的信号。'
+          : '<br>评分没有同步下滑，可能是走了站外放量或大额 Vine —— 手法比纯刷要规矩，但同样不属于可持续的有机增长。') +
+        '<br><b>对你的意义</b>：竞争压力没有表面那么大，你的追赶目标应该按他的有机速度算，而不是看那个总数。';
+    } else if (anomShare > 0.15){
+      el.className = 'callout co-warn';
+      el.innerHTML = '<b>有一定波动</b>：异常窗口贡献了 ' + TK.pct(anomShare, 0) + ' 的新增。可能是做了几次短期放量活动，' +
+        '规模不足以判定为系统性操作。建议继续观察评分是否长期稳定。';
+    } else {
+      el.className = 'callout co-ok';
+      el.innerHTML = '<b>增长平稳，看起来是真实有机的。</b>' +
+        '异常窗口只占 ' + TK.pct(anomShare, 0) + '，月均稳定在 ' + (organic * f).toFixed(1) + ' 个左右。' +
+        '<b>这意味着他的评价增长是真刀真枪做出来的</b> —— 如果要竞争，你得在同一维度上投入，而不能指望他自己掉下来。';
+    }
+
+    drawChart(med, thr);
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    ROWS.forEach(function(x, i){
+      var mult = med > 0 ? x.delta / med : 0;
+      TK.rows(tb, '<tr><td>' + x.label + '</td>' +
+        '<td class="num">' + x.cum.toFixed(0) + '</td>' +
+        '<td class="num">' + (i > 0 ? x.delta.toFixed(0) : '—') + '</td>' +
+        '<td class="num">' + (i > 0 ? mult.toFixed(1) + '×' : '—') + '</td>' +
+        '<td class="num">' + (x.rating > 0 ? x.rating.toFixed(1) : '—') + '</td>' +
+        '<td>' + (x.flag ? '<span class="badge b-bad">异常突增</span>'
+                         : (i > 0 ? '<span class="badge b-ok">正常</span>' : '<span class="badge b-idle">基线</span>')) + '</td></tr>');
+    });
+
+    /* 追赶测算 */
+    var myRev = TK.num('mrev'), myRate = TK.num('mrate');
+    var theirNow = ROWS[ROWS.length - 1].cum;
+    var gap0 = theirNow - myRev;
+    var netPerMonth = myRate - organic * f;
+    document.getElementById('kv2').innerHTML =
+      '<div class="box"><div class="k">对方当前评价数</div><div class="v">' + theirNow.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">我的评价数</div><div class="v">' + myRev.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">当前差距</div><div class="v">' + gap0.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">每月净追赶</div><div class="v">' + (netPerMonth >= 0 ? '+' : '') + netPerMonth.toFixed(1) + '</div></div>' +
+      '<div class="box"><div class="k">追平需要</div><div class="v">' +
+        (netPerMonth > 0 ? (gap0 / netPerMonth).toFixed(0) + ' 个月' : '追不上') + '</div></div>' +
+      '<div class="box"><div class="k">12 个月后差距</div><div class="v">' +
+        (gap0 - netPerMonth * 12).toFixed(0) + '</div></div>';
+
+    var cv = document.getElementById('catchVerdict');
+    cv.className = 'callout co-' + (netPerMonth > 0 ? 'ok' : 'bad');
+    cv.innerHTML = (netPerMonth > 0
+      ? '你每月比对方有机增速快 <b>' + netPerMonth.toFixed(1) + ' 个</b>，按此速度约 <b>' +
+        (gap0 / netPerMonth).toFixed(0) + ' 个月</b>能追平。' +
+        '<b>提醒</b>：评价数只是信任门槛，不是胜负本身 —— 追到同一个量级之后，比的就是评分和产品力了。'
+      : '你每月的新增低于对方的有机增速，<b>差距会越拉越大</b>。要扭转只能提高索评效率（售后卡、Vine、包装内卡片），' +
+        '或者换到评价门槛更低的细分市场去竞争。');
+  }
+
+  function drawChart(med, thr){
+    var n = ROWS.length, W = 660, H = 240, pad = 32;
+    var maxD = Math.max.apply(null, ROWS.map(function(x){ return x.delta; }));
+    var maxC = Math.max.apply(null, ROWS.map(function(x){ return x.cum; })) * 1.05;
+    var i, svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto">';
+    var bw = (W - pad - 14) / n;
+    for (i = 0; i < n; i++){
+      var h = maxD > 0 ? (H - pad - 30) * ROWS[i].delta / maxD : 0;
+      var x = pad + i * bw;
+      svg += '<rect x="' + (x + bw * 0.18).toFixed(1) + '" y="' + (H - pad - h).toFixed(1) +
+        '" width="' + (bw * 0.64).toFixed(1) + '" height="' + Math.max(1, h).toFixed(1) +
+        '" fill="' + (ROWS[i].flag ? 'var(--bad)' : 'var(--accent)') + '" fill-opacity=".75" rx="2"/>';
+      if (i % 4 === 0 || i === n - 1)
+        svg += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - pad + 13) + '" font-size="9.5" text-anchor="middle" fill="var(--muted)">' +
+          ROWS[i].label.replace(/^20\d\d-/, '') + '</text>';
+    }
+    /* 累计曲线 */
+    var pts = ROWS.map(function(x, idx){
+      return (pad + idx * bw + bw / 2).toFixed(1) + ',' + (H - pad - (H - pad - 30) * x.cum / maxC).toFixed(1);
+    }).join(' ');
+    svg += '<polyline points="' + pts + '" fill="none" stroke="var(--text)" stroke-width="1.6" stroke-opacity=".6"/>';
+    svg += '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - 14) + '" y2="' + (H - pad) + '" stroke="var(--border-strong)"/>';
+    svg += '<text x="' + pad + '" y="' + (pad - 12) + '" font-size="10.5" fill="var(--muted)">柱＝每期新增（红＝异常）　线＝累计评价数</text>';
+    svg += '</svg>';
+    document.getElementById('chart').innerHTML = svg;
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>
