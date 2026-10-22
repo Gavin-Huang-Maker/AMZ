@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>亚马逊 BSR 反超测算器 Pro</title>
+<meta name="description" content="BSR 反超测算 Pro：多目标档位、冲刺节奏对比、同比大盘诊断、今年 BSR1 门槛反推。">
+<style>
+:root{
+  --app-bg:#f5f6f8; --card:#ffffff; --text:#1a1d21; --muted:#6b7280; --hint:#9aa1ab;
+  --border:#e4e7eb; --border-strong:#d0d5dd; --accent:#e8590c;
+  --accent-soft:#fff2e9; --row-alt:#fafbfc;
+  --ok:#0f7b4f; --warn:#b45309; --bad:#b91c1c;
+  --oksoft:#e9f6ef; --warnsoft:#fdf3e3; --badsoft:#fbecec;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --app-bg:#0e1014; --card:#171a20; --text:#e8eaed; --muted:#a2a8b3; --hint:#6b7280;
+    --border:#282d36; --border-strong:#3a4150; --accent:#ff7a33;
+    --accent-soft:#241a14; --row-alt:#1c2027;
+    --ok:#4ec98c; --warn:#f0b458; --bad:#f28b82;
+    --oksoft:#12241b; --warnsoft:#241d10; --badsoft:#2a1616;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--app-bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  line-height:1.6;padding:34px 16px;-webkit-font-smoothing:antialiased;}
+.page{max-width:920px;margin:0 auto;}
+header{text-align:center;margin-bottom:20px;}
+h1{font-size:24px;font-weight:600;margin-bottom:7px;letter-spacing:-.3px;}
+.lead{color:var(--muted);font-size:13.5px;max-width:660px;margin:0 auto;}
+.tabs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:20px 0 16px;}
+.tab-btn{padding:9px 16px;font-size:13.5px;border:1px solid var(--border);border-radius:999px;
+  background:var(--card);color:var(--muted);cursor:pointer;transition:.15s;font-family:inherit;}
+.tab-btn:hover{border-color:var(--border-strong);color:var(--text);}
+.tab-btn.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:16px;}
+.card h2{font-size:16px;font-weight:600;margin-bottom:6px;}
+.card .desc{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+.card h3{font-size:14px;font-weight:600;margin:18px 0 10px;}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.field .unit{color:var(--hint);font-weight:400;}
+.field input,.field select{width:100%;padding:9px 11px;font-size:14px;
+  border:1px solid var(--border-strong);border-radius:10px;background:var(--card);
+  color:var(--text);outline:none;font-family:inherit;font-variant-numeric:tabular-nums;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.chip{padding:6px 13px;font-size:13px;border:1px solid var(--border-strong);border-radius:999px;
+  background:var(--card);color:var(--muted);cursor:pointer;user-select:none;transition:.15s;}
+.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:500;}
+hr.sep{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.callout{font-size:13px;padding:12px 14px;border-radius:10px;margin:14px 0;line-height:1.75;}
+.co-info{background:var(--accent-soft);}
+.co-ok{background:var(--oksoft);color:var(--ok);}
+.co-warn{background:var(--warnsoft);color:var(--warn);}
+.co-bad{background:var(--badsoft);color:var(--bad);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top;}
+th{color:var(--muted);font-weight:500;font-size:12px;white-space:nowrap;}
+tbody tr:nth-child(even){background:var(--row-alt);}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.tag{color:var(--hint);font-size:12px;}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:500;}
+.b-ok{background:var(--oksoft);color:var(--ok);}
+.b-warn{background:var(--warnsoft);color:var(--warn);}
+.b-bad{background:var(--badsoft);color:var(--bad);}
+.formula{font-size:13px;color:var(--muted);background:var(--row-alt);padding:12px 14px;
+  border-radius:10px;line-height:1.85;margin:12px 0;}
+code{background:rgba(128,128,128,.16);padding:1px 5px;border-radius:5px;font-size:12px;}
+.note{font-size:12px;color:var(--hint);margin-top:13px;line-height:1.75;}
+ol.n,ul.n{padding-left:20px;font-size:13.5px;color:var(--muted);}
+ol.n li,ul.n li{margin-bottom:7px;}
+ol.n b,ul.n b{color:var(--text);font-weight:500;}
+footer{text-align:center;color:var(--hint);font-size:12px;margin-top:20px;}
+.hide{display:none;}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0;}
+.kv .box{background:var(--row-alt);border-radius:10px;padding:12px 14px;}
+.kv .k{font-size:12px;color:var(--muted);margin-bottom:3px;}
+.kv .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;}
+.scroll{overflow-x:auto;}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>亚马逊 BSR 反超测算器 Pro</h1>
+    <p class="lead">多目标档位 Top 1/3/5/10 × 冲刺节奏对比 · 同比大盘诊断 · 今年 BSR1 门槛反推。<br>内核＝幂律门槛 + 加权滚动窗口（保留原版计算逻辑）。</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn on" data-t="calc">反超测算</button>
+    <button class="tab-btn" data-t="yoy">同比 · 大盘诊断</button>
+    <button class="tab-btn" data-t="method">口径与方法</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="calc" class="card">
+    <h2>单量反超测算</h2>
+    <p class="desc">填自身与参考链接数据 → 拟合 α 推算各目标排名门槛 → 按所选节奏逐日模拟达成天数。</p>
+
+    <h3>基础数据</h3>
+    <div class="fields">
+      <div class="field"><label>自身当前排名 r_now</label><input id="rNow" type="number" value="8" min="1"></div>
+      <div class="field"><label>销量口径</label>
+        <select id="uMode"><option value="d">日均单量</option><option value="w">周均单量</option></select></div>
+      <div class="field"><label>自身销量 <span class="unit" id="uNowUnit">(单/天)</span></label><input id="uNow" type="number" value="50" min="0"></div>
+      <div class="field"><label>零售单价 <span class="unit">USD（选填，算货值）</span></label><input id="price" type="number" value="0" min="0"></div>
+    </div>
+
+    <h3>参考链接（强烈建议填，用于拟合 α）</h3>
+    <div class="fields">
+      <div class="field"><label>参考链接排名 r_ref</label><input id="rRef" type="number" value="1" min="1"></div>
+      <div class="field"><label>参考链接销量 <span class="unit" id="uRefUnit">(单/天)</span></label><input id="uRef" type="number" value="600" min="0"></div>
+      <div class="field"><label>幂律指数 α <span class="unit">留空＝自动拟合</span></label><input id="alpha" type="number" placeholder="自动" min="0.1" max="2" step="0.05"></div>
+      <div class="field"><label>α 敏感度区间</label>
+        <select id="aBand"><option value="0.2">±20%</option><option value="0.3" selected>±30%</option><option value="0.5">±50%</option></select></div>
+    </div>
+
+    <h3>冲刺设定</h3>
+    <div class="fields">
+      <div class="field"><label>冲刺目标单量 P <span class="unit">(单/天)</span></label><input id="pushP" type="number" value="1000" min="0"></div>
+      <div class="field"><label>起始日期</label><input id="startDate" type="date"></div>
+      <div class="field"><label>滚动窗口</label>
+        <select id="winMode">
+          <option value="3">近 3 天（灵敏）</option>
+          <option value="7" selected>近 7 天（默认）</option>
+          <option value="14">近 14 天（平滑）</option>
+        </select></div>
+      <div class="field"><label>递增天数 G <span class="unit">仅递增模式</span></label><input id="rampG" type="number" value="5" min="1"></div>
+      <div class="field"><label>促销倍数 m <span class="unit">促销日＝P×m</span></label><input id="pm" type="number" value="2.5" min="1" step="0.1"></div>
+      <div class="field"><label>促销天数 Dp</label><input id="pdp" type="number" value="3" min="1"></div>
+      <div class="field"><label>回落水位 f <span class="unit">促销后＝P×f</span></label><input id="pf" type="number" value="0.7" min="0" step="0.1"></div>
+      <div class="field"><label>回落天数 Df</label><input id="pdf" type="number" value="4" min="0"></div>
+    </div>
+
+    <hr class="sep">
+    <h3>目标档位（可多选）</h3>
+    <div class="chips" id="targets">
+      <div class="chip on" data-r="1">Top 1</div>
+      <div class="chip on" data-r="3">Top 3</div>
+      <div class="chip on" data-r="5">Top 5</div>
+      <div class="chip on" data-r="10">Top 10</div>
+    </div>
+
+    <div class="callout co-info" id="fitInfo"></div>
+
+    <h3>结果对比</h3>
+    <div class="scroll">
+      <table id="resTbl">
+        <thead><tr>
+          <th>目标</th><th>冲刺节奏</th><th>门槛 U*<br><span class="tag">单/天</span></th>
+          <th>达成天数</th><th>累计投入</th><th>累计货值</th><th>预计达成日</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="callout co-warn" id="sensInfo"></div>
+    <p class="note">口径：单量为折算后的日均值；累计自起始日累加至达成日（含促销期溢价单量）。促销模式若标注“短暂达成”，说明仅靠活动期峰值冲过门槛，回落后会掉出，需接力维稳。</p>
+  </div>
+
+  <!-- TAB 2 -->
+  <div id="yoy" class="card hide">
+    <h2>同比对比与流量判断</h2>
+    <p class="desc">用今年 vs 去年同周期的销量与排名，反推今年 BSR1 门槛，并判断是“大盘变化”还是“你的份额变化”。</p>
+
+    <div class="fields">
+      <div class="field"><label>今年销量 U_Y <span class="unit">(单/天)</span></label><input id="uyNow" type="number" value="80" min="0"></div>
+      <div class="field"><label>今年排名 r_Y</label><input id="ryNow" type="number" value="12" min="1"></div>
+      <div class="field"><label>去年销量 U_L <span class="unit">(单/天)</span></label><input id="uyLast" type="number" value="70" min="0"></div>
+      <div class="field"><label>去年排名 r_L</label><input id="ryLast" type="number" value="10" min="1"></div>
+      <div class="field"><label>幂律指数 α</label><input id="alphaY" type="number" value="0.85" min="0.1" max="2" step="0.05"></div>
+      <div class="field"><label>去年 BSR1 门槛 U1_L <span class="unit">选填，强烈建议</span></label><input id="u1Last" type="number" value="0" min="0"></div>
+    </div>
+
+    <div class="kv" id="yoyKv"></div>
+    <div class="callout co-info" id="yoyVerdict"></div>
+
+    <h3>诊断矩阵</h3>
+    <div class="formula">
+      头部门槛 <code>K = U × r^α</code>　大盘系数 <code>λ = K_Y / K_L</code>　自身增速 <code>g = U_Y / U_L</code><br>
+      <b>相对势能 η = g / λ</b>　η&gt;1 跑赢大盘（份额↑，排名应改善）；η≈1 与大盘同步；η&lt;1 跑输大盘（排名会退）。
+    </div>
+    <table>
+      <thead><tr><th>情形</th><th>判定依据</th><th>结论与动作</th></tr></thead>
+      <tbody>
+        <tr><td>大盘走强</td><td>λ&gt;1，η&lt;1（销量持平但排名变差）</td><td>头部门槛被抬高。比较 Top1/3/5/10 是否<b>同步抬升</b>：同步＝大盘增长/竞争激烈，需按 λ 倍加码；仅个别链接异常＝个案对策。</td></tr>
+        <tr><td>跑赢大盘</td><td>η&gt;1</td><td>份额真实提升，可顺势加投巩固卡位。</td></tr>
+        <tr><td>大盘萎缩</td><td>λ&lt;1</td><td>同样单量更容易上榜（你提到的“反之亦然”）。注意别把份额提升误判为增长。</td></tr>
+        <tr><td>结构稳定</td><td>λ≈1</td><td>直接用自身销量变化解释排名变化，聚焦转化率与流量端。</td></tr>
+      </tbody>
+    </table>
+    <p class="note">举例：销量与去年持平（g≈1）但今年排名差于去年（r_Y&gt;r_L）→ λ&gt;1 → η&lt;1 → 说明今年拿到同一个排名需要更多单量，即头部整体走强。</p>
+  </div>
+
+  <!-- TAB 3 -->
+  <div id="method" class="card hide">
+    <h2>口径与方法说明</h2>
+
+    <h3>核心计算逻辑</h3>
+    <ol class="n">
+      <li><b>排名-销量幂律</b>：类目内 <code>U(r)=K·r^(−α)</code>。给定两点 <code>(r_a,u_a),(r_b,u_b)</code>，拟合 <code>α=ln(u_a/u_b)/ln(r_b/r_a)</code>，<code>K=u_a·r_a^α</code>。</li>
+      <li><b>目标门槛</b>：想守住第 r* 名，需日均 <code>U*=U_now·(r_now/r*)^α</code>。</li>
+      <li><b>滚动窗口（原版内核保留）</b>：按加权窗口对每日单量加权（默认 7 天 0.30/0.22/0.16/0.12/0.09/0.07/0.04），加权分 ≥ U* 视为达成。</li>
+      <li><b>节奏模拟</b>：生成逐日序列后滚动推进，取首个达成日。</li>
+    </ol>
+
+    <h3>输入字段清单</h3>
+    <table>
+      <thead><tr><th>字段</th><th>定义 / 口径</th><th>必填</th><th>缺失时替代</th></tr></thead>
+      <tbody>
+        <tr><td>r_now / U_now</td><td>自身当前类目排名与日均销量（周均÷7）</td><td>是</td><td>—</td></tr>
+        <tr><td>r_ref / U_ref</td><td>参考链接（默认 BSR1）排名与日均</td><td>强烈建议</td><td>缺则回落手动 α</td></tr>
+        <tr><td>α</td><td>幂律指数，反映类目集中度</td><td>与上面二选一</td><td>按类目经验值 0.7–1.1</td></tr>
+        <tr><td>P</td><td>冲刺期目标日均单量</td><td>是</td><td>广告预算 ÷ 目标 CPA 反推</td></tr>
+        <tr><td>单价</td><td>零售价，算累计货值</td><td>选填</td><td>留 0 不显示</td></tr>
+        <tr><td>G / m / Dp / f / Df</td><td>递增天数、促销倍数、促销天数、回落水位、回落天数</td><td>视节奏</td><td>用默认值</td></tr>
+        <tr><td>滚动窗口</td><td>3/7/14 天，近重远轻归一化</td><td>默认 7</td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <h3>敏感性与不确定性</h3>
+    <ul class="n">
+      <li>结果对 <b>α</b> 最敏感：α 变动 ±30%，门槛 U* 会因幂函数放大而变动更大，务必用真实参考点拟合。</li>
+      <li>参考链接销量多来自插件估算，本身 ±20–40% 误差，线性传导到 U*。</li>
+      <li>模型假设<b>对手静止</b>；真实场景中头部同时在投放/提价/做活动，实际天数常长于理论值，建议排期留出 1.2–1.5 倍冗余。</li>
+      <li>大促 / 断货 / 拼写异常日会窗口失真，日频监控时应剔除或平滑。</li>
+      <li>达标判定基于“加权分≥门槛”，是<b>进入并稳住</b>的必要条件，不保证单次快照排名立即显示。</li>
+    </ul>
+    <p class="note">工作流建议（采集频率与字段、波动归因、广告/促销配合、季节性与大盘异常修正）见配套文档《亚马逊 BSR 运营作战方案》。</p>
+  </div>
+
+  <footer>亚马逊真实算法未公开，本工具基于公开经验模型；结果用于方向判断与排期参考，不作为收益承诺。</footer>
+</div>
+
+<script>
+(function(){
+  var T=120;
+  function $(i){return document.getElementById(i);}
+
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('.tab-btn');
+    if(b){
+      document.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+      ['calc','yoy','method'].forEach(function(t){$(t).classList.toggle('hide',t!==b.dataset.t);});
+      return;
+    }
+    var c=e.target.closest('.chip');
+    if(c){ c.classList.toggle('on'); renderCalc(); }
+  });
+
+  function makeWeights(n){
+    if(n===3) return [0.5,0.3,0.2];
+    if(n===7) return [0.30,0.22,0.16,0.12,0.09,0.07,0.04];
+    var arr=[],s=0,i,q=0.88;
+    for(i=0;i<n;i++){arr.push(Math.pow(q,i));s+=Math.pow(q,i);}
+    return arr.map(function(v){return v/s;});
+  }
+
+  function genSeq(mode,B,P,p){
+    var d=[],t,v,G,Dp,Df,S,F;
+    for(t=1;t<=T;t++){
+      if(mode==='flat'){ v=P; }
+      else if(mode==='ramp'){
+        G=p.G; v = t<=G ? B+(P-B)*t/G : P;
+      } else {
+        Dp=p.Dp; Df=p.Df; S=P*p.m; F=P*p.f;
+        if(t<=Dp) v=S;
+        else if(t<=Dp+Df) v=F;
+        else v=P;
+      }
+      d.push(v);
+    }
+    return d;
+  }
+
+  function simulate(seq,B,w,Ustar){
+    var cum=0,t,i,s,d;
+    for(t=1;t<=T;t++){
+      cum+=seq[t-1]; s=0;
+      for(i=0;i<w.length;i++){
+        d=(t-i>=1)?seq[t-i-1]:B;
+        s+=w[i]*d;
+      }
+      if(s>=Ustar) return {days:t};
+    }
+    return {days:null};
+  }
+
+  function fmtDate(start,days){
+    if(!start) return '';
+    var dt=new Date(start);
+    dt.setDate(dt.getDate()+days);
+    return dt.toISOString().slice(5,10);
+  }
+
+  function renderCalc(){
+    var rNow=+$('rNow').value||1;
+    var rawNow=+$('uNow').value||0;
+    var weekly=$('uMode').value==='w';
+    var U=weekly?rawNow/7:rawNow;
+    $('uNowUnit').textContent=weekly?'(单/周)':'(单/天)';
+    $('uRefUnit').textContent=weekly?'(单/周)':'(单/天)';
+
+    var rRef=+$('rRef').value||1;
+    var rawRef=+$('uRef').value||0;
+    var Uref=weekly?rawRef/7:rawRef;
+
+    var price=+$('price').value||0;
+    var P=+$('pushP').value||0;
+    var w=makeWeights(+$('winMode').value);
+    var band=+$('aBand').value;
+
+    var manual=parseFloat($('alpha').value);
+    var auto=false, alpha;
+    if(!manual||isNaN(manual)){
+      if(Uref>0&&U>0&&rRef!==rNow&&Uref!==U){
+        alpha=Math.log(U/Uref)/Math.log(rRef/rNow);
+        auto=true;
+      }
+    } else { alpha=manual; }
+    if(!alpha||isNaN(alpha)||alpha<=0) alpha=0.85;
+
+    var K=U*Math.pow(rNow,alpha);
+    $('fitInfo').innerHTML='拟合方式：<b>'+(auto?'双点自动拟合':'手动指定 α')+
+      '</b>　→　α = <b>'+alpha.toFixed(3)+'</b>　K（≈BSR1 门槛）= <b>'+K.toFixed(0)+
+      '</b> 单/天'+(auto?'':'　<span class="tag">建议填入参考链接销量以获得更准的 α</span>');
+
+    var tg=[];
+    document.querySelectorAll('#targets .chip.on').forEach(function(c){tg.push(+c.dataset.r);});
+    if(!tg.length) tg=[1];
+
+    var modes=[['flat','匀速'],['ramp','递增'],['promo','促销爆量']];
+    var p={G:+$('rampG').value||5,Dp:+$('pdp').value||3,Df:+$('pdf').value||4,
+           m:+$('pm').value||2.5,f:+$('pf').value||0.7};
+    var sd=$('startDate').value;
+    var tb=document.querySelector('#resTbl tbody');
+    tb.innerHTML='';
+
+    tg.forEach(function(rs){
+      var Ustar=U*Math.pow(rNow/rs,alpha);
+      modes.forEach(function(m){
+        var dayCell,cumCell='—',valCell='—',dateCell='—',seq,cumUnits,i;
+        if(Ustar<=U){
+          dayCell='<span class="badge b-ok">已达成</span>';
+        } else {
+          seq=genSeq(m[0],U,P,p);
+          var res=simulate(seq,U,w,Ustar);
+          if(res.days===null){
+            dayCell = P<Ustar
+              ? '<span class="badge b-bad">无法达成</span><div class="tag">P 低于门槛</div>'
+              : '<span class="badge b-warn">超 '+T+' 天</span>';
+          } else {
+            cumUnits=0;
+            for(i=0;i<res.days;i++) cumUnits+=seq[i];
+            dayCell='<b>'+res.days+'</b> 天';
+            if(m[0]==='promo'&&P<Ustar) dayCell+=' <span class="badge b-warn">短暂达成</span>';
+            cumCell=cumUnits.toFixed(0)+' 单';
+            if(price>0) valCell='$'+(cumUnits*price).toFixed(0);
+            if(sd) dateCell=fmtDate(sd,res.days);
+          }
+        }
+        tb.insertAdjacentHTML('beforeend',
+          '<tr><td><b>Top '+rs+'</b></td><td>'+m[1]+'</td>'+
+          '<td class="num">'+Ustar.toFixed(0)+'</td>'+
+          '<td>'+dayCell+'</td>'+
+          '<td class="num">'+cumCell+'</td>'+
+          '<td class="num">'+valCell+'</td>'+
+          '<td class="num">'+dateCell+'</td></tr>');
+      });
+    });
+
+    var band30=band*100;
+    var lo=U*Math.pow(rNow/1,alpha*(1-band));
+    var hi=U*Math.pow(rNow/1,alpha*(1+band));
+    $('sensInfo').innerHTML='<b>敏感性：</b>α 在 ±'+band30+'% 区间波动时，Top 1 门槛约在 <b>'+
+      lo.toFixed(0)+' ~ '+hi.toFixed(0)+'</b> 单/天（基准 '+K.toFixed(0)+
+      '）。请务必用真实参考点拟合 α，并对手部持续投放留出 1.2–1.5 倍冗余。';
+  }
+
+  function renderYoy(){
+    var uy=+$('uyNow').value||0, ry=+$('ryNow').value||1;
+    var ul=+$('uyLast').value||0, rl=+$('ryLast').value||1;
+    var a=+$('alphaY').value||0.85, u1l=+$('u1Last').value||0;
+
+    var Ky=uy*Math.pow(ry,a), Kl=ul*Math.pow(rl,a);
+    var lam=Kl>0?Ky/Kl:0;
+    var g=ul>0?uy/ul:0;
+    var eta=lam>0?g/lam:0;
+
+    $('yoyKv').innerHTML=
+      '<div class="box"><div class="k">今年 BSR1 推算门槛</div><div class="v">'+Ky.toFixed(0)+'</div></div>'+
+      '<div class="box"><div class="k">去年 BSR1 门槛</div><div class="v">'+(u1l>0?u1l.toFixed(0):Kl.toFixed(0))+'</div></div>'+
+      '<div class="box"><div class="k">大盘系数 λ</div><div class="v">'+lam.toFixed(2)+'x</div></div>'+
+      '<div class="box"><div class="k">相对势能 η</div><div class="v">'+eta.toFixed(2)+'</div></div>';
+
+    var cls,v,tail='今年要拿下 BSR1，日均需约 <b>'+Ky.toFixed(0)+'</b> 单';
+    if(u1l>0) tail+='（≈ 去年的 '+(Ky/u1l).toFixed(2)+' 倍）';
+    tail+='。';
+
+    if(Math.abs(g-1)<0.08&&ry>rl){
+      cls='co-bad';
+      v='<b>头部门槛被抬高。</b>销量与去年基本持平，但今年排名差于去年（r_Y&gt;r_L）→ λ='+lam.toFixed(2)+
+        '&gt;1、η='+eta.toFixed(2)+'&lt;1 → 今年拿到同一排名需要更多单量。<br>'+tail+
+        '<br><b>进一步区分：</b>若 Top1/3/5/10 多档门槛同步抬升 → 类目大盘增长/竞争激烈，需按 λ 倍加码；若仅个别链接异常 → 个案，做针对性对抗而非全面加投。';
+    } else if(eta>1.15){
+      cls='co-ok';
+      v='<b>跑赢大盘。</b>单量增速超过头部门槛抬升速度（η='+eta.toFixed(2)+
+        '&gt;1），相对份额真实提升，排名趋势应向好，可顺势加投巩固卡位。<br>'+tail;
+    } else if(eta>0.85){
+      cls='co-info';
+      v='<b>与大盘同步。</b>η='+eta.toFixed(2)+'，基本跟住类目节奏，份额未明显变化。<br>'+tail;
+    } else {
+      cls='co-bad';
+      v='<b>跑输大盘。</b>η='+eta.toFixed(2)+'&lt;1，即使有增长，头部门槛抬升更快（λ='+lam.toFixed(2)+
+        '），相对份额被稀释，排名会退，需加码投放或优化转化。<br>'+tail;
+    }
+    $('yoyVerdict').className='callout '+cls;
+    $('yoyVerdict').innerHTML=v;
+  }
+
+  ['rNow','uNow','uMode','price','rRef','uRef','alpha','aBand','pushP','startDate',
+   'winMode','rampG','pm','pdp','pf','pdf'].forEach(function(id){
+    $(id).addEventListener('input',renderCalc);
+  });
+  ['uyNow','ryNow','uyLast','ryLast','alphaY','u1Last'].forEach(function(id){
+    $(id).addEventListener('input',renderYoy);
+  });
+
+  $('startDate').value=new Date().toISOString().slice(0,10);
+  renderCalc();
+  renderYoy();
+})();
+</script>
+</body>
+</html>
