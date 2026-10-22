@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>广告增量效应检测器</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>广告增量效应检测器</h1>
+    <p class="lead">广告带来的单，有多少是本来就会自然来的？算清「真实增量比」，才知道 ACOS 到底是赚是亏、预算该加还是该砍。</p>
+  </header>
+
+  <div class="card">
+    <h2>方法一：多周回归法（需要先粘贴历史数据）</h2>
+    <p class="desc">如果广告订单变多时自然订单会同步变少，说明有一部分单是被广告"买回来"的。用历史周数据回归，斜率就是被吃掉的比例。</p>
+    <div class="fields">
+      <div class="field full"><label>粘贴周数据 <span class="unit">表头含：周次 / 广告花费 / 广告订单 / 自然订单</span></label>
+        <textarea id="raw" rows="8" placeholder="周次	广告花费	广告订单	自然订单"></textarea></div>
+      <div class="field"><label>广告销售额（合计） <span class="unit">USD</span></label><input id="adSales" type="number" value="18500" min="0" step="1"></div>
+      <div class="field"><label>单件毛利 M <span class="unit">USD</span></label><input id="mg" type="number" value="9.08" min="0" step="0.01"></div>
+    </div>
+    <div style="margin-top:12px"><button id="demo" style="padding:9px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--row-alt);color:var(--text);font-size:13px;cursor:pointer">填入示例数据</button></div>
+    <div class="callout co-info" id="regInfo"></div>
+    <div class="kv" id="kvA"></div>
+    <div id="chart"></div>
+    <div class="formula">
+      回归：<code>自然订单 N = a + b × 广告订单 A</code>　→　增量比 <code>i = 1 + b</code>（clamp 到 0～1）<br>
+      含义：每多 1 个广告订单，自然端少 b 个单（b 为负）。若 b ≈ 0 说明广告全是真增量；b = −1 说明广告完全在买自己。<br>
+      <b>前提</b>：这段时间内没有重大的季节性变化、没有调价、没有大促，否则斜率会被外部因素污染。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>方法二：单期对照法（不用历史数据也能算）</h2>
+    <p class="desc">拿一个「假如没投广告」的参照场景做对比，差额就是广告真带来的部分。</p>
+    <div class="fields">
+      <div class="field"><label>观察期自然订单 N₁</label><input id="n1" type="number" value="690" min="0"></div>
+      <div class="field"><label>观察期广告订单 A₁</label><input id="a1" type="number" value="520" min="0"></div>
+      <div class="field"><label>观察期广告花费 <span class="unit">USD</span></label><input id="spend" type="number" value="4300" min="0" step="1"></div>
+      <div class="field"><label>观察期广告销售额 <span class="unit">USD</span></label><input id="sales" type="number" value="18500" min="0" step="1"></div>
+      <div class="field"><label>上一期自然订单 N₀</label><input id="n0" type="number" value="922" min="0"></div>
+      <div class="field"><label>对照基准</label>
+        <select id="ctl">
+          <option value="g">用类目/大盘增速</option>
+          <option value="asin">用一个未投广告的相似 ASIN</option>
+        </select></div>
+      <div class="field" id="boxG"><label>同期大盘增速 <span class="unit">%</span></label><input id="g" type="number" value="3" step="0.5"></div>
+      <div class="field" id="boxR1"><label>参照 ASIN 上期自然单</label><input id="r0" type="number" value="300" min="0"></div>
+      <div class="field" id="boxR2"><label>参照 ASIN 本期自然单</label><input id="r1" type="number" value="312" min="0"></div>
+    </div>
+    <div class="kv" id="kvB"></div>
+    <div class="callout co-info" id="ctlVerdict"></div>
+    <div class="formula">
+      假设无广告时的自然订单 <code>N₀' = N₀ × (1 + g)</code>（g 取大盘增速，或取参照 ASIN 的自然增长率）<br>
+      真实增量订单 ＝（N₁ + A₁）− N₀'　｜　增量比 <code>i = 真实增量订单 ÷ A₁</code>　｜　真实 ACOS ＝ 广告花费 ÷（增量订单 × 客单价）
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>该不该砍广告预算</h2>
+    <p class="desc">用上面算出来的增量比，直接回答「降预算到底是省钱还是亏钱」。</p>
+    <div class="fields">
+      <div class="field"><label>采用哪个增量比</label>
+        <select id="src">
+          <option value="reg" selected>方法一（多周回归）</option>
+          <option value="ctl">方法二（单期对照）</option>
+          <option value="man">手动指定</option>
+        </select></div>
+      <div class="field"><label>手动增量比 <span class="unit">0～1</span></label><input id="manI" type="number" value="0.6" min="0" max="1" step="0.05"></div>
+    </div>
+    <div class="callout co-info" id="beThreshold"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>方案</th><th>每周省下的广告费</th><th>真实少卖的单</th><th>损失的毛利</th><th>净效果</th><th>建议</th></tr></thead>
+        <tbody id="cutTbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="cutVerdict"></div>
+    <div class="formula">
+      判据只有一条：<b>盈亏平衡增量比 i* ＝ 每周广告花费 ÷（每周广告订单 × 单件毛利）</b>。<br>
+      当 <code>实际增量比 i &lt; i*</code> 时，砍预算就是净赚的（省下的钱 &gt; 真丢掉的毛利）；反之则不能砍，还应该加。<br>
+      此处的每一档收益随降幅线性放大，是因为模型假设<b>回报恒定</b>；真实情况里降幅越大，越可能伤到自然位和复购，所以请按「先降一半、跑 7 天验证」的节奏走。
+    </div>
+    <p class="note">关键假设：砍掉的预算里，被广告吃掉的那部分（1−i）会自然回来，只有 i 部分是真正丢掉的量。这个假设在「竞价位置靠前、自然位也靠前」时比较成立；如果广告位替你承担了大量曝光（比如你没有自然位），实际损失会更大 —— 那时 i 会被高估，砍预算要更保守。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var REG = null, CTL = null;
+
+  function num(s){ var v = parseFloat(String(s || '').replace(/[,%$"\s]/g, '')); return isNaN(v) ? 0 : v; }
+  function findIdx(h, ks){
+    var i, j;
+    for (i = 0; i < h.length; i++) for (j = 0; j < ks.length; j++) if (h[i].indexOf(ks[j]) >= 0) return i;
+    return -1;
+  }
+  function splitRow(line, sep){
+    var out = [], cur = '', q = false, i, c;
+    for (i = 0; i < line.length; i++){
+      c = line[i];
+      if (c === '"'){ if (q && line[i+1] === '"'){ cur += '"'; i++; } else q = !q; }
+      else if (c === sep && !q){ out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(function(x){ return x.trim().replace(/^="|"$/g, ''); });
+  }
+
+  function parseWeeks(text){
+    var lines = text.replace(/\r/g, '').split('\n').filter(function(l){ return l.trim(); });
+    if (lines.length < 3) return null;
+    var sep = (lines[0].split('\t').length >= lines[0].split(',').length) ? '\t' : ',';
+    var head = splitRow(lines[0], sep);
+    var iS = findIdx(head, ['广告花费','花费','spend']);
+    var iA = findIdx(head, ['广告订单','广告带来的订单']);
+    var iN = findIdx(head, ['自然订单','自然单']);
+    if (iS < 0 || iA < 0 || iN < 0) return null;
+    var rows = [], i, cs;
+    for (i = 1; i < lines.length; i++){
+      cs = splitRow(lines[i], sep);
+      var s = num(cs[iS]), a = num(cs[iA]), n = num(cs[iN]);
+      if (a <= 0 && s <= 0) continue;
+      rows.push({ w: i, spend: s, ad: a, nat: n });
+    }
+    return rows.length >= 4 ? rows : null;
+  }
+
+  function regress(rows){
+    var n = rows.length, sx = 0, sy = 0, i;
+    for (i = 0; i < n; i++){ sx += rows[i].ad; sy += rows[i].nat; }
+    var mx = sx / n, my = sy / n, sxy = 0, sxx = 0, syy = 0;
+    for (i = 0; i < n; i++){
+      sxy += (rows[i].ad - mx) * (rows[i].nat - my);
+      sxx += Math.pow(rows[i].ad - mx, 2);
+      syy += Math.pow(rows[i].nat - my, 2);
+    }
+    var b = sxx > 0 ? sxy / sxx : 0;
+    var r = (sxx > 0 && syy > 0) ? sxy / Math.sqrt(sxx * syy) : 0;
+    return { slope: b, intercept: my - b * mx, r: r, n: n, mx: mx, my: my };
+  }
+
+  function drawChart(rows, fit){
+    var W = 640, H = 220, pad = 34, i;
+    var maxX = 0, maxY = 0;
+    rows.forEach(function(p){ maxX = Math.max(maxX, p.ad); maxY = Math.max(maxY, p.nat); });
+    maxX *= 1.12; maxY *= 1.12;
+    var minY = 0;
+    function X(v){ return pad + (W - pad * 2) * v / maxX; }
+    function Y(v){ return H - pad - (H - pad * 2) * (v - minY) / (maxY - minY); }
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;margin-top:10px">';
+    svg += '<line x1="' + pad + '" y1="' + (H - pad) + '" x2="' + (W - pad) + '" y2="' + (H - pad) + '" stroke="var(--border-strong)"/>';
+    svg += '<line x1="' + pad + '" y1="' + pad + '" x2="' + pad + '" y2="' + (H - pad) + '" stroke="var(--border-strong)"/>';
+    svg += '<text x="' + (W / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="var(--muted)">每周广告订单 A</text>';
+    svg += '<text x="10" y="' + (H / 2) + '" font-size="11" fill="var(--muted)">自然订单</text>';
+    svg += '<line x1="' + X(0) + '" y1="' + Y(fit.intercept) + '" x2="' + X(maxX) + '" y2="' + Y(fit.intercept + fit.slope * maxX) +
+           '" stroke="var(--accent)" stroke-width="2"/>';
+    rows.forEach(function(p){
+      svg += '<circle cx="' + X(p.ad) + '" cy="' + Y(p.nat) + '" r="4.5" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>';
+      svg += '<text x="' + (X(p.ad) + 8) + '" y="' + (Y(p.nat) + 4) + '" font-size="10" fill="var(--muted)">W' + p.w + '</text>';
+    });
+    svg += '</svg>';
+    return svg;
+  }
+
+  function renderA(){
+    var rows = parseWeeks(document.getElementById('raw').value);
+    var info = document.getElementById('regInfo'), kv = document.getElementById('kvA');
+    document.getElementById('chart').innerHTML = '';
+    if (!rows){
+      REG = null;
+      info.className = 'callout co-info';
+      info.innerHTML = rows === null ? '需要至少 4 周的有效数据（含广告花费、广告订单、自然订单三列）。' : '数据不足。';
+      kv.innerHTML = '';
+      return;
+    }
+    var fit = regress(rows);
+    var i = TK.clamp(1 + fit.slope, 0, 1);
+    var totAd = rows.reduce(function(a, p){ return a + p.ad; }, 0);
+    var totSpend = rows.reduce(function(a, p){ return a + p.spend; }, 0);
+    var incOrders = totAd * i;
+    var adSales = TK.num('adSales');
+    var nomAcos = adSales > 0 ? totSpend / adSales : 0;
+    var realAcos = i > 0.001 ? nomAcos / i : Infinity;
+    REG = { i: i, slope: fit.slope, r: fit.r, n: fit.n, totAd: totAd, totSpend: totSpend, realAcos: realAcos, nomAcos: nomAcos };
+
+    info.className = 'callout co-' + (i >= 0.7 ? 'ok' : (i >= 0.45 ? 'warn' : 'bad'));
+    info.innerHTML = '回归用了 <b>' + fit.n + '</b> 周数据，斜率 b = <b>' + fit.slope.toFixed(3) +
+      '</b>，相关性 r = ' + fit.r.toFixed(2) + '<br>' +
+      '读法：广告订单每多 1 单，自然端平均少 ' + Math.abs(fit.slope).toFixed(2) + ' 单 —— 也就是每 100 个广告单里，' +
+      '大约有 <b>' + (Math.abs(fit.slope) * 100).toFixed(0) + '</b> 单是本来就会自然来的。' +
+      (Math.abs(fit.r) < 0.6 ? '<br><b>注意</b>：相关性偏弱（|r| < 0.6），这段数据里噪声较大，结论请谨慎使用。' : '');
+
+    kv.innerHTML =
+      '<div class="box"><div class="k">合计广告订单</div><div class="v">' + totAd.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">真实增量订单</div><div class="v">' + incOrders.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">真实增量比 i</div><div class="v">' + TK.pct(i, 0) + '</div></div>' +
+      '<div class="box"><div class="k">名义 ACOS</div><div class="v">' + TK.pct(nomAcos, 1) + '</div></div>' +
+      '<div class="box"><div class="k">真实 ACOS</div><div class="v">' + (isFinite(realAcos) ? TK.pct(realAcos, 1) : '无限大') + '</div></div>' +
+      '<div class="box"><div class="k">被浪费的广告费</div><div class="v">' + TK.money0(totSpend * (1 - i)) + '</div></div>';
+
+    document.getElementById('chart').innerHTML = drawChart(rows, fit);
+  }
+
+  function renderB(){
+    var n1 = TK.num('n1'), a1 = TK.num('a1'), spend = TK.num('spend'), sales = TK.num('sales'), n0 = TK.num('n0');
+    var mode = document.getElementById('ctl').value;
+    document.getElementById('boxG').style.display = mode === 'g' ? '' : 'none';
+    document.getElementById('boxR1').style.display = mode === 'asin' ? '' : 'none';
+    document.getElementById('boxR2').style.display = mode === 'asin' ? '' : 'none';
+    var g;
+    if (mode === 'g'){ g = TK.num('g') / 100; }
+    else { var r0 = TK.num('r0'), r1 = TK.num('r1'); g = r0 > 0 ? r1 / r0 - 1 : 0; }
+
+    var noAd = n0 * (1 + g);
+    var total = n1 + a1;
+    var inc = total - noAd;
+    var i = a1 > 0 ? TK.clamp(inc / a1, 0, 1) : 0;
+    var aov = a1 > 0 ? sales / a1 : 0;
+    var nomAcos = sales > 0 ? spend / sales : 0;
+    var realSales = inc * aov;
+    var realAcos = realSales > 0 ? spend / realSales : Infinity;
+    CTL = { i: i, inc: inc, noAd: noAd, g: g, aov: aov, realAcos: realAcos, nomAcos: nomAcos, a1: a1, spend: spend };
+
+    document.getElementById('kvB').innerHTML =
+      '<div class="box"><div class="k">对照增速 g</div><div class="v">' + TK.pct(g, 1) + '</div></div>' +
+      '<div class="box"><div class="k">假设无广告的自然订单</div><div class="v">' + noAd.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">实际总订单</div><div class="v">' + total.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">真实增量订单</div><div class="v">' + inc.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">增量比 i</div><div class="v">' + TK.pct(i, 0) + '</div></div>' +
+      '<div class="box"><div class="k">真实 ACOS</div><div class="v">' + (isFinite(realAcos) ? TK.pct(realAcos, 1) : '无限大') + '</div></div>';
+
+    var el = document.getElementById('ctlVerdict');
+    if (a1 <= 0 || n0 <= 0){
+      el.className = 'callout co-info'; el.innerHTML = '填完上面的数字就能算。';
+    } else if (i >= 0.7){
+      el.className = 'callout co-ok';
+      el.innerHTML = '<b>广告基本是真增量。</b>每 100 个广告单里约 ' + (i * 100).toFixed(0) +
+        ' 单是新增的。名义 ACOS ' + TK.pct(nomAcos, 1) + ' 接近真实 ACOS ' + TK.pct(realAcos, 1) +
+        '，这种情况下可以放心加预算。';
+    } else if (i >= 0.45){
+      el.className = 'callout co-warn';
+      el.innerHTML = '<b>有相当一部分在买自己。</b>增量比 ' + TK.pct(i, 0) + '，意味着名义 ACOS ' +
+        TK.pct(nomAcos, 1) + ' 看着还行，真实 ACOS 其实是 ' + TK.pct(realAcos, 1) +
+        '。先别急着加预算，建议做一次降预算测试（见下表）确认边界。';
+    } else {
+      el.className = 'callout co-bad';
+      el.innerHTML = '<b>广告基本在买自己。</b>增量比只有 ' + TK.pct(i, 0) + ' —— 停掉大部分广告，' +
+        '总订单可能并不会少多少。真实 ACOS 高达 ' + (isFinite(realAcos) ? TK.pct(realAcos, 1) : '很大') +
+        '。建议按下面表格的推荐比例降下来，然后观察总订单是否真的跟着掉。';
+    }
+  }
+
+  function renderC(){
+    var src = document.getElementById('src').value;
+    var i, from = '';
+    if (src === 'reg' && REG){ i = REG.i; from = '多周回归'; }
+    else if (src === 'ctl' && CTL){ i = CTL.i; from = '单期对照'; }
+    else { i = TK.num('manI'); from = '手动指定'; }
+    var mg = TK.num('mg');
+    /* 用哪个销量口径做基数：优先拿方法二，否则用方法一 */
+    var baseAd = CTL ? CTL.a1 : (REG ? REG.totAd / Math.max(1, REG.n) : 0);
+    var baseSpend = CTL ? CTL.spend : (REG ? REG.totSpend / Math.max(1, REG.n) : 0);
+
+    var tb = document.getElementById('cutTbl');
+    TK.clear(tb);
+    [10, 20, 30, 40, 50].forEach(function(p){
+      var save = baseSpend * p / 100;
+      var lostOrders = baseAd * (p / 100) * i;
+      var lostMargin = lostOrders * mg;
+      var net = save - lostMargin;
+      var advice = net > 0 ? '<span class="badge b-ok">划算</span>' : '<span class="badge b-bad">会亏</span>';
+      TK.rows(tb, '<tr><td><b>降 ' + p + '%</b></td><td class="num">' + TK.money0(save) + '</td>' +
+        '<td class="num">' + lostOrders.toFixed(0) + '</td><td class="num">' + TK.money0(lostMargin) +
+        '</td><td class="num"><b>' + (net >= 0 ? '+' : '') + TK.money0(net) + '</b></td><td>' + advice + '</td></tr>');
+    });
+
+    /* 盈亏平衡增量比 */
+    var iStar = (baseAd > 0 && mg > 0) ? baseSpend / (baseAd * mg) : null;
+    var be = document.getElementById('beThreshold');
+    if (iStar === null){
+      be.className = 'callout co-info';
+      be.innerHTML = '填上单件毛利与广告订单数后，才能算出盈亏平衡增量比。';
+    } else {
+      be.className = 'callout co-' + (i < iStar ? 'warn' : 'ok');
+      be.innerHTML = '<b>盈亏平衡增量比 i* ＝ ' + TK.pct(Math.min(iStar, 3), 0) + '</b>　（当前采用的是' + from +
+        '算出的 i ＝ <b>' + TK.pct(i, 0) + '</b>）<br>' +
+        (i < iStar
+          ? '实际增量比低于盈亏平衡点 —— 意味着<b>现在这个投放结构是亏钱的</b>，减预算每周就能净赚。'
+          : '实际增量比高于盈亏平衡点 —— 说明<b>广告整体在赚钱</b>，不该砍，反而有余地往上加。');
+    }
+
+    var el = document.getElementById('cutVerdict');
+    if (baseAd <= 0 || mg <= 0){
+      el.className = 'callout co-info';
+      el.innerHTML = '需要广告订单数与单件毛利才能测算。要么粘贴周数据（方法一），要么填方法二的单期数字。';
+    } else if (i < iStar * 0.7){
+      el.className = 'callout co-bad';
+      el.innerHTML = '<b>建议果断降。</b>增量比只有盈亏平衡线的 ' + (i / iStar * 100).toFixed(0) +
+        '%，说明相当一部分广告费在买自己已经会来的单。<b>执行节奏</b>：先降 20%，跑满 7 天看总订单有没有掉 —— ' +
+        '如果没掉，说明省下的确实是净利，再考虑继续降；如果掉了，立刻恢复并把这部分钱挪到还没开的类目/新品上。';
+    } else if (i < iStar){
+      el.className = 'callout co-warn';
+      el.innerHTML = '<b>可以小幅试探。</b>增量比略低于盈亏平衡线，降 10% 的净收益有限但风险也小。' +
+        '用这次试探来验证你的增量比测算准不准 —— 这才是它真正的价值（把假设变成事实）。';
+    } else {
+      el.className = 'callout co-ok';
+      el.innerHTML = '<b>不要砍。</b>当前广告每周带来的增量毛利高于广告支出，砍掉就是直接减少利润。' +
+        '如果还想增长，可以用「利润与广告承受力计算器」算一算最多还能把预算加到多少。';
+    }
+  }
+
+  function render(){ renderA(); renderB(); renderC(); }
+
+  document.getElementById('demo').addEventListener('click', function(){
+    document.getElementById('raw').value =
+      '周次\t广告花费\t广告订单\t自然订单\n' +
+      '1\t210\t30\t212\n2\t240\t34\t207\n3\t260\t38\t213\n' +
+      '4\t300\t45\t203\n5\t330\t50\t202\n6\t360\t55\t193\n' +
+      '7\t400\t62\t194\n8\t430\t68\t193';
+    render();
+  });
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

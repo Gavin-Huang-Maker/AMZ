@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>类目吸引力 × 进入难度矩阵</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>类目吸引力 × 进入难度矩阵</h1>
+    <p class="lead">新类目到底该不该进？把候选类目黏进来，从「能赚多少」和「打得进去吗」两个维度打分，落到四象限里看清楚。</p>
+  </header>
+
+  <div class="card">
+    <h2>候选类目数据</h2>
+    <p class="desc">从 Excel 复制即可。列包含：类目名、月市场单量、均价、佣金率、单件成本、单件履约费、TOP10 门槛日均单量、TOP1 日均单量、CPC、是否需认证。<b>评分是相对打分</b>，所以请尽量把同类候选放一起比较。</p>
+    <div class="fields">
+      <div class="field full"><label>粘贴内容 <span class="unit">含表头</span></label>
+        <textarea id="raw" rows="8">类目	月市场单量	均价	佣金率%	单件成本	单件履约	TOP10门槛日均	TOP1日均	CPC	需认证
+浮潜面罩	45000	29.99	15	6.5	5.2	190	480	0.95	否
+儿童浮潜套装	22000	24.99	15	5.8	4.6	95	230	0.72	是
+游泳镜	68000	18.99	15	4.2	3.8	260	700	0.88	否
+潜水脚蹼	12000	34.99	15	8.5	6.1	55	130	1.05	否
+防水袋	31000	15.99	15	3.6	3.2	130	340	0.68	否</textarea></div>
+      <div class="field"><label>类目转化率 CVR <span class="unit">%</span></label><input id="cvr" type="number" value="12" min="0" step="0.5"></div>
+      <div class="field"><label>爬坡期 <span class="unit">天</span></label><input id="ramp" type="number" value="30" min="1"></div>
+      <div class="field"><label>首批备货天数</label><input id="stockD" type="number" value="60" min="0"></div>
+      <div class="field"><label>认证成本 <span class="unit">USD，一次性</span></label><input id="cert" type="number" value="3000" min="0" step="100"></div>
+    </div>
+    <div style="margin-top:12px"><button id="exp" style="padding:9px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--row-alt);color:var(--text);font-size:13px;cursor:pointer">导出评分表 CSV</button></div>
+    <div class="callout co-info" id="parseInfo"></div>
+  </div>
+
+  <div class="card">
+    <h2>四象限定位</h2>
+    <p class="desc">横轴越往右越难打，纵轴越往上越值得赚。气泡大小代表站稳 TOP10 之后的月毛利规模。</p>
+    <div id="chart"></div>
+    <div class="formula">
+      <b>吸引力</b>＝ 45% 市场规模 ＋ 35% 毛利率 ＋ 20% 站稳后的月毛利规模<br>
+      <b>难度</b>＝ 35% TOP10 门槛单量 ＋ 25% CPC ＋ 25% 头部集中度（TOP1 ÷ TOP10 门槛）＋ 15% 合规门槛<br>
+      两项分数都在<b>候选名单内部相对归一化</b>得到 —— 也就是说换一批候选，分数会变，这是为了让对比有意义。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>评分明细与建议</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>类目</th><th>单件毛利</th><th>毛利率</th><th>吸引力</th><th>难度</th><th>象限</th><th>站稳后月毛利</th><th>启动资金</th><th>回本</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>推荐动作</h2>
+    <div id="acts"></div>
+    <p class="note">启动资金 ＝（TOP10 门槛日均 × 备货天数 × 单件成本）＋（爬坡期广告费 ＝ 门槛单量 ÷ CVR × CPC × 爬坡天数）＋ 一次性认证成本。<br>
+    <b>回本周期是按「已经站稳 TOP10 之后」的月毛利算的</b>，没有扣除爬坡期的低销量与亏损，所以属于<b>乐观下限</b> —— 实际往往要再长 1～2 倍。落地前请再单独核一遍备货占款与广告垫付的现金压力。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var ROWS = [];
+
+  function num(s){ var v = parseFloat(String(s || '').replace(/[,%$"\s]/g, '')); return isNaN(v) ? 0 : v; }
+  function findIdx(h, ks){
+    var i, j;
+    for (i = 0; i < h.length; i++) for (j = 0; j < ks.length; j++) if (h[i].indexOf(ks[j]) >= 0) return i;
+    return -1;
+  }
+  function splitRow(line, sep){
+    var out = [], cur = '', q = false, i, c;
+    for (i = 0; i < line.length; i++){
+      c = line[i];
+      if (c === '"'){ if (q && line[i+1] === '"'){ cur += '"'; i++; } else q = !q; }
+      else if (c === sep && !q){ out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(function(x){ return x.trim().replace(/^="|"$/g, ''); });
+  }
+
+  function parse(text){
+    var lines = text.replace(/\r/g, '').split('\n').filter(function(l){ return l.trim(); });
+    if (lines.length < 2) return { rows: [], msg: '' };
+    var sep = (lines[0].split('\t').length >= lines[0].split(',').length) ? '\t' : ',';
+    var head = splitRow(lines[0], sep);
+    var iN = findIdx(head, ['类目','名称','品类']);
+    var iV = findIdx(head, ['月市场单量','市场单量','月销量','月容量']);
+    var iP = findIdx(head, ['均价','售价','价格']);
+    var iF = findIdx(head, ['佣金率','佣金']);
+    var iC = findIdx(head, ['单件成本','成本']);
+    var iL = findIdx(head, ['履约','配送费','FBA']);
+    var iT = findIdx(head, ['TOP10','前十','门槛']);
+    var iA = findIdx(head, ['TOP1','第一','头部']);
+    var iK = findIdx(head, ['CPC','cpc']);
+    var iR = findIdx(head, ['认证','合规','certificate']);
+    if (iN < 0 || iV < 0 || iT < 0) return { rows: [], msg: '至少要有「类目」「月市场单量」「TOP10 门槛」三列。' };
+    var rows = [], i, cs;
+    for (i = 1; i < lines.length; i++){
+      cs = splitRow(lines[i], sep);
+      var nm = (cs[iN] || '').replace(/"/g, '');
+      if (!nm) continue;
+      rows.push({
+        name: nm,
+        vol: num(cs[iV]),
+        price: iP >= 0 ? num(cs[iP]) : 0,
+        fee: iF >= 0 ? num(cs[iF]) / 100 : 0.15,
+        cost: iC >= 0 ? num(cs[iC]) : 0,
+        ship: iL >= 0 ? num(cs[iL]) : 0,
+        gate: Math.max(1, iT >= 0 ? num(cs[iT]) : 1),
+        top1: iA >= 0 ? Math.max(1, num(cs[iA])) : 1,
+        cpc: iK >= 0 ? num(cs[iK]) : 0.8,
+        cert: iR >= 0 ? (/是|需要|y|1/i.test(cs[iR] || '') ? 1 : 0) : 0
+      });
+    }
+    return { rows: rows, msg: '已识别 <b>' + rows.length + '</b> 个候选类目。' };
+  }
+
+  function minMax(arr){
+    var mn = Math.min.apply(null, arr), mx = Math.max.apply(null, arr);
+    return function(v){ return mx > mn ? (v - mn) / (mx - mn) : 0.5; };
+  }
+  function lg(v){ return Math.log10(Math.max(v, 1)); }
+
+  function build(){
+    var P = parse(document.getElementById('raw').value);
+    ROWS = P.rows;
+    document.getElementById('parseInfo').innerHTML = P.msg || '把候选类目数据粘贴到上面。';
+    if (!ROWS.length) return;
+
+    var cvr = Math.max(0.001, TK.num('cvr') / 100);
+    var ramp = TK.num('ramp'), sd = TK.num('stockD'), certCost = TK.num('cert');
+
+    ROWS.forEach(function(x){
+      x.margin = x.price * (1 - x.fee) - x.cost - x.ship;
+      x.marginRate = x.price > 0 ? x.margin / x.price : 0;
+      x.monthMargin = x.gate * 30 * x.margin;
+      x.conc = x.gate > 0 ? x.top1 / x.gate : 1;
+      x.upfront = x.gate * sd * x.cost + (x.gate / cvr) * x.cpc * ramp + (x.cert ? certCost : 0);
+      x.payback = x.monthMargin > 0 ? x.upfront / x.monthMargin : null;
+    });
+
+    var nVol = minMax(ROWS.map(function(x){ return lg(x.vol); }));
+    var nMr = minMax(ROWS.map(function(x){ return Math.max(0, x.marginRate); }));
+    var nMm = minMax(ROWS.map(function(x){ return lg(Math.max(1, x.monthMargin)); }));
+    var nGt = minMax(ROWS.map(function(x){ return lg(x.gate); }));
+    var nCp = minMax(ROWS.map(function(x){ return x.cpc; }));
+    var nCc = minMax(ROWS.map(function(x){ return x.conc; }));
+
+    ROWS.forEach(function(x){
+      x.A = 100 * (0.45 * nVol(lg(x.vol)) + 0.35 * nMr(Math.max(0, x.marginRate)) + 0.20 * nMm(lg(Math.max(1, x.monthMargin))));
+      x.D = 100 * (0.35 * nGt(lg(x.gate)) + 0.25 * nCp(x.cpc) + 0.25 * nCc(x.conc) + 0.15 * x.cert);
+      x.q = (x.A >= 50 && x.D < 50) ? '优先进攻'
+          : (x.A >= 50 && x.D >= 50) ? '选择性进攻'
+          : (x.A < 50 && x.D < 50) ? '补充/练手' : '建议回避';
+    });
+    ROWS.sort(function(a, b){ return (b.A - b.D) - (a.A - a.D); });
+  }
+
+  function draw(){
+    if (!ROWS.length){ document.getElementById('chart').innerHTML = ''; return; }
+    var W = 640, H = 400, pad = 46;
+    var maxR = Math.max.apply(null, ROWS.map(function(x){ return Math.max(1, x.monthMargin); }));
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto">';
+    function X(d){ return pad + (W - pad - 20) * d / 100; }
+    function Y(a){ return H - pad - (H - pad - 30) * a / 100; }
+    /* 四象限底色 */
+    svg += '<rect x="' + X(50) + '" y="' + Y(100) + '" width="' + (X(100) - X(50)) + '" height="' + (Y(50) - Y(100)) +
+      '" fill="rgba(15,123,79,.10)"/>';
+    svg += '<rect x="' + X(0) + '" y="' + Y(100) + '" width="' + (X(50) - X(0)) + '" height="' + (Y(50) - Y(100)) +
+      '" fill="rgba(180,83,9,.08)"/>';
+    svg += '<rect x="' + X(50) + '" y="' + Y(50) + '" width="' + (X(100) - X(50)) + '" height="' + (Y(0) - Y(50)) +
+      '" fill="rgba(185,28,28,.08)"/>';
+    svg += '<rect x="' + X(0) + '" y="' + Y(50) + '" width="' + (X(50) - X(0)) + '" height="' + (Y(0) - Y(50)) +
+      '" fill="rgba(128,128,128,.06)"/>';
+    /* 坐标线 */
+    svg += '<line x1="' + X(50) + '" y1="' + Y(0) + '" x2="' + X(50) + '" y2="' + Y(100) + '" stroke="var(--border-strong)" stroke-dasharray="4 4"/>';
+    svg += '<line x1="' + X(0) + '" y1="' + Y(50) + '" x2="' + X(100) + '" y2="' + Y(50) + '" stroke="var(--border-strong)" stroke-dasharray="4 4"/>';
+    svg += '<line x1="' + X(0) + '" y1="' + Y(0) + '" x2="' + X(100) + '" y2="' + Y(0) + '" stroke="var(--border-strong)"/>';
+    svg += '<line x1="' + X(0) + '" y1="' + Y(0) + '" x2="' + X(0) + '" y2="' + Y(100) + '" stroke="var(--border-strong)"/>';
+    svg += '<text x="' + (W / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="var(--muted)">进入难度 →</text>';
+    svg += '<text transform="translate(14,' + (H / 2) + ') rotate(-90)" text-anchor="middle" font-size="11" fill="var(--muted)">吸引力 →</text>';
+    svg += '<text x="' + (X(75)) + '" y="' + (Y(97)) + '" text-anchor="middle" font-size="11" fill="var(--ok)">值得啃 · 优先进攻</text>';
+    svg += '<text x="' + (X(25)) + '" y="' + (Y(97)) + '" text-anchor="middle" font-size="11" fill="var(--warn)">容易但利薄</text>';
+    svg += '<text x="' + (X(75)) + '" y="' + (Y(4)) + '" text-anchor="middle" font-size="11" fill="var(--bad)">又难又不赚 · 回避</text>';
+    svg += '<text x="' + (X(25)) + '" y="' + (Y(4)) + '" text-anchor="middle" font-size="11" fill="var(--muted)">低难度低回报</text>';
+    ROWS.forEach(function(x, i){
+      var r = 7 + 16 * Math.sqrt(Math.max(0.02, x.monthMargin / maxR));
+      var col = x.q === '优先进攻' ? 'var(--ok)' : (x.q === '选择性进攻' ? 'var(--warn)' : (x.q === '建议回避' ? 'var(--bad)' : 'var(--muted)'));
+      svg += '<circle cx="' + X(x.D).toFixed(1) + '" cy="' + Y(x.A).toFixed(1) + '" r="' + r.toFixed(1) +
+        '" fill="' + col + '" fill-opacity=".28" stroke="' + col + '" stroke-width="2"/>';
+      svg += '<text x="' + X(x.D).toFixed(1) + '" y="' + (Y(x.A) + 4).toFixed(1) + '" text-anchor="middle" font-size="10" fill="var(--text)">' + (i + 1) + '</text>';
+      svg += '<text x="' + X(x.D).toFixed(1) + '" y="' + (Y(x.A) - r - 4).toFixed(1) + '" text-anchor="middle" font-size="10.5" fill="var(--text)">' + x.name + '</text>';
+    });
+    svg += '</svg>';
+    document.getElementById('chart').innerHTML = svg;
+  }
+
+  function render(){
+    build();
+    draw();
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    ROWS.forEach(function(x, i){
+      var qcls = x.q === '优先进攻' ? 'b-ok' : (x.q === '选择性进攻' ? 'b-warn' : (x.q === '建议回避' ? 'b-bad' : 'b-idle'));
+      TK.rows(tb, '<tr><td class="num">' + (i + 1) + '</td>' +
+        '<td><b>' + x.name + '</b>' + (x.cert ? '<br><span class="tag">需认证</span>' : '') + '</td>' +
+        '<td class="num">' + TK.money(x.margin) + '</td>' +
+        '<td class="num">' + TK.pct(x.marginRate, 1) + '</td>' +
+        '<td class="num">' + x.A.toFixed(0) + '</td>' +
+        '<td class="num">' + x.D.toFixed(0) + '</td>' +
+        '<td><span class="badge ' + qcls + '">' + x.q + '</span></td>' +
+        '<td class="num">' + TK.money0(x.monthMargin) + '</td>' +
+        '<td class="num">' + TK.money0(x.upfront) + '</td>' +
+        '<td class="num">' + (x.payback === null ? '不回本' : x.payback.toFixed(1) + ' 个月') + '</td></tr>');
+    });
+
+    var el = document.getElementById('verdict');
+    if (!ROWS.length){ el.className = 'callout co-info'; el.innerHTML = '还没有数据。'; }
+    else {
+      var best = ROWS[0];
+      var avoid = ROWS.filter(function(x){ return x.q === '建议回避'; });
+      el.className = 'callout co-' + (best.q === '优先进攻' ? 'ok' : 'warn');
+      el.innerHTML = '<b>综合最优先：' + best.name + '</b>（吸引力 ' + best.A.toFixed(0) + ' / 难度 ' +
+        best.D.toFixed(0) + '，落在「' + best.q + '」象限）。站稳 TOP10 后月毛利约 ' + TK.money0(best.monthMargin) +
+        '，启动资金约 ' + TK.money0(best.upfront) + '，' + (best.payback === null ? '按此参数不回本' : '约 ' + best.payback.toFixed(1) + ' 个月回本') + '。' +
+        (avoid.length ? ' 明确建议回避的有 ' + avoid.length + ' 个类目：' + avoid.map(function(x){ return x.name; }).join('、') + '。' : '');
+    }
+
+    var acts = document.getElementById('acts');
+    acts.innerHTML = '';
+    ROWS.slice(0, 4).forEach(function(x, i){
+      var tip;
+      if (x.q === '优先进攻'){
+        tip = '值得重投。先用「新品上市成功率模拟」确认目标名次和预算能撑几档，再确认 ' +
+          TK.money0(x.upfront) + ' 的启动资金在回本前不会压垮现有盘子 —— 备货占款和广告垫付都要算进去。';
+      } else if (x.q === '选择性进攻'){
+        tip = '能赚但门槛高。如果没有差异化产品或不愿意承受 ' + TK.money0(x.upfront) +
+          ' 的启动投入，建议先用小批量试水验证转化率，再决定是否重投。';
+      } else if (x.q === '补充/练手'){
+        tip = '打得进去但盘子不大。适合作为闲余库存的补充渠道，不适合作为主线 —— 除非能靠它积累特定人群的复购。';
+      } else {
+        tip = '目前看不到性价比：既要求高门槛单量，利润又不够厚。除非有独占供应链优势，否则不建议碰。';
+      }
+      acts.innerHTML += '<div class="risk"><div class="top">' +
+        '<span class="nm">' + (i + 1) + '. ' + x.name + '</span>' +
+        '<span class="vl">' + x.q + '</span></div>' +
+        '<div class="sub">' + tip + '</div></div>';
+    });
+  }
+
+  document.getElementById('exp').addEventListener('click', function(){
+    if (!ROWS.length) return;
+    var csv = ['类目,月市场单量,均价,单件毛利,毛利率,吸引力,难度,象限,TOP10门槛日均,站稳后月毛利,启动资金,回本月数'];
+    ROWS.forEach(function(x){
+      csv.push(['"' + x.name.replace(/"/g, '""') + '"', Math.round(x.vol), x.price.toFixed(2), x.margin.toFixed(2),
+        (x.marginRate * 100).toFixed(1) + '%', x.A.toFixed(0), x.D.toFixed(0), x.q, Math.round(x.gate),
+        x.monthMargin.toFixed(0), x.upfront.toFixed(0), (x.payback === null ? '-' : x.payback.toFixed(1))].join(','));
+    });
+    var blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '类目评分矩阵.csv';
+    a.click();
+  });
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

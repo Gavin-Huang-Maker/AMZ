@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>价格带 × 评分蓝海定位</title>
+<link rel="stylesheet" href="../assets/tool.css">
+<style>
+.grid td.cell{text-align:center;font-variant-numeric:tabular-nums;border:1px solid var(--border);padding:8px 6px;}
+.grid td.cell b{display:block;font-size:13px;}
+.grid td.cell span{font-size:11px;color:var(--muted);}
+.my{outline:2px solid var(--accent);outline-offset:-2px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>价格带 × 评分蓝海定位</h1>
+    <p class="lead">把竞品按「价格 × 评分」铺成一张格子图，找出「对手少、每个人却都赚得动」的那一格 —— 那才是值得站位的地方。</p>
+  </header>
+
+  <div class="card">
+    <h2>竞品数据</h2>
+    <p class="desc">粘贴 Excel 里的数据，列包含：名称 / ASIN、售价、评分、评价数、月销量。评价数用来估算你要跟上需要补多少。</p>
+    <div class="fields">
+      <div class="field full"><label>粘贴内容 <span class="unit">含表头</span></label>
+        <textarea id="raw" rows="9">名称	售价	评分	评价数	月销量
+竞品A	19.99	4.3	210	890
+竞品B	22.99	4.5	520	1420
+竞品C	17.99	4.1	95	410
+竞品D	27.99	4.6	1180	2150
+竞品E	31.99	4.4	640	1520
+竞品F	24.99	3.9	78	260
+竞品G	36.99	4.7	2050	1980
+竞品H	29.99	4.2	310	760
+竞品I	15.99	4.0	45	330
+竞品J	34.99	4.5	980	1740
+竞品K	21.99	4.4	430	1180
+竞品L	39.99	4.6	1560	1620
+竞品M	18.99	4.2	160	520
+竞品N	28.99	4.3	720	1140
+竞品O	26.99	4.1	190	480
+竞品P	33.99	4.6	1340	1890</textarea></div>
+    </div>
+
+    <hr class="sep">
+    <h3>我的产品</h3>
+    <div class="fields">
+      <div class="field"><label>我的售价 <span class="unit">USD</span></label><input id="mp" type="number" value="29.99" min="0" step="0.01"></div>
+      <div class="field"><label>我的评分</label><input id="mr2" type="number" value="4.3" min="0" max="5" step="0.1"></div>
+      <div class="field"><label>我的评价数</label><input id="mrev" type="number" value="86" min="0"></div>
+      <div class="field"><label>我的月销量</label><input id="msold" type="number" value="620" min="0"></div>
+      <div class="field"><label>评分分档粒度</label>
+        <select id="rstep"><option value="0.2" selected>0.2 分一档</option><option value="0.3">0.3 分一档</option></select></div>
+      <div class="field"><label>价格分档数</label>
+        <select id="pstep"><option value="4">4 档</option><option value="5" selected>5 档</option><option value="6">6 档</option></select></div>
+    </div>
+    <div class="callout co-info" id="parseInfo"></div>
+  </div>
+
+  <div class="card">
+    <h2>竞争格局图</h2>
+    <p class="desc">每格显示：竞争品数量、该格平均每个 ASIN 的月销量，以及「对该格 Responsibility」的稀缺度指数。颜色越深＝每个对手分到的量越多。</p>
+    <div class="scroll">
+      <table class="grid" id="grid"></table>
+    </div>
+    <div class="formula">
+      <b>稀缺度</b>＝（该格销量占全盘比例）÷（该格 ASIN 数占全盘比例）<br>
+      大于 1 说明这一格「用更少的对手，分掉了更多的量」 —— 也就是值得进的位置；小于 1 说明这里挤了太多人在抢不够多的单。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>蓝海机会格排序</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>定位区间</th><th>竞争品数</th><th>格内平均月销量</th><th>稀缺度</th><th>需要的评价数中位数</th><th>结论</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="verdict"></div>
+    <p class="note">对手数很少的格子（比如只有 1 个）稀缺度容易被拉高，但那是单个样本的判断 —— 优先看「对手数 &gt; 1 且稀缺度仍然高」的格子，结论更稳。价格分档按数据的最低—最高价等分，所以样本越多，分档越贴近真实的价格结构。</p>
+  </div>
+
+  <div class="card">
+    <h2>我的位置与目标</h2>
+    <div class="kv" id="kv1"></div>
+    <div id="acts"></div>
+    <p class="note">评价数中位数是该格现有竞品的中位数，可以作为「跟上这个档次需要补到多少评价」的参考（不是门槛，而是多数对手的水平）。价格分档按数据的最低价—最高价等分。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var ROWS = [], CELLS = [];
+
+  function num(s){ var v = parseFloat(String(s || '').replace(/[,%$"\s]/g, '')); return isNaN(v) ? 0 : v; }
+  function findIdx(h, ks){
+    var i, j;
+    for (i = 0; i < h.length; i++) for (j = 0; j < ks.length; j++) if (h[i].indexOf(ks[j]) >= 0) return i;
+    return -1;
+  }
+  function splitRow(line, sep){
+    var out = [], cur = '', q = false, i, c;
+    for (i = 0; i < line.length; i++){
+      c = line[i];
+      if (c === '"'){ if (q && line[i+1] === '"'){ cur += '"'; i++; } else q = !q; }
+      else if (c === sep && !q){ out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(function(x){ return x.trim().replace(/^="|"$/g, ''); });
+  }
+  function median(arr){
+    if (!arr.length) return 0;
+    var s = arr.slice().sort(function(a, b){ return a - b; }), m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+
+  function parse(text){
+    var lines = text.replace(/\r/g, '').split('\n').filter(function(l){ return l.trim(); });
+    if (lines.length < 2) return { rows: [], msg: '' };
+    var sep = (lines[0].split('\t').length >= lines[0].split(',').length) ? '\t' : ',';
+    var head = splitRow(lines[0], sep);
+    var iN = findIdx(head, ['名称','ASIN','竞品','产品']);
+    var iP = findIdx(head, ['售价','价格','price']);
+    var iR = findIdx(head, ['评分','星级','rating']);
+    var iV = findIdx(head, ['评价数','评论数','review']);
+    var iS = findIdx(head, ['月销量','月销','销量','units']);
+    if (iN < 0 || iP < 0 || iR < 0) return { rows: [], msg: '至少要有「名称 / ASIN」「售价」「评分」三列。' };
+    var rows = [], i, cs;
+    for (i = 1; i < lines.length; i++){
+      cs = splitRow(lines[i], sep);
+      var nm = (cs[iN] || '').replace(/"/g, '');
+      if (!nm) continue;
+      rows.push({ name:nm, price:num(cs[iP]), rating:num(cs[iR]),
+                  rev: iV >= 0 ? num(cs[iV]) : 0, sold: iS >= 0 ? num(cs[iS]) : 0 });
+    }
+    return { rows: rows, msg: '已识别 <b>' + rows.length + '</b> 个竞品。' };
+  }
+
+  function build(){
+    var P = parse(document.getElementById('raw').value);
+    ROWS = P.rows;
+    document.getElementById('parseInfo').innerHTML = P.msg || '粘贴竞品数据后开始分析。';
+    if (!ROWS.length){ CELLS = []; return; }
+
+    var prices = ROWS.map(function(x){ return x.price; });
+    var mn = Math.min.apply(null, prices), mx = Math.max.apply(null, prices);
+    if (mx === mn) mx = mn + 1;
+    var np = parseInt(document.getElementById('pstep').value, 10);
+    var rstep = parseFloat(document.getElementById('rstep').value);
+    var pw = (mx - mn) / np;
+
+    /* 评分区间：从 3.5 到最高分向上取整 */
+    var rTop = Math.max(4.8, Math.ceil(Math.max.apply(null, ROWS.map(function(x){ return x.rating; })) * 10) / 10);
+    var nr = Math.max(3, Math.min(8, Math.ceil((rTop - 3.5) / rstep)));
+    var rBot = rTop - nr * rstep;
+
+    CELLS = [];
+    var i, j;
+    for (i = 0; i < nr; i++){
+      for (j = 0; j < np; j++){
+        var lo = rBot + i * rstep, hi = lo + rstep;
+        var plo = mn + j * pw, phi = plo + pw;
+        var inner = ROWS.filter(function(x){
+          var pr = Math.min(x.price, mx);
+          var pOK = (j === np - 1) ? (pr >= plo && pr <= phi) : (pr >= plo && pr < phi);
+          var rOK = (i === nr - 1) ? (x.rating >= lo && x.rating <= hi) : (x.rating >= lo && x.rating < hi);
+          return pOK && rOK;
+        });
+        CELLS.push({
+          rLo: lo, rHi: hi, pLo: plo, pHi: phi, row: i, col: j, list: inner,
+          count: inner.length,
+          sold: inner.reduce(function(a, x){ return a + x.sold; }, 0),
+          revMed: median(inner.map(function(x){ return x.rev; }))
+        });
+      }
+    }
+    var totSold = CELLS.reduce(function(a, c){ return a + c.sold; }, 0) || 1;
+    var totCount = CELLS.reduce(function(a, c){ return a + c.count; }, 0) || 1;
+    var maxAvg = 0;
+    CELLS.forEach(function(c){
+      c.avg = c.count > 0 ? c.sold / c.count : 0;
+      c.shareSold = c.sold / totSold;
+      c.shareCount = c.count / totCount;
+      c.idx = c.shareCount > 0 ? c.shareSold / c.shareCount : 0;
+      if (c.avg > maxAvg) maxAvg = c.avg;
+    });
+    CELLS.maxAvg = maxAvg || 1;
+    CELLS.nr = nr; CELLS.np = np;
+  }
+
+  function draw(){
+    var g = document.getElementById('grid');
+    if (!CELLS.length){ g.innerHTML = ''; return; }
+    var mp = TK.num('mp'), mr = TK.num('mr2');
+    var nr = CELLS.nr, np = CELLS.np, i, j, html = '';
+    html += '<thead><tr><th>评分 \\ 价格</th>';
+    for (j = 0; j < np; j++){
+      var c0 = CELLS[j];
+      html += '<th>' + TK.money0(c0.pLo) + '–' + TK.money0(c0.pHi) + '</th>';
+    }
+    html += '</tr></thead><tbody>';
+    for (i = nr - 1; i >= 0; i--){
+      html += '<tr><th>' + CELLS[i * np].rLo.toFixed(1) + '–' + CELLS[i * np].rHi.toFixed(1) + '</th>';
+      for (j = 0; j < np; j++){
+        var c = CELLS[i * np + j];
+        var alpha = c.count > 0 ? Math.min(0.55, 0.08 + 0.47 * (c.avg / CELLS.maxAvg)) : 0;
+        var inMy = (mp >= c.pLo && mp < c.pHi + 0.01) && (mr >= c.rLo && mr < c.rHi + 0.001);
+        html += '<td class="cell' + (inMy ? ' my' : '') + '" style="background:rgba(232,89,12,' + alpha.toFixed(3) + ')">' +
+          (c.count > 0
+            ? '<b>' + c.count + ' 个</b><span>均 ' + Math.round(c.avg) + ' 单/月</span>' +
+              (c.idx >= 1.2 ? '<br><span style="color:var(--ok);font-weight:600">稀缺 ' + c.idx.toFixed(1) + '</span>' : '')
+            : '<b style="color:var(--hint)">—</b><span>暂无竞争</span>') + '</td>';
+      }
+      html += '</tr>';
+    }
+    html += '</tbody>';
+    g.innerHTML = html;
+  }
+
+  function render(){
+    build();
+    draw();
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    var ranked = CELLS.filter(function(c){ return c.count >= 1; })
+      .sort(function(a, b){ return b.idx - a.idx || b.avg - a.avg; });
+    ranked.slice(0, 8).forEach(function(c, i){
+      var concl = c.idx >= 1.5 ? '<span class="badge b-ok">强蓝海</span>'
+                : (c.idx >= 1.15 ? '<span class="badge b-ok">值得进</span>'
+                : (c.idx >= 0.85 ? '<span class="badge b-idle">一般</span>'
+                                 : '<span class="badge b-bad">红海</span>'));
+      TK.rows(tb, '<tr><td class="num">' + (i + 1) + '</td>' +
+        '<td>' + c.rLo.toFixed(1) + '–' + c.rHi.toFixed(1) + ' 分<br><span class="tag">' +
+          TK.money0(c.pLo) + '–' + TK.money0(c.pHi) + '</span></td>' +
+        '<td class="num">' + c.count + '</td>' +
+        '<td class="num">' + Math.round(c.avg) + '</td>' +
+        '<td class="num"><b>' + c.idx.toFixed(2) + '</b></td>' +
+        '<td class="num">' + c.revMed.toFixed(0) + '</td>' +
+        '<td>' + concl + '</td></tr>');
+    });
+
+    var el = document.getElementById('verdict');
+    if (!CELLS.length){ el.className = 'callout co-info'; el.innerHTML = '还没有数据。'; }
+    else {
+      var best2 = ranked[0];
+      el.className = 'callout co-' + (best2.idx >= 1.5 ? 'ok' : 'warn');
+      el.innerHTML = '<b>最值得站的位置：' + best2.rLo.toFixed(1) + '–' + best2.rHi.toFixed(1) + ' 分 / ' +
+        TK.money0(best2.pLo) + '–' + TK.money0(best2.pHi) + '。</b>' +
+        '这格只有 ' + best2.count + ' 个对手，平均每个每月 ' + Math.round(best2.avg) +
+        ' 单，稀缺度 ' + best2.idx.toFixed(2) + '（越高越好）。' +
+        '该格对手的评价数中位数是 ' + best2.revMed.toFixed(0) + '，可以当作要站稳这一档的参考线。';
+    }
+
+    /* 我的位置 */
+    var mp = TK.num('mp'), mr = TK.num('mr2'), mrev = TK.num('mrev'), msold = TK.num('msold');
+    var myCell = null;
+    CELLS.forEach(function(c){
+      if (mp >= c.pLo && mp < c.pHi + 0.01 && mr >= c.rLo && mr < c.rHi + 0.001) myCell = c;
+    });
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">我所在格子</div><div class="v" style="font-size:14px">' +
+        (myCell ? myCell.rLo.toFixed(1) + '–' + myCell.rHi.toFixed(1) + '<br>' + TK.money0(myCell.pLo) + '–' + TK.money0(myCell.pHi)
+                : '未落在数据范围内') + '</div></div>' +
+      '<div class="box"><div class="k">同格对手数</div><div class="v">' + (myCell ? myCell.count : '—') + '</div></div>' +
+      '<div class="box"><div class="k">同格平均月销量</div><div class="v">' + (myCell ? Math.round(myCell.avg) : '—') + '</div></div>' +
+      '<div class="box"><div class="k">我的月销量</div><div class="v">' + msold.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">我的评价数</div><div class="v">' + mrev.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">同格评价数中位数</div><div class="v">' + (myCell ? myCell.revMed.toFixed(0) : '—') + '</div></div>';
+
+    var acts = document.getElementById('acts');
+    acts.innerHTML = '';
+    if (!myCell){
+      acts.innerHTML = '<div class="risk"><div class="sub">我的产品不在当前数据的价格/评分范围内，无法定位。' +
+        '可以把 my 参数调整一下，或者把更多竞品加进数据表。</div></div>';
+    } else {
+      var gapRev = myCell.revMed - mrev;
+      var gapSold = myCell.avg - msold;
+      acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">当前格子评价竞争</span>' +
+        '<span class="vl">' + (gapRev > 0 ? '差 ' + gapRev.toFixed(0) + ' 个' : '已达到') + '</span></div>' +
+        '<div class="sub">' + (gapRev > 0
+          ? '同格对手的评价数中位数是 ' + myCell.revMed.toFixed(0) + '，你还差约 ' + gapRev.toFixed(0) +
+            ' 个。这是同格竞争里最容易量化的差距 —— 用 Vine + 售后索评把它补上。'
+          : '你的评价数已不低于同格对手的中位数，这一项不构成短板。') + '</div></div>';
+      acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">当前格子销量差距</span>' +
+        '<span class="vl">' + (gapSold > 0 ? '差 ' + gapSold.toFixed(0) + ' 单/月' : '已领先') + '</span></div>' +
+        '<div class="sub">' + (gapSold > 0
+          ? '同格平均每月 ' + Math.round(myCell.avg) + ' 单，你 ' + msold.toFixed(0) + ' 单。差的部分通常来自曝光量而非转化率 —— ' +
+            '先用「关键词流量缺口地图」确认是不是词没打上去。'
+          : '你已经跑在同格对手前面，可以考虑把价格往高一档试，看能否在不掉量的前提下提升毛利。') + '</div></div>';
+      if (ranked[0] && ranked[0] !== myCell){
+        acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">要不要换格子</span>' +
+          '<span class="vl">' + ranked[0].rLo.toFixed(1) + '–' + ranked[0].rHi.toFixed(1) + ' 分 / ' +
+          TK.money0(ranked[0].pLo) + '–' + TK.money0(ranked[0].pHi) + '</span></div>' +
+          '<div class="sub">那个格子的稀缺度是 ' + ranked[0].idx.toFixed(2) + '（你当前格是 ' + myCell.idx.toFixed(2) +
+          '）。但换格子往往意味着改价格或改产品线，成本不低 —— 只有当稀缺度差距明显时才值得动。</div></div>';
+      }
+    }
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>

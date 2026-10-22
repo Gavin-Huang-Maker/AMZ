@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listing 转化率短板诊断树</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>Listing 转化率短板诊断树</h1>
+    <p class="lead">转化差，到底该改哪一项？把 Listing 现状跟类目基准做一次逐项对标，工具算出「改哪一项最值钱」和「多久能见效」，直接排出执行顺序。</p>
+  </header>
+
+  <div class="card">
+    <h2>你的现状</h2>
+    <div class="fields">
+      <div class="field"><label>月会话量 Sessions</label><input id="sess" type="number" value="9600" min="0"></div>
+      <div class="field"><label>当前转化率 <span class="unit">%</span></label><input id="cvr" type="number" value="11" min="0" step="0.1"></div>
+      <div class="field"><label>单件毛利 M <span class="unit">USD</span></label><input id="mg" type="number" value="9.08" min="0" step="0.01"></div>
+      <div class="field"><label>类目基准转化率 <span class="unit">%</span></label><input id="bCvr" type="number" value="12" min="0" step="0.1"></div>
+    </div>
+
+    <hr class="sep">
+    <h3>逐项对标</h3>
+    <p class="desc">左边填你的，右边填类目 TOP10 的平均水平。拿不准就去看搜索结果第一页竞品的公开数据。</p>
+    <div class="fields">
+      <div class="field"><label>我的评分</label><input id="myRat" type="number" value="4.3" min="0" max="5" step="0.1"></div>
+      <div class="field"><label>类目均分</label><input id="catRat" type="number" value="4.5" min="0" max="5" step="0.1"></div>
+      <div class="field"><label>我的评价数</label><input id="myRev" type="number" value="86" min="0"></div>
+      <div class="field"><label>类目平均评价数</label><input id="catRev" type="number" value="420" min="0"></div>
+      <div class="field"><label>我的售价 <span class="unit">USD</span></label><input id="myPrice" type="number" value="29.99" min="0" step="0.01"></div>
+      <div class="field"><label>类目中位价 <span class="unit">USD</span></label><input id="catPrice" type="number" value="27.99" min="0" step="0.01"></div>
+      <div class="field"><label>Buy Box 赢得率 <span class="unit">%</span></label><input id="bb" type="number" value="96" min="0" max="100" step="0.5"></div>
+      <div class="field"><label>促销标识</label>
+        <select id="promo"><option value="0" selected>无</option><option value="1">有 Coupon</option><option value="2">有 Deal / 秒杀</option></select></div>
+      <div class="field"><label>主图视频</label>
+        <select id="video"><option value="0" selected>无</option><option value="1">有</option></select></div>
+      <div class="field"><label>A+ 内容</label>
+        <select id="aplus"><option value="0" selected>无</option><option value="1">有</option></select></div>
+      <div class="field"><label>变体齐全度</label>
+        <select id="var"><option value="1" selected>齐全</option><option value="0">有缺货变体</option></select></div>
+      <div class="field"><label>配送方式</label>
+        <select id="ship"><option value="0" selected>FBA（Prime 次日）</option><option value="1">海外仓 3–5 天</option><option value="2">国内自发货 7 天以上</option></select></div>
+    </div>
+
+    <div class="callout co-info" id="top"></div>
+    <div class="kv" id="kv1"></div>
+  </div>
+
+  <div class="card">
+    <h2>诊断结果（按收益排序）</h2>
+    <p class="desc">每一项的「修复收益」是<b>单独</b>修复它能多赚多少钱 —— 排出来就是执行优先级。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>短板项</th><th>当前 / 基准</th><th>修复后转化相对提升</th><th>月订单增量</th><th>月毛利增量</th><th>见效周期</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>推荐执行顺序</h2>
+    <p class="desc">先做「本周就能改完」的项目，把确定性收益先拿到手；慢项目同时启动。</p>
+    <div id="acts"></div>
+    <div class="formula">
+      换算口径：月订单增量 ＝ 月会话量 × 当前转化率 × 修复带来的相对提升。<br>
+      各项目的提升幅度<b>不能简单相加</b> —— 同时改多项时收益会互相重叠（改了评分之后，转化率的上升部分功劳也会算在别的因子上）。此处按累乘给出整体上限，仅供参考。
+    </div>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  function V(){
+    return {
+      sess:TK.num('sess'), cvr:TK.num('cvr')/100, mg:TK.num('mg'), bCvr:TK.num('bCvr')/100,
+      myRat:TK.num('myRat'), catRat:TK.num('catRat'), myRev:TK.num('myRev'), catRev:TK.num('catRev'),
+      myPrice:TK.num('myPrice'), catPrice:TK.num('catPrice'), bb:TK.num('bb'),
+      promo:parseInt(document.getElementById('promo').value,10),
+      video:parseInt(document.getElementById('video').value,10),
+      aplus:parseInt(document.getElementById('aplus').value,10),
+      varFull:parseInt(document.getElementById('var').value,10),
+      ship:parseInt(document.getElementById('ship').value,10)
+    };
+  }
+
+  function factor(name, mine, bench, lift, weeks, tip, group){
+    return { name:name, mine:mine, bench:bench, lift:lift, weeks:weeks, tip:tip, group:group };
+  }
+
+  function build(v){
+    var F = [];
+
+    /* 1 评分 */
+    var gap = v.catRat - v.myRat;
+    if (gap > 0.02){
+      F.push(factor('评分低于类目均值', v.myRat.toFixed(1), v.catRat.toFixed(1),
+        Math.min(0.25, gap * 0.30), 12,
+        '这不是靠运营能立刻改掉的。短期：找出差评里的集中抱怨点改产品或包装；中期：把售后卡/Vine 计划跑起来，重点提升评分而非数量。', '看得见'));
+    }
+    /* 2 评价数 */
+    if (v.catRev > 0 && v.myRev < v.catRev * 0.8){
+      var rv = Math.min(0.22, Math.sqrt(1 - v.myRev / v.catRev) * 0.18);
+      F.push(factor('评价数量明显偏少', v.myRev, v.catRev, rv, 8,
+        '评价数是"信任门槛"，低于头部就很难被选中。慢慢补 Vine 与售后索评，同时先把其他快赢项做掉来弥补。', '看得见'));
+    }
+    /* 3 价格高于中位 */
+    if (v.catPrice > 0 && v.myPrice > v.catPrice * 1.03){
+      var prem = (v.myPrice - v.catPrice) / v.catPrice;
+      F.push(factor('售价高于类目中位', TK.money(v.myPrice), TK.money(v.catPrice),
+        Math.min(0.30, prem * 1.5), 0,
+        '贵 ' + (prem * 100).toFixed(1) + '%。先看能不能用价值感补回来（更好的主图、捆绑配件、明确保修承诺）；撑不住就降价或用 Coupon 把名义价格拉回中位线。', '看得见'));
+    }
+    /* 4 配送时效 */
+    if (v.ship === 1){
+      F.push(factor('配送时效慢于 Prime', '海外仓 3–5 天', 'FBA 次日达', 0.03, 6,
+        'Prime 标签本身就在影响转化。如果这个类目大家都是次日达，3–5 天会明显吃亏。可以考虑部分库存转 FBA。', '看得见'));
+    } else if (v.ship === 2){
+      F.push(factor('配送时效明显落后', '自发货 7 天以上', 'FBA 次日达', 0.12, 6,
+        '没有 Prime 标签 + 一周以上时效，在这个环节流失的买家通常不少。如果是非标品且转化已经很差，建议至少发一批去测 FBA。', '看得见'));
+    }
+    /* 5 促销标识 */
+    if (v.promo === 0){
+      F.push(factor('没有 Coupon / Deal 标识', '无', '有', 0.05, 0,
+        '搜索结果页上一眼看过去，有橙色标识的链接点击率更高。代价是让利，请先用「利润计算器」确认让完还能赚钱。', '看得见'));
+    } else if (v.promo === 1){
+      F.push(factor('只有 Coupon，没有 Deal', 'Coupon', 'Deal / 秒杀', 0.02, 2,
+        '如果竞品常挂在秒杀区，可以试着报名 BD / LD 蹭一下流量位。', '看得见'));
+    }
+    /* 6 主图视频 */
+    if (v.video === 0){
+      F.push(factor('缺少主图视频', '无', '有', 0.04, 2,
+        '视频对有一定复杂度的产品（组装、穿戴、使用方式）提升明显。一周就能做完，属于高性价比项目。', '点进来之后'));
+    }
+    /* 7 A+ */
+    if (v.aplus === 0){
+      F.push(factor('没有 A+ 内容', '无', '有', 0.03, 2,
+        'A+ 的收益主要在「对比表」和「尺寸/参数图」，把买家真正会犹豫的点直接写明白。品牌备案后几天就能上线。', '点进来之后'));
+    }
+    /* 8 变体缺货 */
+    if (v.varFull === 0){
+      F.push(factor('有热门变体缺货', '部分缺货', '齐全', 0.04, 4,
+        '买家点进来发现常用尺码/颜色没货，会直接跳走而不是选替代款。优先保证销量占比最高的那几个变体不断货。', '点进来之后'));
+    }
+    /* 9 Buy Box */
+    if (v.bb < 100){
+      var bbLift = Math.min(0.30, Math.max(0, 100 / v.bb - 1));
+      if (bbLift > 0.001){
+        F.push(factor('购物车赢得率不足 ' + v.bb + '%', v.bb + '%', '100%', bbLift, 1,
+          '没拿到购物车的时间，买家基本只能去买别家。先确认是不是被跟卖抢了，再对照竞品的到手价调整售价。', '最后一步'));
+      }
+    }
+    return F;
+  }
+
+  function render(){
+    var v = V();
+    var F = build(v);
+    var baseOrders = v.sess * v.cvr;
+
+    F.forEach(function(x){
+      x.dOrders = baseOrders * x.lift;
+      x.dMargin = x.dOrders * v.mg;
+      x.perWeek = x.weeks > 0 ? x.dMargin / x.weeks : x.dMargin * 999;
+    });
+    F.sort(function(a, b){ return b.dMargin - a.dMargin; });
+
+    /* 累乘上限 */
+    var total = 1;
+    F.forEach(function(x){ total *= (1 + x.lift); });
+    var maxCvr = v.cvr * Math.min(total, 1.6);
+    var maxOrders = v.sess * maxCvr;
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">当前月订单</div><div class="v">' + baseOrders.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">识别到的短板数</div><div class="v">' + F.length + ' 项</div></div>' +
+      '<div class="box"><div class="k">全部修复后转化率上限</div><div class="v">' + (maxCvr * 100).toFixed(2) + '%</div></div>' +
+      '<div class="box"><div class="k">对应月订单</div><div class="v">' + maxOrders.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">月毛利增量上限</div><div class="v">' + TK.money0((maxOrders - baseOrders) * v.mg) + '</div></div>' +
+      '<div class="box"><div class="k">vs 类目基准转化率</div><div class="v">' + (v.cvr >= v.bCvr ? '已达基准' : '差 ' + ((v.bCvr - v.cvr) * 100).toFixed(1) + 'pp') + '</div></div>';
+
+    var el = document.getElementById('top');
+    if (!F.length){
+      el.className = 'callout co-ok';
+      el.innerHTML = '<b>没检出明显短板。</b>评分、评价数、价格、促销、内容、配送、购物车都在类目均值之上。' +
+        '这种情况下继续抠详情页的边际收益很小 —— 增长应该靠流量规模而不是转化优化。';
+    } else {
+      var top = F[0];
+      el.className = 'callout co-' + (top.dMargin > v.mg * baseOrders * 0.08 ? 'warn' : 'info');
+      el.innerHTML = '<b>第一优先：' + top.name + '。</b>单独修好它预计每月多赚 <b>' + TK.money0(top.dMargin) +
+        '</b>（约 ' + top.dOrders.toFixed(0) + ' 单）。' + (top.weeks > 0 ? '需要约 ' + top.weeks + ' 周才能见效。' : '当天就能生效。') +
+        '如果它周期太长，先去看下面「马上能动」的那几项。';
+    }
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    F.forEach(function(x, i){
+      var wk = x.weeks === 0 ? '<span class="badge b-ok">立即</span>'
+             : (x.weeks <= 2 ? '<span class="badge b-ok">' + x.weeks + ' 周</span>'
+             : (x.weeks <= 6 ? '<span class="badge b-warn">' + x.weeks + ' 周</span>'
+                             : '<span class="badge b-idle">' + x.weeks + ' 周以上</span>'));
+      TK.rows(tb, '<tr><td class="num">' + (i + 1) + '</td>' +
+        '<td><b>' + x.name + '</b><br><span class="tag">' + x.group + '</span></td>' +
+        '<td class="num">' + x.mine + ' / ' + x.bench + '</td>' +
+        '<td class="num">+' + (x.lift * 100).toFixed(1) + '%</td>' +
+        '<td class="num">+' + x.dOrders.toFixed(1) + '</td>' +
+        '<td class="num"><b>+' + TK.money0(x.dMargin) + '</b></td>' +
+        '<td class="num">' + wk + '</td></tr>');
+    });
+
+    /* 行动清单：按 每周产出 排 */
+    var acts = document.getElementById('acts');
+    acts.innerHTML = '';
+    if (!F.length){
+      acts.innerHTML = '<div class="risk"><div class="sub">没有需要改的项目。建议把精力转到流量端（关键词攻坚 / 流量缺口地图）。</div></div>';
+    } else {
+      var quick = F.filter(function(x){ return x.weeks <= 2; }).sort(function(a,b){ return b.dMargin - a.dMargin; });
+      var slow = F.filter(function(x){ return x.weeks > 2; }).sort(function(a,b){ return b.dMargin - a.dMargin; });
+      if (quick.length){
+        acts.innerHTML += '<h3>本周就该动（快赢项）</h3>';
+        quick.slice(0, 4).forEach(function(x, i){
+          acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">' + (i + 1) + '. ' + x.name +
+            '</span><span class="vl">+' + TK.money0(x.dMargin) + ' / 月</span></div>' +
+            '<div class="sub">' + x.tip + '</div></div>';
+        });
+      }
+      if (slow.length){
+        acts.innerHTML += '<h3>同时启动（周期长但不能停）</h3>';
+        slow.slice(0, 3).forEach(function(x, i){
+          acts.innerHTML += '<div class="risk"><div class="top"><span class="nm">' + (i + 1) + '. ' + x.name +
+            '</span><span class="vl">+' + TK.money0(x.dMargin) + ' / 月</span></div>' +
+            '<div class="sub">' + x.tip + '</div></div>';
+        });
+      }
+      acts.innerHTML += '<p class="note">执行建议：一次<b>只改一类变量</b>，改完跑满 2 周再看数据 —— ' +
+        '同时改多项的结果是你根本不知道哪一项起了作用，下一次就无法复用经验。</p>';
+    }
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>
