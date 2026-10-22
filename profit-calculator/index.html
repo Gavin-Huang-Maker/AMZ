@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>亚马逊利润与广告承受力计算器</title>
+<meta name="description" content="算清单件毛利、盈亏平衡 CPA/ACOS、目标净利率下的允许 CPA，并反推 BSR 卡位所需广告预算与回本天数。">
+<style>
+:root{
+  --app-bg:#f5f6f8; --card:#ffffff; --text:#1a1d21; --muted:#6b7280; --hint:#9aa1ab;
+  --border:#e4e7eb; --border-strong:#d0d5dd; --accent:#e8590c;
+  --accent-soft:#fff2e9; --row-alt:#fafbfc;
+  --ok:#0f7b4f; --warn:#b45309; --bad:#b91c1c;
+  --oksoft:#e9f6ef; --warnsoft:#fdf3e3; --badsoft:#fbecec;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --app-bg:#0e1014; --card:#171a20; --text:#e8eaed; --muted:#a2a8b3; --hint:#6b7280;
+    --border:#282d36; --border-strong:#3a4150; --accent:#ff7a33;
+    --accent-soft:#241a14; --row-alt:#1c2027;
+    --ok:#4ec98c; --warn:#f0b458; --bad:#f28b82;
+    --oksoft:#12241b; --warnsoft:#241d10; --badsoft:#2a1616;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--app-bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  line-height:1.6;padding:34px 16px;-webkit-font-smoothing:antialiased;}
+.page{max-width:900px;margin:0 auto;}
+header{text-align:center;margin-bottom:20px;}
+h1{font-size:24px;font-weight:600;margin-bottom:7px;letter-spacing:-.3px;}
+.lead{color:var(--muted);font-size:13.5px;max-width:680px;margin:0 auto;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:16px;}
+.card h2{font-size:16px;font-weight:600;margin-bottom:6px;}
+.card .desc{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+.card h3{font-size:14px;font-weight:600;margin:18px 0 10px;}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:13px;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.field .unit{color:var(--hint);font-weight:400;}
+.field input{width:100%;padding:9px 11px;font-size:14px;
+  border:1px solid var(--border-strong);border-radius:10px;background:var(--card);
+  color:var(--text);outline:none;font-family:inherit;font-variant-numeric:tabular-nums;}
+.field input:focus{border-color:var(--accent);}
+hr.sep{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.callout{font-size:13px;padding:12px 14px;border-radius:10px;margin:14px 0;line-height:1.75;}
+.co-info{background:var(--accent-soft);}
+.co-ok{background:var(--oksoft);color:var(--ok);}
+.co-warn{background:var(--warnsoft);color:var(--warn);}
+.co-bad{background:var(--badsoft);color:var(--bad);}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0;}
+.kv .box{background:var(--row-alt);border-radius:10px;padding:12px 14px;}
+.kv .k{font-size:12px;color:var(--muted);margin-bottom:3px;}
+.kv .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);}
+th{color:var(--muted);font-weight:500;font-size:12px;}
+tbody tr:nth-child(even){background:var(--row-alt);}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.tag{color:var(--hint);font-size:12px;}
+.formula{font-size:13px;color:var(--muted);background:var(--row-alt);padding:12px 14px;
+  border-radius:10px;line-height:1.85;margin:12px 0;}
+code{background:rgba(128,128,128,.16);padding:1px 5px;border-radius:5px;font-size:12px;}
+.note{font-size:12px;color:var(--hint);margin-top:13px;line-height:1.75;}
+ul.n{padding-left:20px;font-size:13px;color:var(--muted);}
+ul.n li{margin-bottom:6px;}
+footer{text-align:center;color:var(--hint);font-size:12px;margin-top:20px;}
+.scroll{overflow-x:auto;}
+.link-box{background:var(--accent-soft);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>亚马逊利润与广告承受力计算器</h1>
+    <p class="lead">算清单件毛利 → 推出盈亏平衡 CPA / ACOS → 反推 BSR 卡位所需广告预算与回本天数。<br>与《BSR 反超测算器 Pro》配套：它算「每天要卖多少单」，这个算「这么投划不划算」。</p>
+  </header>
+
+  <div class="card">
+    <h2>成本与利润</h2>
+    <p class="desc">先算出每单毛利 M —— 这是后面一切广告决策的上限。</p>
+    <div class="fields">
+      <div class="field"><label>零售价 P <span class="unit">USD</span></label><input id="price" type="number" value="29.99" min="0" step="0.01"></div>
+      <div class="field"><label>采购成本 <span class="unit">USD/件</span></label><input id="cProd" type="number" value="6.5" min="0" step="0.01"></div>
+      <div class="field"><label>头程运费 <span class="unit">USD/件</span></label><input id="cShip" type="number" value="1.2" min="0" step="0.01"></div>
+      <div class="field"><label>FBA 配送费 <span class="unit">USD/件</span></label><input id="cFba" type="number" value="5.4" min="0" step="0.01"></div>
+      <div class="field"><label>佣金率 <span class="unit">%</span></label><input id="rComm" type="number" value="15" min="0" step="0.1"></div>
+      <div class="field"><label>仓储费 <span class="unit">USD/件</span></label><input id="cStore" type="number" value="0.4" min="0" step="0.01"></div>
+      <div class="field"><label>促销/券折扣 <span class="unit">USD/件</span></label><input id="cPromo" type="number" value="1" min="0" step="0.01"></div>
+      <div class="field"><label>其他成本 <span class="unit">USD/件</span></label><input id="cOther" type="number" value="0.3" min="0" step="0.01"></div>
+      <div class="field"><label>退货率 <span class="unit">%</span></label><input id="rRet" type="number" value="5" min="0" step="0.5"></div>
+      <div class="field"><label>退货件报废率 <span class="unit">%</span></label><input id="rScrap" type="number" value="30" min="0" step="5"></div>
+    </div>
+
+    <div class="field" style="margin-top:13px;max-width:220px;">
+      <label>固定费用均摊 <span class="unit">USD/件（选填）</span></label>
+      <input id="cFixed" type="number" value="0" min="0" step="0.01">
+    </div>
+
+    <div class="callout co-info" id="profitInfo"></div>
+    <div class="kv" id="profitKv"></div>
+  </div>
+
+  <div class="card">
+    <h2>可承受 CPA 与净利率</h2>
+    <p class="desc">毛利决定了你每单最多能投多少广告费还不亏。</p>
+    <div class="fields">
+      <div class="field"><label>目标净利率 <span class="unit">%</span></label><input id="rTarget" type="number" value="15" min="-50" step="1"></div>
+      <div class="field"><label>广告带来的订单占比 <span class="unit">%</span></label><input id="rAdShare" type="number" value="60" min="0" max="100" step="5"></div>
+    </div>
+    <div class="kv" id="cpaKv"></div>
+    <div class="callout co-info" id="cpaInfo"></div>
+  </div>
+
+  <div class="card">
+    <h2>卡位预算与回本（接 BSR 工具）</h2>
+    <p class="desc">把《BSR 反超测算器 Pro》算出的门槛 U* 填进来，直接得到预算与回本周期。</p>
+    <div class="fields">
+      <div class="field"><label>目标门槛 U* <span class="unit">单/天（来自 BSR 工具）</span></label><input id="ustar" type="number" value="600" min="0"></div>
+      <div class="field"><label>当前自然单 Q <span class="unit">单/天</span></label><input id="qNat" type="number" value="50" min="0"></div>
+      <div class="field"><label>冲刺天数 <span class="unit">来自 BSR 工具</span></label><input id="dSprint" type="number" value="3" min="1"></div>
+      <div class="field"><label>维稳天数 <span class="unit">建议≥14</span></label><input id="dHold" type="number" value="14" min="1"></div>
+    </div>
+
+    <div class="link-box" style="margin:14px 0;">
+      联动公式：<code>需广告补单 = U* − Q</code>　<code>日均广告预算 = (U* − Q) × 允许CPA</code><br>
+      <code>回本天数 = 总投入 ÷ 日均净增量毛利</code>，其中 <code>日均净增量毛利 = (U* − U_now) × M − (U* − U_now) × 广告占比 × 实际CPA</code>
+    </div>
+
+    <div class="kv" id="budgetKv"></div>
+    <div class="callout co-info" id="budgetInfo"></div>
+
+    <h3>不同目标净利率下的允许 CPA</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>目标净利率</th><th>允许 CPA/单</th><th>允许 ACOS</th><th>冲刺总预算</th><th>回本天数</th></tr></thead>
+        <tbody id="sensTbl"></tbody>
+      </table>
+    </div>
+    <p class="note">回本天数＝冲刺＋维稳期总广告投入 ÷ 达成门槛后的日均净增量毛利。若净增量毛利≤0 则显示「不回本」——说明这个卡位在当前毛利结构下不划算，应先优化成本或提价。</p>
+  </div>
+
+  <div class="card">
+    <h2>口径与假设</h2>
+    <ul class="n">
+      <li><b>有效收入</b> = P × (1 − 退货率)：退货订单的销售额视为未实际取得。</li>
+      <li><b>退货报废损失</b> = 退货率 × 报废率 × (采购 + 头程)：假设报废件无法二次销售，且不计残余残值。可二次销售的部分未计入此损失（保守口径）。</li>
+      <li>佣金按<b>原价</b>计提，未扣除退货退还部分——属保守估计。</li>
+      <li><b>盈亏平衡 CPA</b> = 单件毛利 M：每单广告费超过 M 即为亏损。</li>
+      <li><b>允许 CPA</b> = M − P × 目标净利率：达到目标净利率时每单可用于广告的上限。</li>
+      <li>广告费的摊薄按「广告带来的订单占比」折算到全部订单。</li>
+      <li>未考虑：长期仓储附加费、退款管理费、广告之外的站外成本、汇率与回款周期。</li>
+    </ul>
+  </div>
+
+  <footer>与 BSR 测算器同属《亚马逊卖家运营工具箱》。结果为估算，用于方向判断，不构成收益承诺。</footer>
+</div>
+
+<script>
+(function(){
+  function $(i){return document.getElementById(i);}
+
+  function num(id){ var v=parseFloat($(id).value); return isNaN(v)?0:v; }
+
+  function money(v){ return (v<0?'-':'')+'$'+Math.abs(v).toFixed(2); }
+
+  function core(){
+    var P=num('price');
+    var effRev=P*(1-num('rRet')/100);
+    var comm=P*num('rComm')/100;
+    var base=comm+num('cFba')+num('cProd')+num('cShip')+num('cStore')+num('cPromo')+num('cOther')+num('cFixed');
+    var scrap=(num('rRet')/100)*(num('rScrap')/100)*(num('cProd')+num('cShip'));
+    var unitCost=base+scrap;
+    var M=effRev-unitCost;
+    var margin=P>0?M/P:0;
+    return {P:P,effRev:effRev,comm:comm,unitCost:unitCost,scrap:scrap,M:M,margin:margin};
+  }
+
+  function calcBudget(c,allowCpa){
+    var U=num('ustar'), Q=num('qNat');
+    var need=Math.max(0,U-Q);
+    var dS=num('dSprint'), dH=num('dHold');
+    var sprintDaily=need*allowCpa;
+    var sprintTotal=sprintDaily*dS;
+    var holdTotal=sprintDaily*dH;
+    var total=sprintTotal+holdTotal;
+    var adShare=num('rAdShare')/100;
+    var Unow=Q;
+    var inc=Math.max(0,U-Unow);
+    var grossInc=inc*c.M;
+    var maintain=inc*adShare*Math.max(0,allowCpa);
+    var netInc=grossInc-maintain;
+    var payback=netInc>0?total/netInc:Infinity;
+    return {need:need,sprintDaily:sprintDaily,sprintTotal:sprintTotal,holdTotal:holdTotal,
+            total:total,inc:inc,grossInc:grossInc,netInc:netInc,payback:payback};
+  }
+
+  function render(){
+    var c=core();
+    var target=num('rTarget')/100;
+    var adShare=num('rAdShare')/100;
+
+    $('profitKv').innerHTML=
+      '<div class="box"><div class="k">单件毛利 M</div><div class="v">'+money(c.M)+'</div></div>'+
+      '<div class="box"><div class="k">毛利率</div><div class="v">'+(c.margin*100).toFixed(1)+'%</div></div>'+
+      '<div class="box"><div class="k">单位总成本</div><div class="v">'+money(c.unitCost)+'</div></div>'+
+      '<div class="box"><div class="k">其中退货报废损失</div><div class="v">'+money(c.scrap)+'</div></div>';
+
+    var piCls,piTxt;
+    if(c.M<=0){
+      piCls='co-bad';
+      piTxt='<b>警告：单件毛利为负（'+money(c.M)+'）。</b>当前成本结构下每卖一单都亏钱，任何规模的广告投入都会放大亏损。请优先处理：提价、压采购成本、降破损/退货率，或换更轻的头程方式。';
+    } else if(c.margin<0.15){
+      piCls='co-warn';
+      piTxt='毛利偏薄（'+(c.margin*100).toFixed(1)+'%）。行业常见健康线在 20–30%，低于 15% 时广告容错空间很小，卡位冲刺需格外谨慎，建议先优化成本或适度提价。';
+    } else {
+      piCls='co-ok';
+      piTxt='毛利健康（'+(c.margin*100).toFixed(1)+'%），有较充足的广告投放空间。';
+    }
+    $('profitInfo').className='callout '+piCls;
+    $('profitInfo').innerHTML=piTxt;
+
+    var beCpa=c.M;
+    var beAcos=c.P>0?c.M/c.P:0;
+    var allow=Math.max(0,c.M-c.P*target);
+    var allowAcos=c.P>0?allow/c.P:0;
+    var flat=beCpa/(adShare>0?adShare:1);
+
+    $('cpaKv').innerHTML=
+      '<div class="box"><div class="k">盈亏平衡 CPA</div><div class="v">'+money(beCpa)+'</div></div>'+
+      '<div class="box"><div class="k">盈亏平衡 ACOS</div><div class="v">'+(beAcos*100).toFixed(1)+'%</div></div>'+
+      '<div class="box"><div class="k">允许 CPA（目标净利率 '+(target*100).toFixed(0)+'%）</div><div class="v">'+money(allow)+'</div></div>'+
+      '<div class="box"><div class="k">允许 ACOS</div><div class="v">'+(allowAcos*100).toFixed(1)+'%</div></div>';
+
+    var ciCls='co-info', ciTxt='';
+    if(allow<=0){
+      ciCls='co-bad';
+      ciTxt='<b>目标净利率过高。</b>当前毛利 '+money(c.M)+' 在扣除 '+ (target*100).toFixed(0) +'% 净利目标后已无广告空间（允许 CPA ≤ 0）。两个办法：下调净利率目标，或提高售价 / 降低各项成本。';
+    } else {
+      ciTxt='允许 CPA <b>'+money(allow)+'</b>，即每单广告花费不超过此值才可维持 '+ (target*100).toFixed(0) +'% 净利率；若广告带来的订单占比为 '+(adShare*100).toFixed(0)+'%，则不亏钱的单均 CPA 上限约为 <b>'+money(flat)+'</b>（此时毛利刚好被广告费吃光）。';
+    }
+    $('cpaInfo').className='callout '+ciCls;
+    $('cpaInfo').innerHTML=ciTxt;
+
+    var b=calcBudget(c,allow);
+    $('budgetKv').innerHTML=
+      '<div class="box"><div class="k">需广告补单</div><div class="v">'+b.need.toFixed(0)+' 单/天</div></div>'+
+      '<div class="box"><div class="k">日均广告预算</div><div class="v">'+money(b.sprintDaily)+'</div></div>'+
+      '<div class="box"><div class="k">冲刺期总投入（'+num('dSprint')+'天）</div><div class="v">'+money(b.sprintTotal)+'</div></div>'+
+      '<div class="box"><div class="k">含维稳（'+num('dHold')+'天）总投入</div><div class="v">'+money(b.total)+'</div></div>'+
+      '<div class="box"><div class="k">日均净增量毛利</div><div class="v">'+money(b.netInc)+'</div></div>'+
+      '<div class="box"><div class="k">回本天数</div><div class="v">'+(b.payback===Infinity?'不回本':Math.ceil(b.payback)+' 天')+'</div></div>';
+
+    var biCls='co-info', biTxt;
+    if(b.need<=0){
+      biCls='co-ok';
+      biTxt='<b>自然单已达到门槛</b>（当前 '+money(b.need)+' 需补），无需额外广告即满足卡位要求，重点是维稳。';
+    } else if(b.payback===Infinity){
+      biCls='co-bad';
+      biTxt='<b>不划算。</b>日均净增量毛利为 '+money(b.netInc)+' ≤ 0，意味着即使达成门槛，广告维持费会把增量毛利吃光甚至倒贴。结论：这个卡位在当前毛利/CPA 结构下不应硬冲，先降 CPA 或提高客单价。';
+    } else if(b.payback<=30){
+      biCls='co-ok';
+      biTxt='<b>值得投。</b>预计 <b>'+Math.ceil(b.payback)+' 天</b>回本（总投入 '+money(b.total)+'），低于 30 天属于健康区间，建议按此预算执行并每日跟踪实际 CPA。';
+    } else {
+      biCls='co-warn';
+      biTxt='<b>回本偏慢。</b>预计 '+Math.ceil(b.payback)+' 天回本。如果类目生命周期短或季节性明显，超过 60 天风险较大；建议降低目标档位（如从 Top1 降到 Top5），或分批小额验证后再决定是否加码。';
+    }
+    $('budgetInfo').className='callout '+biCls;
+    $('budgetInfo').innerHTML=biTxt;
+
+    var tb=$('sensTbl'); tb.innerHTML='';
+    [0,0.1,0.15,0.2,0.3].forEach(function(t){
+      var a=Math.max(0,c.M-c.P*t);
+      var bb=calcBudget(c,a);
+      var ac=c.P>0?a/c.P:0;
+      tb.insertAdjacentHTML('beforeend',
+        '<tr><td>'+(t*100).toFixed(0)+'%</td>'+
+        '<td class="num">'+money(a)+'</td>'+
+        '<td class="num">'+(ac*100).toFixed(1)+'%</td>'+
+        '<td class="num">'+money(bb.sprintTotal)+'</td>'+
+        '<td class="num">'+(bb.payback===Infinity?'不回本':Math.ceil(bb.payback)+' 天')+'</td></tr>');
+    });
+  }
+
+  ['price','cProd','cShip','cFba','rComm','cStore','cPromo','cOther','rRet','rScrap','cFixed',
+   'rTarget','rAdShare','ustar','qNat','dSprint','dHold'].forEach(function(id){
+    $(id).addEventListener('input',render);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
