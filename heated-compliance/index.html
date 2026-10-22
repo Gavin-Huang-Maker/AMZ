@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>带电产品合规上市清单（美国站） · 亚马逊运营工具箱</title>
+<link rel="stylesheet" href="../assets/tool.css">
+<style>
+  .hero{background:linear-gradient(135deg,#5a2d0c,#8a4b12 55%,#a8621c);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;}
+  .hero h1{color:#fff;margin:0 0 6px;font-size:22px;}
+  .hero .sub{color:rgba(255,255,255,.88);font-size:13.5px;line-height:1.7;margin:0;}
+  @media (prefers-color-scheme: dark){
+    .hero{background:linear-gradient(135deg,#3a1d08,#5e330d 55%,#7a4515);}
+  }
+  .grp{border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;background:var(--card);box-shadow:var(--shadow);}
+  .grp h3{margin:0 0 4px;font-size:15.5px;}
+  .grp .gd{font-size:12.5px;color:var(--muted);margin-bottom:10px;}
+  .it{border-top:1px dashed var(--border);padding:11px 0 3px;display:grid;grid-template-columns:1fr 96px 130px 74px 118px;gap:8px;align-items:center;}
+  .it:first-of-type{border-top:none;}
+  .it .nm{font-size:13.5px;line-height:1.5;}
+  .it .nm b{font-weight:600;}
+  .it .nm span{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;}
+  .it .tg{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;text-align:center;}
+  .must{background:#a32d2d;color:#fff;}
+  .cond{background:#c98a2e;color:#fff;}
+  .rec{background:#5b8fa8;color:#fff;}
+  .it select{font-size:12.5px;padding:6px 6px;}
+  .it .cost{font-size:12.5px;text-align:right;color:var(--muted);}
+  .it .wk{font-size:12.5px;text-align:center;color:var(--muted);}
+  @media (max-width:760px){
+    .it{grid-template-columns:1fr 90px;grid-template-areas:"nm nm" "tg st" "cost wk";}
+    .it .nm{grid-area:nm;} .it .tg{grid-area:tg;} .it select{grid-area:st;} .it .cost{grid-area:cost;text-align:left;} .it .wk{grid-area:wk;text-align:left;}
+  }
+  .bar{height:10px;border-radius:6px;background:var(--border);overflow:hidden;margin:8px 0;}
+  .bar>i{display:block;height:100%;background:#a8621c;}
+  .prog{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);}
+  .flag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:5px;margin-left:6px;vertical-align:1px;}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">← 返回工具箱</a>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>⚡ 带电产品合规上市清单（美国站）</h1>
+    <p class="sub">加热护肩 / 护腕 / 护脚这类<b>带锂电池的发热穿戴</b>，上架前要过的安全、运输、平台与宣称红线比普通产品多一大截。
+      这张清单把<b>每一项要做什么、大概花多少钱、要几周、不做会怎样</b>摊开，进度会自动保存在本机。</p>
+  </div>
+
+  <div class="card">
+    <h2>1. 产品配置（决定哪些项是强制的）</h2>
+    <div class="fields">
+      <div class="field">
+        <label>产品类型</label>
+        <select id="ptype">
+          <option value="shoulder">加热护肩</option>
+          <option value="wrist" selected>加热护腕</option>
+          <option value="foot">加热护脚/鞋垫</option>
+          <option value="other">其他加热穿戴</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>是否内置锂电池</label>
+        <select id="batt"><option value="1" selected>是（内置）</option><option value="0">否（外接电源）</option></select>
+      </div>
+      <div class="field">
+        <label>是否带蓝牙/遥控/APP</label>
+        <select id="ble"><option value="0" selected>否（纯按键）</option><option value="1">是</option></select>
+      </div>
+      <div class="field">
+        <label>是否随机附充电器</label>
+        <select id="chr"><option value="1" selected>是</option><option value="0">否（仅 USB 线）</option></select>
+      </div>
+      <div class="field">
+        <label>是否在详情页宣称疗效</label>
+        <select id="claim"><option value="0" selected>否（只说保暖舒缓）</option><option value="1">是（说治疗关节炎等）</option></select>
+      </div>
+      <div class="field"><label>首批下单数量 <span class="unit">件</span></label><input id="qty" type="number" value="2000" min="1"></div>
+      <div class="field"><label>目标售价 <span class="unit">$</span></label><input id="price" type="number" value="49.99" min="0" step="0.01"></div>
+      <div class="field"><label>是否同时卖加州</label><select id="ca"><option value="1" selected>是</option><option value="0">否</option></select></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="reset">清空进度</button>
+      <button class="btn" id="copy">复制清单（发给供应商/实验室）</button>
+    </div>
+    <p class="note" id="msg"></p>
+  </div>
+
+  <div class="card">
+    <h2>2. 完成度</h2>
+    <div class="bar"><i id="pbar" style="width:0%"></i></div>
+    <div class="prog"><span id="ptxt">—</span><span id="pnum">—</span></div>
+    <div class="callout co-info" id="pverdict" style="margin-top:12px"></div>
+  </div>
+
+  <div id="groups"></div>
+
+  <div class="card">
+    <h2>3. 一次性成本与上市周期</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>口径</th><th>费用低值</th><th>费用高值</th><th>说明</th></tr></thead>
+        <tbody id="costTbl"></tbody>
+      </table>
+    </div>
+    <div class="scroll" style="margin-top:14px">
+      <table>
+        <thead><tr><th>项目</th><th>结果</th><th>说明</th></tr></thead>
+        <tbody id="sumTbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-warn" id="amort"></div>
+  </div>
+
+  <div class="card">
+    <h2>4. 未完成项的风险</h2>
+    <div id="risks"></div>
+  </div>
+
+  <div class="card">
+    <h2>口径与免责</h2>
+    <div class="kv"><span>费用区间</span><b>行业常见区间，随实验室、产品功率与电池规格浮动；仅供参考，请以实际报价为准</b></div>
+    <div class="kv"><span>周期口径</span><b>从送样到拿证的<b>实验室工期</b>，不含你方整改与资料准备时间；首次送样不通过要重来，实际普遍比下表再长 2–4 周</b></div>
+    <div class="kv"><span>关键路径</span><b>各项可并行送检，整体周期取「必须项」中最长的一条，再加 2 周缓冲</b></div>
+    <div class="kv"><span>标准适用</span><b>加热穿戴没有唯一强制标准，通常按 UL 499 / UL 130 / UL 62368 等由 NRTL 实验室判定适用条款；<b>务必让实验室先出具适用性意见</b></b></div>
+    <div class="kv"><span>医疗宣称</span><b>美国对"治疗/缓解关节炎/腱鞘炎"类宣称极其敏感，一旦被认定为医疗器械 intent，可能触发 FDA 注册要求与平台下架</b></div>
+    <p class="note">本清单是<b>经验性自查表，不构成法律或认证意见</b>。涉及安全认证、危险品运输与产品责任的最终结论，请以有资质的实验室、货代与律师意见为准。</p>
+  </div>
+
+  <p class="foot">亚马逊运营工具箱 · 带电产品合规上市清单</p>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  'use strict';
+  var KEY = 'heated_compliance_v1';
+
+  /* must: 必须 / cond: 视配置 / rec: 建议
+     cond: 触发条件 key */
+  var ITEMS = [
+    { g:'A', id:'ul',  nm:'UL / ETL 安全认证（整机加热部分）',
+      d:'由 NRTL 实验室评估适用标准（常见 UL 499 / UL 130 / UL 62368 系列），通过后才能贴标',
+      t:'must', lo:3000, hi:8000, wk:10,
+      risk:'无 NRTL 认证一旦发生烫伤/起火事故，保险公司可拒赔、平台可直接下架，且面临产品责任诉讼' },
+    { g:'A', id:'batt_cert', nm:'电池包认证（UL 2054 / IEC 62133）',
+      d:'电芯与电池包分开评估，含过充/短路/挤压/热滥用测试', t:'must', lo:2000, hi:6000, wk:8, cond:'batt',
+      risk:'锂电池无认证，头程货代会拒收，且亚马逊审核大概率不通过' },
+    { g:'A', id:'charger', nm:'充电器 / 适配器认证（UL 62368-1 或 UL 1310）',
+      d:'随机附赠的充电器必须单独有认证，不能用"供应商说有"代替', t:'must', lo:1500, hi:4000, wk:6, cond:'chr',
+      risk:'充电器是起火高发件，无认证会连带整机被判定不合格' },
+
+    { g:'B', id:'fcc_sdoc', nm:'FCC Part 15B（无意辐射体，SDoC 自我符合）',
+      d:'带开关电源/电机驱动的产品基本都要做', t:'must', lo:800, hi:2500, wk:3,
+      risk:'美国海关与平台抽查，缺失会被要求补件并暂停销售' },
+    { g:'B', id:'fcc_id', nm:'FCC Part 15C + FCC ID（无线认证）',
+      d:'只要含蓝牙 / 2.4G 遥控 / APP 连接，就必须做 ID 而非 SDoC', t:'must', lo:3000, hi:6000, wk:6, cond:'ble',
+      risk:'无 FCC ID 销售无线产品属违规，罚款与下架风险都很高' },
+
+    { g:'C', id:'un383', nm:'UN38.3 测试报告（锂电池运输强制）',
+      d:'高度模拟、热测试、振动、冲击、外部短路、过充、强制放电', t:'must', lo:1200, hi:3000, wk:4, cond:'batt',
+      risk:'没有 UN38.3，空运海运都走不了，货代会直接拒收整批货' },
+    { g:'C', id:'msds', nm:'MSDS/SDS + 空海运运输鉴定书',
+      d:'按 UN3480（电池单独）/ UN3481（与设备同装）出对应文件', t:'must', lo:300, hi:1000, wk:2, cond:'batt',
+      risk:'报关与平台审核都要，缺失会卡在仓库无法入仓' },
+    { g:'C', id:'pkg', nm:'锂电池包装与标签（第 9 类标识、瓦时标注）',
+      d:'外箱锂电池标、单件瓦时数、防短路绝缘处理', t:'must', lo:200, hi:800, wk:1, cond:'batt',
+      risk:'包装不合规会被航空公司退运，损失运费与时间' },
+    { g:'C', id:'freight', nm:'带电头程渠道确认（带电专线 / 危险品仓位）',
+      d:'带电货不能走普货渠道，运费通常比普货高 15–40%', t:'must', lo:0, hi:0, wk:2, cond:'batt',
+      risk:'按普货申报被查，可能被扣货并留下记录' },
+
+    { g:'D', id:'prop65', nm:'加州 Prop 65 警示标签评估',
+      d:'加州销售需评估是否含列管化学物质，必要时加警示标签', t:'cond', lo:500, hi:2000, wk:3, cond:'ca',
+      risk:'加州有职业原告专门扫这类产品，缺失警示标签的诉讼成本远高于认证费' },
+    { g:'D', id:'rohs', nm:'RoHS / REACH 符合性（若同时卖欧洲站）',
+      d:'美国非强制，但欧洲站上架与部分渠道会要', t:'rec', lo:600, hi:2500, wk:3,
+      risk:'多站点销售时可能被要求补件，影响上架节奏' },
+    { g:'D', id:'cpsia', nm:'CPSIA / 儿童相关合规',
+      d:'若产品面向儿童或含小部件需评估；成人加热护具通常不适用', t:'rec', lo:500, hi:2000, wk:3,
+      risk:'若实际面向儿童而未做，属于高风险违规' },
+
+    { g:'E', id:'manual', nm:'英文说明书 + 强制警告语',
+      d:'至少包含：勿睡眠中使用、感觉障碍者/婴幼儿禁用、勿折叠使用、使用指定充电器、勿水洗（含电池时）',
+      t:'must', lo:300, hi:1000, wk:2,
+      risk:'缺警告语是烫伤索赔中最致命的一点，会直接被认定警示不足' },
+    { g:'E', id:'label', nm:'产品铭牌（电压/功率/型号/厂商/产地）',
+      d:'机身与包装都要有，且需与认证报告上的型号完全一致', t:'must', lo:100, hi:400, wk:1,
+      risk:'型号对不上，认证报告等于作废' },
+    { g:'E', id:'wash', nm:'水洗与电池拆卸说明（加热护具高退货点）',
+      d:'明确"取出电池后再手洗""禁止机洗/烘干"，减少因洗坏导致的差评与退货',
+      t:'must', lo:200, hi:600, wk:1,
+      risk:'这类退货占加热护具退货的相当比例，说明不清会直接拉高退货率' },
+
+    { g:'F', id:'amz', nm:'亚马逊带电类目审核材料包',
+      d:'UN38.3 + MSDS + 含铭牌的实拍图 + 英文说明书 + 供应商发票，缺一不可', t:'must', lo:0, hi:0, wk:2, cond:'batt',
+      risk:'材料不齐会被卡审核，错过旺季窗口' },
+    { g:'F', id:'ins', nm:'产品责任险（单笔限额 ≥ $100 万）',
+      d:'销售额达标后亚马逊强制要求；加热类建议提前买', t:'rec', lo:500, hi:2000, wk:2,
+      risk:'无保险在事故理赔时全部自担，且可能被平台暂停销售' },
+    { g:'F', id:'fda', nm:'FDA 医疗器械风险自查',
+      d:'若宣称治疗/缓解关节炎、腱鞘炎等病症，可能被认定为医疗器械 intent，需 510(k) 或注册',
+      t:'cond', lo:0, hi:0, wk:4, cond:'claim',
+      risk:'这是加热护具最容易踩的坑：一旦被认定医疗宣称，Lighting 会被移除、账号绩效受损，严重时 FDA 发警告信' },
+
+    { g:'G', id:'patent', nm:'外观 / 结构专利检索',
+      d:'加热护具的结构与外观专利密集，上架前先做 FTO 检索', t:'rec', lo:800, hi:3000, wk:3,
+      risk:'被投诉专利侵权会直接下架，且解冻周期长' },
+    { g:'G', id:'tm', nm:'商标与品牌备案',
+      d:'美国商标（TM 可先用，R 标需 8–12 个月）', t:'rec', lo:500, hi:1500, wk:6,
+      risk:'无品牌备案无法用 A+、品牌旗舰店与部分广告形式' }
+  ];
+
+  var GROUPS = [
+    ['A','电安全认证', '整机 + 电池 + 充电器三块，缺一不可'],
+    ['B','EMC 与无线', '带蓝牙/遥控就必须是 FCC ID，不能只做 SDoC'],
+    ['C','锂电池运输与文件', '决定你的货能不能上飞机、能不能入仓'],
+    ['D','化学与环保', '加州与欧洲的额外门槛'],
+    ['E','标签与说明书', '最便宜但最容易出事的一块'],
+    ['F','平台与上市', '亚马逊审核与宣称红线'],
+    ['G','知识产权', '上架前的最后一道防线']
+  ];
+
+  var STATE = {};
+  try { STATE = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ STATE = {}; }
+
+  function cfg(){
+    return {
+      batt: document.getElementById('batt').value === '1',
+      ble: document.getElementById('ble').value === '1',
+      chr: document.getElementById('chr').value === '1',
+      claim: document.getElementById('claim').value === '1',
+      ca: document.getElementById('ca').value === '1'
+    };
+  }
+  function active(it){
+    if (!it.cond) return true;
+    return cfg()[it.cond] === true;
+  }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(STATE)); } catch(e){}
+  }
+
+  function build(){
+    var c = cfg();
+    var box = document.getElementById('groups');
+    box.innerHTML = GROUPS.map(function(g){
+      var items = ITEMS.filter(function(x){ return x.g === g[0] && active(x); });
+      if (!items.length) return '';
+      return '<div class="grp"><h3>' + g[1] + '</h3><div class="gd">' + g[2] + '</div>' +
+        items.map(function(x){
+          var cls = x.t === 'must' ? 'must' : (x.t === 'cond' ? 'cond' : 'rec');
+          var tn = x.t === 'must' ? '必须' : (x.t === 'cond' ? '视配置' : '建议');
+          var st = STATE[x.id] || 'todo';
+          var cost = (x.lo === 0 && x.hi === 0) ? '—' : ('$' + x.lo.toLocaleString() + '–' + x.hi.toLocaleString());
+          return '<div class="it">' +
+            '<div class="nm"><b>' + x.nm + '</b><span>' + x.d + '</span></div>' +
+            '<div class="tg ' + cls + '">' + tn + '</div>' +
+            '<select data-id="' + x.id + '">' +
+              '<option value="todo"' + (st==='todo'?' selected':'') + '>未开始</option>' +
+              '<option value="doing"' + (st==='doing'?' selected':'') + '>进行中</option>' +
+              '<option value="done"' + (st==='done'?' selected':'') + '>已完成</option>' +
+              '<option value="na"' + (st==='na'?' selected':'') + '>不适用</option>' +
+            '</select>' +
+            '<div class="cost">' + cost + '</div>' +
+            '<div class="wk">' + (x.wk ? x.wk + ' 周' : '—') + '</div>' +
+          '</div>';
+        }).join('') + '</div>';
+    }).join('');
+
+    [].forEach.call(box.querySelectorAll('select'), function(s){
+      s.addEventListener('change', function(){
+        STATE[s.getAttribute('data-id')] = s.value;
+        save();
+        calc();
+      });
+    });
+  }
+
+  function calc(){
+    var list = ITEMS.filter(active);
+    var must = list.filter(function(x){ return x.t === 'must'; });
+    var eff = list.filter(function(x){ return (STATE[x.id] || 'todo') !== 'na'; });
+    var done = eff.filter(function(x){ return STATE[x.id] === 'done'; });
+    var doing = eff.filter(function(x){ return STATE[x.id] === 'doing'; });
+
+    var pct = eff.length ? done.length / eff.length : 0;
+    document.getElementById('pbar').style.width = (pct * 100).toFixed(0) + '%';
+    document.getElementById('ptxt').textContent = '已完成 ' + done.length + ' / ' + eff.length +
+      ' 项（不含「不适用」）　进行中 ' + doing.length + ' 项';
+    document.getElementById('pnum').textContent = (pct * 100).toFixed(0) + '%';
+
+    var mustLeft = must.filter(function(x){ return (STATE[x.id] || 'todo') !== 'done' && (STATE[x.id] || 'todo') !== 'na'; });
+    var pv = document.getElementById('pverdict');
+    if (!mustLeft.length){
+      pv.className = 'callout co-ok';
+      pv.innerHTML = '<b>所有「必须」项都已完成。</b>可以进入送样/审核流程了 —— 记得把证书与报告扫描件归档，' +
+        '亚马逊审核和日后理赔都要用。';
+    } else {
+      pv.className = 'callout co-' + (mustLeft.length > 3 ? 'bad' : 'warn');
+      pv.innerHTML = '<b>还有 ' + mustLeft.length + ' 个「必须」项没完成：</b>' +
+        mustLeft.slice(0,5).map(function(x){ return x.nm.split('（')[0]; }).join('、') +
+        (mustLeft.length > 5 ? ' 等' : '') + '。<b>在这些完成之前不要发货</b>，' +
+        '否则货到了美国才发现不合规，仓储与退运成本远高于认证费。';
+    }
+
+    /* 成本 */
+    var sum = function(arr, k){ return arr.reduce(function(a, x){ return a + x[k]; }, 0); };
+    var rows = [
+      ['必须项合计', sum(must.filter(function(x){ return (STATE[x.id]||'todo') !== 'na'; }), 'lo'),
+                     sum(must.filter(function(x){ return (STATE[x.id]||'todo') !== 'na'; }), 'hi'), '红线成本，省不掉'],
+      ['建议项合计', sum(list.filter(function(x){ return x.t === 'rec' && (STATE[x.id]||'todo') !== 'na'; }), 'lo'),
+                     sum(list.filter(function(x){ return x.t === 'rec' && (STATE[x.id]||'todo') !== 'na'; }), 'hi'), '可分期做，但不做有隐患'],
+      ['全部适用项', sum(eff, 'lo'), sum(eff, 'hi'), '含必须 + 建议']
+    ];
+    var tb = document.getElementById('costTbl');
+    TK.clear(tb);
+    rows.forEach(function(r){
+      TK.rows(tb, '<tr><td><b>' + r[0] + '</b></td><td class="num">' + TK.money0(r[1]) +
+        '</td><td class="num">' + TK.money0(r[2]) + '</td><td>' + r[3] + '</td></tr>');
+    });
+
+    /* 周期与摊销 */
+    var qty = Math.max(1, TK.num('qty') || 1);
+    var price = TK.num('price');
+    var midMust = sum(must.filter(function(x){ return (STATE[x.id]||'todo') !== 'na'; }), 'lo') / 2 +
+                  sum(must.filter(function(x){ return (STATE[x.id]||'todo') !== 'na'; }), 'hi') / 2;
+    var critical = Math.max.apply(null, must.filter(function(x){ return (STATE[x.id]||'todo') !== 'done'; })
+      .map(function(x){ return x.wk; }).concat([0]));
+    var per = midMust / qty;
+
+    var st = document.getElementById('sumTbl');
+    TK.clear(st);
+    TK.rows(st, '<tr><td>关键路径周期</td><td class="num"><b>' + (critical ? critical + ' 周' : '0 周') +
+      '</b></td><td>未完成必须项中最长的一条' + (critical ? '，再加 2 周缓冲 ≈ ' + (critical + 2) + ' 周' : '') + '</td></tr>');
+    TK.rows(st, '<tr><td>必须项费用中值</td><td class="num"><b>' + TK.money0(midMust) +
+      '</b></td><td>取区间中值估算</td></tr>');
+    TK.rows(st, '<tr><td>单件摊销成本</td><td class="num"><b>' + TK.money(per) +
+      '</b></td><td>首批 ' + qty + ' 件分摊；卖得越多摊得越薄</td></tr>');
+    if (price > 0){
+      TK.rows(st, '<tr><td>占售价比例</td><td class="num"><b>' + TK.pct(per / price, 1) +
+        '</b></td><td>认证摊销吃掉多少毛利，一眼看见</td></tr>');
+    }
+
+    var am = document.getElementById('amort');
+    am.className = 'callout co-' + (per / Math.max(price,1) > 0.08 ? 'warn' : 'info');
+    am.innerHTML = '首批 ' + qty + ' 件摊下来，认证与合规成本是 <b>' + TK.money(per) + '/件</b>' +
+      (price > 0 ? '（占售价 ' + TK.pct(per / price, 1) + '）' : '') +
+      '。<br><b>下一步：把这个数填进「加热护具参数化利润器」的「认证摊销」字段</b>，它才是真实的单件成本的一部分。' +
+      (per / Math.max(price,1) > 0.08
+        ? '<br>⚠️ 摊销占比超过 8%，说明首批下单量偏小 —— 要么加量摊薄，要么重新评估这个品值不值得做。'
+        : '');
+
+    /* 风险 */
+    var riskList = list.filter(function(x){
+      return x.t === 'must' && (STATE[x.id] || 'todo') !== 'done' && (STATE[x.id] || 'todo') !== 'na';
+    });
+    if (cfg().claim){
+      riskList = riskList.concat(list.filter(function(x){ return x.id === 'fda'; }));
+    }
+    document.getElementById('risks').innerHTML = riskList.length
+      ? riskList.map(function(x){
+          return '<div class="risk"><div class="top"><span class="nm">' + x.nm.split('（')[0] +
+            '</span><span class="vl">' + (x.wk ? x.wk + ' 周' : '立即处理') + '</span></div>' +
+            '<div class="sub">' + x.risk + '</div></div>';
+        }).join('')
+      : '<div class="callout co-ok"><b>强制项全部完成，当前没有未完成风险项。</b></div>';
+  }
+
+  document.getElementById('reset').addEventListener('click', function(){
+    STATE = {}; save(); build(); calc();
+    document.getElementById('msg').textContent = '进度已清空。';
+  });
+  document.getElementById('copy').addEventListener('click', function(){
+    var lines = ['带电产品合规清单（美国站）', ''];
+    GROUPS.forEach(function(g){
+      var items = ITEMS.filter(function(x){ return x.g === g[0] && active(x); });
+      if (!items.length) return;
+      lines.push('【' + g[1] + '】');
+      items.forEach(function(x){
+        var m = { todo:'未开始', doing:'进行中', done:'已完成', na:'不适用' }[STATE[x.id] || 'todo'];
+        var tn = x.t === 'must' ? '必须' : (x.t === 'cond' ? '视配置' : '建议');
+        lines.push(' - [' + m + '] (' + tn + ') ' + x.nm + (x.wk ? ' ｜ ' + x.wk + ' 周' : '') +
+          ((x.lo || x.hi) ? ' ｜ $' + x.lo + '-' + x.hi : ''));
+      });
+      lines.push('');
+    });
+    var ta = document.createElement('textarea');
+    ta.value = lines.join('\n'); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); document.getElementById('msg').textContent = '清单已复制。'; }
+    catch(e){ document.getElementById('msg').textContent = '复制失败，请手动选择。'; }
+    document.body.removeChild(ta);
+  });
+
+  TK.bindAll(function(){ build(); calc(); });
+  build(); calc();
+})();
+</script>
+</body>
+</html>

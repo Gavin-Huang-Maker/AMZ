@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>作战指令台 · 企业微信自动推送 · 亚马逊运营工具箱</title>
+<link rel="stylesheet" href="../assets/tool.css">
+<style>
+  .hero{background:linear-gradient(135deg,#1f2a33,#2f3f4c 55%,#3b5060);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;}
+  .hero h1{color:#fff;margin:0 0 6px;font-size:22px;}
+  .hero .sub{color:rgba(255,255,255,.87);font-size:13.5px;line-height:1.7;margin:0;}
+  @media (prefers-color-scheme: dark){ .hero{background:linear-gradient(135deg,#141c23,#22303b 55%,#2b3d4a);} }
+  .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+  .pk{border:1.5px solid var(--border);border-radius:13px;padding:13px 15px;background:var(--card);cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;}
+  .pk:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+  .pk.on{border-color:#2f3f4c;box-shadow:0 0 0 2px rgba(47,63,76,.14);}
+  .pk .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:7px;}
+  .pk .ds{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:5px;}
+  .pk .rl{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:#e8eef2;color:#2f3f4c;}
+  @media (prefers-color-scheme: dark){ .pk .rl{background:#2c3a45;color:#cfe0ea;} .pk.on{border-color:#7fb2c4;box-shadow:0 0 0 2px rgba(127,178,196,.2);} }
+  .outs{border:1px solid var(--border);border-radius:14px;background:var(--card);padding:14px 16px;margin-top:12px;}
+  .outs .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .outs .hd b{font-size:13.5px;}
+  pre.prev{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.75;background:var(--bg2,#f6f7f8);border-radius:10px;padding:12px 14px;margin:0;max-height:300px;overflow:auto;}
+  @media (prefers-color-scheme: dark){ pre.prev{background:#1b232a;} }
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
+  .steps .s{border:1px solid var(--border);border-radius:12px;padding:13px 15px;background:var(--card);}
+  .steps .s .n{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;background:#2f3f4c;color:#fff;font-size:12px;font-weight:700;margin-bottom:7px;}
+  .steps .s .t{font-weight:600;font-size:13.5px;margin-bottom:4px;}
+  .steps .s .d{font-size:12.5px;color:var(--muted);line-height:1.65;}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">← 返回工具箱</a>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>📮 作战指令台</h1>
+    <p class="sub">在这里<b>选内容、定时间</b>，一键生成可以直接交给 AI 执行的指令 —— 到点自动抓天气、自动判断阶段、自动把消息发到你的企业微信。
+      不用每天盯着网页看，消息会主动来找你。</p>
+  </div>
+
+  <div class="card">
+    <h2>1. 选要推送的内容</h2>
+    <p class="desc">六个模板对应六种真实的运营节点。选中后会生成预览，你可以自由改字。</p>
+    <div class="picks" id="picks"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 定发送时间</h2>
+    <div class="fields">
+      <div class="field">
+        <label>频率</label>
+        <select id="freq">
+          <option value="daily">每天早上 9:30</option>
+          <option value="weekday">工作日早上 9:30</option>
+          <option value="weekly">每周一早上 9:30</option>
+          <option value="once">只发一次（现在）</option>
+          <option value="cond3">条件触发：未来 3 天有降雪就发</option>
+          <option value="cond1">条件触发：未来 1 天有降雪就发</option>
+          <option value="condf">条件触发：出现结霜日（零下无雪）就发</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>发送时点 <span class="unit">（本地时间）</span></label>
+        <select id="hour">
+          <option>08:00</option><option>08:30</option><option selected>09:30</option>
+          <option>10:00</option><option>12:00</option><option>18:00</option><option>20:00</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>接收人</label>
+        <select id="to"><option value="me" selected>我（企业微信授权人）</option><option value="group">雪挡运营群</option></select>
+      </div>
+      <div class="field">
+        <label>是否附当天天气数据</label>
+        <select id="wx"><option value="1" selected>附（阶段 + 指数 + 首个雪日）</option><option value="0">不附，只要动作清单</option></select>
+      </div>
+      <div class="field">
+        <label>基础日广告预算 <span class="unit">$</span></label>
+        <input id="budget" type="number" value="120" min="0">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. 生成结果</h2>
+    <div class="outs">
+      <div class="hd"><b>① 实际会发到企业微信的消息（预览）</b><button class="btn" id="copyMsg">复制消息</button></div>
+      <pre class="prev" id="msgPrev">选一个模板…</pre>
+    </div>
+    <div class="outs">
+      <div class="hd"><b>② 交给 AI 执行的指令（复制后粘贴到 WorkBuddy 对话框即可生效）</b><button class="btn primary" id="copyCmd">复制指令</button></div>
+      <pre class="prev" id="cmdPrev">选一个模板…</pre>
+    </div>
+    <p class="note" id="msg"></p>
+  </div>
+
+  <div class="card">
+    <h2>4. 为什么要点两下：网页能做什么、不能做什么</h2>
+    <div class="steps">
+      <div class="s"><span class="n">1</span><div class="t">网页负责「配置」</div><div class="d">选内容、定时间、改文字、看预览 —— 都在这个页面完成，数据不出浏览器。</div></div>
+      <div class="s"><span class="n">2</span><div class="t">AI 负责「执行」</div><div class="d">企业微信的发送权限在 WorkBuddy 这边，不在浏览器里。所以要把指令交给它。</div></div>
+      <div class="s"><span class="n">3</span><div class="t">之后就是全自动</div><div class="d">一旦配置好，每天到点自动跑、自动发，你不需要再打开这个页面。</div></div>
+    </div>
+    <div class="callout co-warn" style="margin-top:12px">
+      <b>说句实话：</b>浏览器出于安全限制，<b>没法直接调用本机的企业微信接口</b>（否则任何网页都能替你发消息）。
+      所以这里的正确用法是：<b>点「复制指令」→ 粘贴到 WorkBuddy 对话框 → 发送一次</b>。
+      这一次之后，它就会按你设定的时间和内容自动跑，不用再点。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5. 已生效的自动化</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>名称</th><th>时间</th><th>内容</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td><b>雪季每日作战简报</b></td><td>每天 09:30</td><td>阶段判定 + 需求指数 + 首雪倒计时 + 今日 P0/P1/P2 + 结霜提醒</td><td><span class="badge b-ok">运行中</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">想改时间或内容：在上面选好新模板 → 复制指令 → 粘到 WorkBuddy 对话框说「更新雪季简报这个自动化」，它会直接改掉，不会多建一条。</p>
+  </div>
+
+  <div class="card">
+    <h2>口径与边界</h2>
+    <div class="kv"><span>天气数据</span><b>Open-Meteo 公开接口，35 城（英国 12 / 欧洲 11 / 北美 12），过去 7 天 + 未来 14 天</b></div>
+    <div class="kv"><span>发送通道</span><b>WorkBuddy 企业微信机器人（当前机器人名：雪档温度检测），仅能发给你本人或最近有往来的会话</b></div>
+    <div class="kv"><span>隐私</span><b>这个页面不上传任何数据；指令里也不会包含你的店铺、ASIN 或销售数字</b></div>
+    <div class="kv"><span>边界</span><b>推送的是「天气驱动的动作建议」，不含你的实时广告与库存数据；具体出价仍要回后台确认</b></div>
+    <p class="note">⚠️ 自动化执行依赖电脑上的 WorkBuddy 处于可运行状态。如果某天没收到，先检查 WorkBuddy 是否开着、企业微信授权是否过期。</p>
+  </div>
+
+  <p class="foot">亚马逊运营工具箱 · 作战指令台</p>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var TPL = [
+    { id:'daily', nm:'每日雪季简报', role:'每天', 
+      ds:'阶段 + 需求指数 + 首雪倒计时 + 今日三条动作。适合当每天早上的第一封消息。',
+      body:[
+        '❄️ 雪挡 · 每日作战简报 | {date}',
+        '',
+        '【今日判断】',
+        '阶段：{stage}｜需求指数：{idx}/100｜首个降雪日：{snow}',
+        '建议广告预算：{mult} 倍（约 {bud} 美金/天）',
+        '',
+        '【今日必做】',
+        '{acts}',
+        '',
+        '【提醒】',
+        '{frost}',
+        '',
+        '—— 由亚马逊运营工具箱自动生成'
+      ].join('\n'),
+      cmd:'拉取欧美 35 城未来 14 天降雪与气温预报（Open-Meteo 公开接口），判定当前处于备战期/临门期/爆发期/回落期，算出需求脉冲指数、首个降雪日、今日建议广告预算倍数，并给出今日 P0/P1/P2 三条动作（针对「货已在 FBA」的卖家：只讲广告、促销、素材、库存周转，不要讲补货海运）。整理成 300 字以内的简报。'
+    },
+    { id:'snow', nm:'降雪预警（提前 3 天）', role:'条件触发',
+      ds:'未来 3 天要下雪才发。含 D-1 / D0 的具体广告动作和促销建议。',
+      body:[
+        '🚨 降雪预警 | {date}',
+        '',
+        '【雪情】{snowline}',
+        '',
+        '【现在就要做】（D-1 之前完成）',
+        '1) 核心词 bid 上调 20~30%，Top of Search 加价 30%',
+        '2) 预算提到 {mult} 倍（约 {bud} 美金/天）',
+        '3) 开 Coupon 5~8%，确认库存可售 ≥ 21 天',
+        '4) QA 置顶「会不会刮伤玻璃 / 会不会结冰」',
+        '',
+        '【雪当天】',
+        '预算拉到 2.5 倍，每 4~6 小时看一次 ACOS 与排名；素材挂「今晨实拍」。',
+        '',
+        '—— 由亚马逊运营工具箱自动生成'
+      ].join('\n'),
+      cmd:'检查欧美 35 城未来 3 天降雪预报。若任意站点出现 ≥1cm 降雪，立即生成降雪预警，包含具体哪几天、哪些城市、降雪量级，并按「雪前作战时序」给出 D-1 与 D0 的广告出价、预算倍数、促销动作、Listing/QA 检查项，发到企业微信。若未来 3 天没有降雪，不要发送任何消息（避免打扰）。'
+    },
+    { id:'frost', nm:'降霜提醒（零下无雪）',
+      ds:'还没下雪但已经零下时发。提前开 frost 词占位，等真下雪就有数据可提价。',
+      body:[
+        '🌡 降霜提醒 | {date}',
+        '',
+        '【情况】{frost}',
+        '',
+        '【建议动作】',
+        '1) 开 frost / de-icer / ice 类词根，低 bid 占位，用 20% 预算',
+        '2) 只做手动精准，不加自动（避免烧泛词）',
+        '3) 等真降雪时，这些词已有历史转化，可直接提价抢位',
+        '',
+        '【不要做】',
+        '此时不建议大幅加预算 —— 霜冻的转化率通常只有降雪日的 1/3。',
+        '',
+        '—— 由亚马逊运营工具箱自动生成'
+      ].join('\n'),
+      cmd:'检查欧美 35 城未来 7 天天气，找出「最低温 ≤0℃ 但没有降雪」的结霜日。若有，生成降霜提醒，说明哪几天、哪些城市、最低温多少，并给出 frost / de-icer 类词的占位投放建议（低 bid、20% 预算、手动精准），发到企业微信。没有结霜日就不发。'
+    },
+    { id:'ads', nm:'广告打法包', role:'每周',
+      ds:'每周一份：词根结构、预算分配、竞品价格带、该暂停的词。',
+      body:[
+        '📊 雪挡 · 本周广告打法 | {date}',
+        '',
+        '【本周阶段】{stage}｜需求指数 {idx}',
+        '',
+        '【结构】',
+        '· 自动：仅跑发现，预算占 20%，目的只找新词',
+        '· 手动精准：snow cover / windscreen frost / car snow cover，占 55%',
+        '· 手动广泛：长尾词 + 场景词，占 25%',
+        '',
+        '【预算】总预算 {bud} 美金/天，按阶段调整',
+        '',
+        '【该停的】上周花费 > 10 美金且零转化的词，先降 bid 50%，再两周无单直接暂停',
+        '',
+        '—— 由亚马逊运营工具箱自动生成'
+      ].join('\n'),
+      cmd:'结合当前雪季阶段，输出雪挡产品本周的广告打法：广告结构（自动/手动精准/手动广泛的比例）、预算分配、本周应重点加的词根、应暂停的词类型、竞品价格带观察要点。要求具体到数字和执行动作，不要泛泛而谈，控制在 400 字内，发到企业微信。'
+    },
+    { id:'listing', nm:'Listing 自查周检',
+      ds:'8 项雪季自查清单，逐条检查并列出还没做的。',
+      body:[
+        '🔍 雪挡 · Listing 雪季自查 | {date}',
+        '',
+        '逐条核对（没做的今天补上）：',
+        '1. 主图有雪景 / 积雪实拍',
+        '2. 标题含 snow cover / windscreen 核心词',
+        '3. A+ 有「有 / 无」对比场景图',
+        '4. 五点第一条直接回答「能不能防雪防冰」',
+        '5. 尺寸表对应车型清晰（S/M/L/XL）',
+        '6. QA 置顶 3 条高频疑问',
+        '7. FBA 可售天数 ≥ 21 天',
+        '8. 价格在类目中位以下 5~10%',
+        '',
+        '当前进度：{stage} 阶段，距首个降雪日 {snow}',
+        '',
+        '—— 由亚马逊运营工具箱自动生成'
+      ].join('\n'),
+      cmd:'按雪季 Listing 自查清单（主图雪景、标题核心词、A+ 对比图、五点第一条、尺寸表、QA 置顶、FBA 可售天数、价格带）逐条列出检查要点，结合当前雪季阶段说明每一项的优先级，整理成可执行的自查清单发到企业微信。'
+    },
+    { id:'review', nm:'雪后复盘',
+      ds:'降雪结束后 2 天发：这一波哪些词值得留、哪些钱白花了。',
+      body:[
+        '📈 雪挡 · 本波降雪复盘 | {date}',
+        '',
+        '【这一波的天气】{snowline}',
+        '',
+        '【要回看四个数】',
+        '1) 转化率：雪日 vs 平日的差距（判断你到底吃到没有）',
+        '2) ACOS：雪日是否可控在目标线内',
+        '3) 排名：峰值日有没有冲上去、雪后掉多少',
+        '4) 退货：有没有出现「尺寸不符 / 刮伤玻璃」集中退货',
+        '',
+        '【下一步】',
+        '· 把雪日表现好的词单独建组，留给下一波直接提价',
+        '· 表现差的词降 bid，不要直接删（留数据）',
+        '',
+        '—— 由亚马逊运营工具箱自动生成'
+      ].join('\n'),
+      cmd:'生成雪挡产品的降雪后复盘模板，列出需要回看的四个核心指标（转化率、ACOS、排名、退货原因），并给出「下一波降雪前应该怎么准备」的三条动作。语气像运营主管，不要客套话，发到企业微信。'
+    }
+  ];
+
+  var CITIES = [
+    [51.5074,-0.1278],[53.4808,-2.2426],[52.4862,-1.8904],[53.8008,-1.5491],[54.9783,-1.6178],[53.3811,-1.4701],
+    [53.4084,-2.9916],[55.9533,-3.1883],[55.8642,-4.2518],[57.1497,-2.0943],[57.4778,-4.2247],[54.8959,-2.9367],
+    [52.5200,13.4050],[48.1351,11.5820],[53.5511,9.9937],[50.9375,6.9603],[48.8566,2.3522],[45.7640,4.8357],
+    [52.2297,21.0122],[50.0647,19.9450],[52.3676,4.9041],[48.2082,16.3738],[47.3769,8.5417],
+    [40.7128,-74.0060],[42.3601,-71.0589],[42.8864,-78.8784],[40.4406,-79.9959],[41.8781,-87.6298],[44.9778,-93.2650],
+    [39.7392,-104.9903],[42.3314,-83.0458],[43.6532,-79.3832],[45.5019,-73.5674],[51.0447,-114.0719],[46.8139,-71.2080]
+  ];
+
+  var cur = 'daily', WX = null;
+
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+  function dayScore(snow, tmin, tmax){
+    var v = 0;
+    if (snow > 0) v += Math.min(snow, 8) * 10;
+    v += Math.max(0, 3 - tmin) * 5;
+    if (tmax <= 2) v += 12;
+    if (snow > 0 && tmax > 2) v -= 8;
+    return TK.clamp(v, 0, 100);
+  }
+  function multOf(v){ return v >= 80 ? 2.5 : (v >= 60 ? 1.8 : (v >= 35 ? 1.3 : (v >= 20 ? 1.0 : 0.8))); }
+
+  /* 轻量拉一次天气，用于把预览填成真数据 */
+  function loadWx(cb){
+    var lat = [], lon = [];
+    CITIES.forEach(function(c){ lat.push(c[0]); lon.push(c[1]); });
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat.join(',') + '&longitude=' + lon.join(',') +
+      '&daily=snowfall_sum,temperature_2m_min,temperature_2m_max&past_days=7&forecast_days=14&timezone=auto';
+    fetch(url).then(function(r){ return r.json(); }).then(function(j){
+      var T = 7, n = j[0].daily.time.length, all = [];
+      for (var i = 0; i < n; i++){
+        var idx = 0, snowN = 0, maxS = 0, cold = 99;
+        for (var k = 0; k < CITIES.length; k++){
+          var d = j[k].daily;
+          var s = d.snowfall_sum[i] || 0, tmin = d.temperature_2m_min[i], tmax = d.temperature_2m_max[i];
+          idx += dayScore(s, tmin, tmax);
+          if (s > 0) snowN++;
+          if (s > maxS) maxS = s;
+          if (tmin < cold) cold = tmin;
+        }
+        all.push({ date:j[0].daily.time[i], idx: idx / CITIES.length, snowN: snowN, maxS: maxS, cold: cold });
+      }
+      var future = all.slice(T), past = all.slice(0, T);
+      var max7 = Math.max.apply(null, future.slice(0,7).map(function(d){ return d.idx; }));
+      var maxPast = Math.max.apply(null, past.map(function(d){ return d.idx; }));
+      var firstSnow = null, frost = [];
+      for (var f = 0; f < future.length; f++){
+        if (!firstSnow && future[f].maxS >= 0.5) firstSnow = future[f];
+        if (future[f].cold <= 0 && future[f].maxS < 0.5) frost.push(future[f]);
+      }
+      var stage = max7 >= 60 ? '爆发期'
+        : (future[0].idx >= 35 || max7 >= 35 ? '临门期'
+        : (maxPast >= 35 ? '回落期' : '备战期'));
+      WX = { days: future, firstSnow: firstSnow, frost: frost, stage: stage, idx: future[0].idx,
+             peak: future.slice().sort(function(a,b){ return b.idx - a.idx; })[0], snowN: future[0].snowN };
+      cb(WX);
+    }).catch(function(){ cb(null); });
+  }
+
+  function fillDate(t){ return t.replace('{date}', todayStr()); }
+
+  function buildMsg(){
+    var t = TPL.filter(function(x){ return x.id === cur; })[0];
+    var bud = TK.num('budget') || 120;
+    var wxOn = document.getElementById('wx').value === '1';
+    var mult = WX ? multOf(WX.idx) : 1.3;
+
+    var v = {
+      date: todayStr(),
+      stage: wxOn && WX ? WX.stage : '（当天判定）',
+      idx: wxOn && WX ? WX.idx.toFixed(0) : '--',
+      mult: wxOn && WX ? mult.toFixed(1) : '1.3',
+      bud: Math.round(bud * mult),
+      snow: wxOn && WX ? (WX.firstSnow ? (WX.firstSnow.date + '（' + WX.firstSnow.maxS.toFixed(1) + 'cm）') : '未来 14 天无雪') : '（当天判定）',
+      snowline: wxOn && WX
+        ? (WX.firstSnow ? ('首个降雪 ' + WX.firstSnow.date + '，' + WX.snowN + ' 城命中，最大 ' + WX.firstSnow.maxS.toFixed(1) + 'cm') : '未来 14 天 35 城无有效降雪')
+        : '（当天抓取后填入）',
+      frost: wxOn && WX
+        ? (WX.frost.length ? ('未来 14 天有 ' + WX.frost.length + ' 个结霜日，最早 ' + WX.frost[0].date + '（' + WX.frost[0].cold.toFixed(1) + '℃）→ 提前开 frost 词占位') : '未来 14 天无零下城市')
+        : '（当天判定）',
+      acts: wxOn && WX ? actsFor(WX.stage) : '· 按当天阶段给三条动作'
+    };
+    var body = t.body;
+    Object.keys(v).forEach(function(k){ body = body.split('{' + k + '}').join(v[k]); });
+    return fillDate(body);
+  }
+
+  function actsFor(stage){
+    if (stage === '爆发期') return '1) 预算拉到 2.5 倍，主推词抢首页\n2) 确认 FBA 可售 ≥ 21 天，盯住库存\n3) 开 Coupon/秒杀，素材挂实拍雪景';
+    if (stage === '临门期') return '1) 冬季素材全部上线（主图/A+/视频）\n2) 加雪季词根到手动精准，预算 ×1.3\n3) 核对库存能撑到峰值后 14 天';
+    if (stage === '回落期') return '1) 预算收回 0.8 倍，停高 ACOS 长尾\n2) 清尾货，算季末降价 vs 存仓过夏\n3) 复盘本波：哪些词值得留';
+    return '1) 修链接：主图/A+ 的雪景版本定稿\n2) 搭广告结构，低预算养词根权重\n3) 把 D-7/D-3/D-1 的动作排进日历';
+  }
+
+  function buildCmd(){
+    var t = TPL.filter(function(x){ return x.id === cur; })[0];
+    var f = document.getElementById('freq').value;
+    var h = document.getElementById('hour').value;
+    var to = document.getElementById('to').value === 'me' ? '我本人（企业微信授权人）' : '雪挡运营群';
+    var bud = TK.num('budget') || 120;
+
+    var when = {
+      daily: '每天早上 ' + h + '（北京时间）',
+      weekday: '每个工作日早上 ' + h + '（北京时间）',
+      weekly: '每周一早上 ' + h + '（北京时间）',
+      once: '现在执行一次，不重复',
+      cond3: '每天 ' + h + ' 检查一次，仅当未来 3 天有降雪时才发送',
+      cond1: '每天 ' + h + ' 检查一次，仅当未来 1 天有降雪时才发送',
+      condf: '每天 ' + h + ' 检查一次，仅当出现结霜日（零下无雪）时才发送'
+    }[f];
+
+    var lines = [];
+    lines.push('请帮我配置一条企业微信自动推送（用现有的「雪季每日作战简报」自动化，如果没有就新建一条；不要重复创建）。');
+    lines.push('');
+    lines.push('【发送时间】' + when);
+    lines.push('【发送对象】' + to);
+    lines.push('【内容模板】' + t.nm);
+    lines.push('【基础日广告预算】' + bud + ' 美金（用于换算建议预算金额）');
+    lines.push('');
+    lines.push('【执行要求】');
+    lines.push(t.cmd);
+    var wxOn = document.getElementById('wx').value === '1';
+    if (wxOn) lines.push('消息里要带上：当前阶段、需求指数、首个降雪日、今日建议广告预算金额、结霜日提醒。');
+    lines.push('消息用 markdown 发送，控制在 400 字以内，手机上一屏能看完；不要写客套话，直接给判断和动作。');
+    lines.push('');
+    lines.push('【消息样式参考】');
+    lines.push('-----');
+    lines.push(buildMsg());
+    lines.push('-----');
+    return lines.join('\n');
+  }
+
+  function render(){
+    document.getElementById('picks').innerHTML = TPL.map(function(t){
+      return '<div class="pk' + (t.id === cur ? ' on' : '') + '" data-id="' + t.id + '">' +
+        '<div class="nm">' + t.nm + (t.role ? '<span class="rl">' + t.role + '</span>' : '') + '</div>' +
+        '<div class="ds">' + t.ds + '</div></div>';
+    }).join('');
+    [].forEach.call(document.querySelectorAll('.pk'), function(el){
+      el.addEventListener('click', function(){ cur = el.getAttribute('data-id'); render(); });
+    });
+    document.getElementById('msgPrev').textContent = buildMsg();
+    document.getElementById('cmdPrev').textContent = buildCmd();
+  }
+
+  function copy(text, okMsg){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); document.getElementById('msg').textContent = okMsg; }
+    catch(e){ document.getElementById('msg').textContent = '复制失败，请手动选择文本。'; }
+    document.body.removeChild(ta);
+  }
+
+  document.getElementById('copyMsg').addEventListener('click', function(){
+    copy(document.getElementById('msgPrev').textContent, '消息内容已复制。');
+  });
+  document.getElementById('copyCmd').addEventListener('click', function(){
+    copy(document.getElementById('cmdPrev').textContent,
+      '指令已复制 —— 切到 WorkBuddy 对话框粘贴发送，它就会按这个时间和内容自动推送。');
+  });
+
+  document.getElementById('freq').addEventListener('change', function(){
+    var v = this.value;
+    if (v === 'cond1' || v === 'cond3'){ cur = 'snow'; }
+    if (v === 'condf'){ cur = 'frost'; }
+    if (v === 'weekly'){ cur = 'ads'; }
+    render();
+  });
+
+  TK.bindAll(function(){ render(); });
+  render();
+  loadWx(function(){ render(); });
+})();
+</script>
+</body>
+</html>

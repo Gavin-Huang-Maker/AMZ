@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>加热护具参数化利润器 · 亚马逊运营工具箱</title>
+<link rel="stylesheet" href="../assets/tool.css">
+<style>
+  .hero{background:linear-gradient(135deg,#6d2438,#9c3450 55%,#b8456a);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;}
+  .hero h1{color:#fff;margin:0 0 6px;font-size:22px;}
+  .hero .sub{color:rgba(255,255,255,.88);font-size:13.5px;line-height:1.7;margin:0;}
+  @media (prefers-color-scheme: dark){
+    .hero{background:linear-gradient(135deg,#45162a,#6b2237 55%,#832f4a);}
+  }
+  .grp{border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;background:var(--card);box-shadow:var(--shadow);}
+  .grp h3{margin:0 0 10px;font-size:15.5px;}
+  .stack{display:flex;height:26px;border-radius:7px;overflow:hidden;margin:10px 0 6px;}
+  .stack i{display:block;height:100%;}
+  .slegend{font-size:12px;color:var(--muted);line-height:1.9;}
+  .slegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+  .big{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;}
+  .big div{border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--card);text-align:center;}
+  .big .k{font-size:12.5px;color:var(--muted);}
+  .big .v{font-size:22px;font-weight:700;margin-top:4px;}
+  .big .m{font-size:11.5px;color:var(--muted);margin-top:3px;}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">← 返回工具箱</a>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>🔥 加热护具参数化利润器</h1>
+    <p class="sub">加热护肩 / 护腕 / 护脚的成本结构和普通产品完全不同：<b>电池是大头、认证摊销躲不掉、退货率天生偏高、还要计提售后换货</b>。
+      这个工具按真实 BOM 拆给你看——钱花在哪、加一档电池值不值、退货率涨 5 个点会吃掉多少利润。</p>
+  </div>
+
+  <div class="grp">
+    <h3>① 售价与规模</h3>
+    <div class="fields">
+      <div class="field"><label>售价 <span class="unit">$</span></label><input id="price" type="number" value="59.99" step="0.01" min="0"></div>
+      <div class="field"><label>月销量 <span class="unit">件</span></label><input id="qty" type="number" value="600" min="0"></div>
+      <div class="field"><label>目标净利率 <span class="unit">%</span></label><input id="target" type="number" value="15" min="0"></div>
+    </div>
+  </div>
+
+  <div class="grp">
+    <h3>② 电池（加热产品的成本大头）</h3>
+    <div class="fields">
+      <div class="field"><label>电池容量 <span class="unit">mAh</span></label><input id="mah" type="number" value="4000" min="0" step="100"></div>
+      <div class="field"><label>电芯单价 <span class="unit">$/Ah</span></label><input id="cellp" type="number" value="1.20" step="0.05" min="0"></div>
+      <div class="field"><label>保护板+封装 <span class="unit">$</span></label><input id="pcm" type="number" value="1.20" step="0.1" min="0"></div>
+      <div class="field"><label>整机功率 <span class="unit">W</span></label><input id="watt" type="number" value="8" step="0.5" min="0.5"></div>
+    </div>
+    <p class="note">续航（小时）＝ 容量(Ah) × 3.7V × 0.85（转换与低温损耗）÷ 功率(W)。加热穿戴在冬季低温下实际续航通常比标称再短 15–25%，已计入 0.85 系数。</p>
+  </div>
+
+  <div class="grp">
+    <h3>③ BOM 明细（单件）</h3>
+    <div class="fields">
+      <div class="field"><label>发热片 数量 <span class="unit">片</span></label><input id="hn" type="number" value="2" step="1" min="0"></div>
+      <div class="field"><label>发热片 单价 <span class="unit">$</span></label><input id="hp" type="number" value="0.85" step="0.05" min="0"></div>
+      <div class="field"><label>温控 / PCB <span class="unit">$</span></label><input id="pcb" type="number" value="2.00" step="0.1" min="0"></div>
+      <div class="field"><label>面料与填充 <span class="unit">$</span></label><input id="fab" type="number" value="3.00" step="0.1" min="0"></div>
+      <div class="field"><label>魔术贴/五金 <span class="unit">$</span></label><input id="trim" type="number" value="0.90" step="0.1" min="0"></div>
+      <div class="field"><label>包装与说明书 <span class="unit">$</span></label><input id="pack" type="number" value="0.80" step="0.05" min="0"></div>
+      <div class="field"><label>充电器/线材 <span class="unit">$</span></label><input id="chr" type="number" value="1.30" step="0.05" min="0"></div>
+      <div class="field"><label>组装人工 <span class="unit">$</span></label><input id="lab" type="number" value="1.40" step="0.1" min="0"></div>
+    </div>
+  </div>
+
+  <div class="grp">
+    <h3>④ 认证摊销（从「合规上市清单」带过来）</h3>
+    <div class="fields">
+      <div class="field"><label>一次性投入 <span class="unit">$</span></label><input id="once" type="number" value="18450" min="0"></div>
+      <div class="field"><label>分摊数量 <span class="unit">件（预计总销量）</span></label><input id="lots" type="number" value="20000" min="1"></div>
+    </div>
+    <p class="note">默认 18450 是合规清单工具在默认配置下的必须项费用中值。<b>分摊数量填「预计能卖多少件」而不是「首批订多少件」</b> ——
+      认证是沉没成本，一旦花了就不该只看首批：首批 2000 件摊下来是 $9.22/件（会很夸张），但按全年 20000 件摊只有 $0.92/件，这才是定价时该用的口径。
+      想看最保守的情况，把这里改成首批数量即可。</p>
+  </div>
+
+  <div class="grp">
+    <h3>⑤ 物流与平台</h3>
+    <div class="fields">
+      <div class="field"><label>头程（含带电附加）<span class="unit">$</span></label><input id="ship" type="number" value="2.40" step="0.1" min="0"></div>
+      <div class="field"><label>FBA 配送费 <span class="unit">$</span></label><input id="fba" type="number" value="5.60" step="0.1" min="0"></div>
+      <div class="field"><label>佣金率 <span class="unit">%</span></label><input id="comm" type="number" value="15" step="0.5" min="0"></div>
+      <div class="field"><label>仓储及其他 <span class="unit">$</span></label><input id="misc" type="number" value="0.35" step="0.05" min="0"></div>
+    </div>
+  </div>
+
+  <div class="grp">
+    <h3>⑥ 质量成本（加热类的隐形杀手）</h3>
+    <div class="fields">
+      <div class="field"><label>退货率 <span class="unit">%</span></label><input id="ret" type="number" value="12" step="0.5" min="0"></div>
+      <div class="field"><label>退货可二次销售 <span class="unit">%</span></label><input id="resale" type="number" value="45" step="5" min="0"></div>
+      <div class="field"><label>售后预备金 <span class="unit">$/件</span></label><input id="reserve" type="number" value="1.00" step="0.1" min="0"></div>
+    </div>
+    <p class="note">退货率 12% 是加热穿戴的常见区间（不热 / 续航短 / 尺码不合 / 洗坏）。二次销售比例指退回后还能整新再卖的比例，其余按报废计。</p>
+  </div>
+
+  <div class="card">
+    <h2>结果</h2>
+    <div class="big">
+      <div><div class="k">单件毛利</div><div class="v" id="kM">—</div><div class="m" id="kMm"></div></div>
+      <div><div class="k">毛利率</div><div class="v" id="kR">—</div><div class="m" id="kRm"></div></div>
+      <div><div class="k">允许 CPA</div><div class="v" id="kC">—</div><div class="m" id="kCm"></div></div>
+      <div><div class="k">允许 ACOS</div><div class="v" id="kA">—</div><div class="m" id="kAm"></div></div>
+      <div><div class="k">保本销量</div><div class="v" id="kB">—</div><div class="m" id="kBm"></div></div>
+    </div>
+    <div class="callout co-info" id="verdict"></div>
+
+    <h3 style="margin-top:18px">单件成本结构</h3>
+    <div class="stack" id="stack"></div>
+    <div class="slegend" id="slegend"></div>
+    <div class="scroll" style="margin-top:12px">
+      <table>
+        <thead><tr><th>成本项</th><th>金额</th><th>占售价</th><th>说明</th></tr></thead>
+        <tbody id="costTbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>续航档位：加一档电池到底值不值</h2>
+    <div class="fields">
+      <div class="field"><label>续航溢价系数 <span class="unit">$</span></label><input id="hrVal" type="number" value="5.00" step="0.5" min="0"></div>
+      <div class="field"><label>转化率提升估计 <span class="unit">%/小时</span></label><input id="hrCvr" type="number" value="2" step="0.5" min="0"></div>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>容量</th><th>续航</th><th>电池成本</th><th>较上一档成本增量</th><th>可支撑提价</th><th>单件毛利</th><th>净增益</th><th>建议</th></tr></thead>
+        <tbody id="battTbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="battVerdict"></div>
+    <p class="note"><b>为什么要做「边际递减」而不是简单的「每小时 × 单价」：</b>买家关心的不是线性累加的小时数，而是<b>「够不够撑一场」</b>——
+      从 1 小时到 2 小时是质变，从 6 小时到 7 小时几乎没人感知。所以这里用对数建模：可支撑提价 ＝ 溢价系数 × 3 × ln(1＋续航÷2)，
+      再加上转化率提升带来的等效收益。这样算出来的最优档位才有意义，否则会退化成「电池越大越赚」的错误结论。
+      真实溢价能力请用小批量 A/B 验证后再放量。</p>
+  </div>
+
+  <div class="card">
+    <h2>敏感度：哪个变量一动就伤筋动骨</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>变量</th><th>变动</th><th>单件毛利</th><th>毛利变化</th><th>月净利影响</th><th>敏感度</th></tr></thead>
+        <tbody id="sensTbl"></tbody>
+      </table>
+    </div>
+    <div class="callout co-info" id="sensVerdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>口径与假设</h2>
+    <div class="kv"><span>单件毛利</span><b>M ＝ 售价×(1−退货率) −（BOM＋认证摊销＋头程＋FBA＋佣金＋仓储＋售后预备金）− 退货报废损失</b></div>
+    <div class="kv"><span>退货报废损失</span><b>退货率 ×(1−可二次销售比例) ×(BOM＋头程)</b></div>
+    <div class="kv"><span>允许 CPA</span><b>单件毛利 − 售价 × 目标净利率（广告之外还要有净利时的出价上限）</b></div>
+    <div class="kv"><span>盈亏平衡售价</span><b>令 M＝0 反解：售价 ＝（固定成本＋报废损失）÷(1−退货率−佣金率)</b></div>
+    <div class="kv"><span>保本销量</span><b>一次性投入 ÷ 单件毛利（只算认证与模具，不含公司固定开支）</b></div>
+    <div class="kv"><span>续航估算</span><b>容量(Ah)×3.7V×0.85÷功率(W)；0.85 为转换效率与低温衰减的综合折扣</b></div>
+    <p class="note">⚠️ 结果为<b>方向性测算</b>。BOM 单价与认证费用请以供应商实际报价与实验室报价为准；退货率、二次销售比例请用自己后台的真实数据替换。工具不会上传任何数据，全部在浏览器本地计算。</p>
+  </div>
+
+  <p class="foot">亚马逊运营工具箱 · 加热护具参数化利润器</p>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  function V(){
+    return {
+      price: TK.num('price'), qty: TK.num('qty'), target: TK.num('target') / 100,
+      mah: TK.num('mah'), cellp: TK.num('cellp'), pcm: TK.num('pcm'), watt: Math.max(0.5, TK.num('watt')),
+      hn: TK.num('hn'), hp: TK.num('hp'), pcb: TK.num('pcb'), fab: TK.num('fab'),
+      trim: TK.num('trim'), pack: TK.num('pack'), chr: TK.num('chr'), lab: TK.num('lab'),
+      once: TK.num('once'), lots: Math.max(1, TK.num('lots')),
+      ship: TK.num('ship'), fba: TK.num('fba'), comm: TK.num('comm') / 100, misc: TK.num('misc'),
+      ret: TK.num('ret') / 100, resale: TK.num('resale') / 100, reserve: TK.num('reserve'),
+      hrVal: TK.num('hrVal'), hrCvr: TK.num('hrCvr') / 100
+    };
+  }
+
+  function battCost(v, mah){
+    return mah / 1000 * v.cellp + v.pcm;
+  }
+  function hours(v, mah){
+    return (mah / 1000) * 3.7 * 0.85 / v.watt;
+  }
+  /* 核心：给定电池容量与售价算单件毛利 */
+  function calc(v, mah, price){
+    var bc = battCost(v, mah);
+    var bom = bc + v.hn * v.hp + v.pcb + v.fab + v.trim + v.pack + v.chr + v.lab;
+    var amort = v.once / v.lots;
+    var cogs = bom + amort;
+    var comm = price * v.comm;
+    var effRev = price * (1 - v.ret);
+    var scrap = v.ret * (1 - v.resale) * (cogs + v.ship);
+    var totalUnit = cogs + v.ship + v.fba + comm + v.misc + v.reserve;
+    var margin = effRev - totalUnit - scrap;
+    return {
+      bc: bc, bom: bom, amort: amort, cogs: cogs, comm: comm, effRev: effRev,
+      scrap: scrap, totalUnit: totalUnit, margin: margin,
+      rate: price > 0 ? margin / price : 0,
+      bep: (1 - v.ret - v.comm) > 0.01
+        ? (cogs + v.ship + v.fba + v.misc + v.reserve + scrap) / (1 - v.ret - v.comm) : null,
+      cpa: margin - price * v.target,
+      acos: price > 0 ? (margin - price * v.target) / price : 0,
+      bepQty: margin > 0 ? v.once / margin : null
+    };
+  }
+
+  function render(){
+    var v = V();
+    var r = calc(v, v.mah, v.price);
+
+    document.getElementById('kM').textContent = TK.money(r.margin);
+    document.getElementById('kMm').textContent = '每月 ' + TK.money0(r.margin * v.qty);
+    document.getElementById('kR').textContent = TK.pct(r.rate, 1);
+    document.getElementById('kRm').textContent = '盈亏平衡售价 ' + (r.bep ? TK.money(r.bep) : '—');
+    document.getElementById('kC').textContent = TK.money(r.cpa);
+    document.getElementById('kCm').textContent = '目标净利率 ' + TK.pct(v.target, 0);
+    document.getElementById('kA').textContent = TK.pct(r.acos, 1);
+    document.getElementById('kAm').textContent = 'ACOS 超过这个值就在亏';
+    document.getElementById('kB').textContent = r.bepQty ? Math.ceil(r.bepQty) + ' 件' : '亏损';
+    document.getElementById('kBm').textContent = '卖够这个数才回本';
+
+    var vd = document.getElementById('verdict');
+    var lv = r.margin <= 0 ? 'bad' : (r.rate < 0.15 ? 'warn' : 'ok');
+    vd.className = 'callout co-' + lv;
+    var txt;
+    if (r.margin <= 0){
+      txt = '<b>这个配置是亏的。</b>单件毛利 ' + TK.money(r.margin) + '，售价至少要提到 <b>' +
+        (r.bep ? TK.money(r.bep) : '更高') + '</b> 才能打平。' +
+        '优先砍的方向：电池档位（最大头）、发热片数量、以及把退货率压下来 —— 加热类退货每降 2 个点，' +
+        '单件毛利大约能回 ' + TK.money(v.price * 0.02 * (1 - (1 - v.resale) * (r.cogs + v.ship) / v.price)) + '。';
+    } else if (r.rate < 0.15){
+      txt = '毛利率 <b>' + TK.pct(r.rate, 1) + '</b> 偏低。加热穿戴的合理区间一般在 20–30%，' +
+        '低于 15% 意味着<b>扛不住一次退货潮或一次广告涨价</b>。' +
+        '最大的三个可动项：电池容量档位、认证摊销（加大首批摊薄）、退货率。';
+    } else {
+      txt = '毛利率 <b>' + TK.pct(r.rate, 1) + '</b>，处在健康区间。' +
+        '广告出价上限 <b>' + TK.money(r.cpa) + '</b>（ACOS ' + TK.pct(r.acos, 1) + '），' +
+        '按当前单件毛利，卖 <b>' + Math.ceil(r.bepQty) + ' 件</b> 就能收回 ' + TK.money0(v.once) + ' 的一次性投入。';
+    }
+    vd.innerHTML = txt;
+
+    /* 成本结构 */
+    var parts = [
+      ['电池', r.bc, '#b8456a'],
+      ['其他 BOM', r.bom - r.bc, '#d8738f'],
+      ['认证摊销', r.amort, '#8a5a2b'],
+      ['头程', v.ship, '#c98a2e'],
+      ['FBA', v.fba, '#185FA5'],
+      ['佣金', r.comm, '#5b8fa8'],
+      ['仓储其他', v.misc, '#7a7a7a'],
+      ['售后预备金', v.reserve, '#a32d2d'],
+      ['退货报废', r.scrap, '#6b2237']
+    ];
+    var tot = parts.reduce(function(a, p){ return a + p[1]; }, 0);
+    document.getElementById('stack').innerHTML = parts.map(function(p){
+      return '<i style="width:' + (tot > 0 ? p[1] / tot * 100 : 0) + '%;background:' + p[2] + '" title="' +
+        p[0] + ' ' + TK.money(p[1]) + '"></i>';
+    }).join('');
+    document.getElementById('slegend').innerHTML = parts.map(function(p){
+      return '<span style="margin-right:14px"><i style="background:' + p[2] + '"></i>' + p[0] + ' ' +
+        TK.money(p[1]) + '（' + (v.price > 0 ? TK.pct(p[1] / v.price, 1) : '—') + '）</span>';
+    }).join('');
+
+    var tb = document.getElementById('costTbl');
+    TK.clear(tb);
+    var notes = {
+      '电池': '容量 ' + v.mah + 'mAh × $' + v.cellp + '/Ah ＋ 保护板 $' + v.pcm.toFixed(2),
+      '其他 BOM': '发热片 ' + v.hn + ' 片 ＋ 温控 ＋ 面料 ＋ 五金 ＋ 包装 ＋ 充电器 ＋ 人工',
+      '认证摊销': TK.money0(v.once) + ' ÷ ' + v.lots + ' 件',
+      '头程': '含带电货物附加费',
+      'FBA': '亚马逊配送费',
+      '佣金': '售价 × ' + TK.pct(v.comm, 0),
+      '仓储其他': '月度仓储分摊等',
+      '售后预备金': '换货 / 补寄 / 客诉赔付的计提',
+      '退货报废': '退货率 ' + TK.pct(v.ret, 0) + ' × 不可二次销售 ' + TK.pct(1 - v.resale, 0) + ' × (BOM＋头程)'
+    };
+    parts.slice().sort(function(a, b){ return b[1] - a[1]; }).forEach(function(p){
+      TK.rows(tb, '<tr><td><b>' + p[0] + '</b></td><td class="num">' + TK.money(p[1]) +
+        '</td><td class="num">' + (v.price > 0 ? TK.pct(p[1] / v.price, 1) : '—') +
+        '</td><td style="color:var(--muted)">' + (notes[p[0]] || '') + '</td></tr>');
+    });
+    TK.rows(tb, '<tr><td><b>合计（含报废）</b></td><td class="num"><b>' + TK.money(tot) +
+      '</b></td><td class="num"><b>' + (v.price > 0 ? TK.pct(tot / v.price, 1) : '—') +
+      '</b></td><td></td></tr>');
+
+    /* 续航档位 */
+    var tiers = [2600, 4000, 6000, 8000, 10000];
+    var base = null, rows = [];
+    tiers.forEach(function(mah){
+      var rr = calc(v, mah, v.price);
+      var h = hours(v, mah);
+      /* 边际递减：第 1 小时最值钱，之后递减 —— 买家看的是「够不够撑一场」 */
+      var lift = v.hrVal * 3 * Math.log(1 + h / 2);
+      var cvrGain = v.hrCvr * h * v.price * rr.rate; /* 转化率提升带来的等效收益 */
+      var gain = lift + cvrGain;
+      var delta = base === null ? 0 : rr.bc - base.bc;
+      var net = base === null ? 0 : gain - base.gain - delta;
+      rows.push({ mah: mah, h: h, bc: rr.bc, delta: delta, lift: gain, margin: rr.margin, net: net, base: base });
+      base = { bc: rr.bc, gain: gain };
+    });
+    var bt = document.getElementById('battTbl');
+    TK.clear(bt);
+    rows.forEach(function(x){
+      var tag = x.net > 1.5 ? '<span class="badge b-ok">值得升</span>'
+        : (x.net > 0 ? '<span class="badge b-warn">勉强</span>'
+        : (x.delta === 0 ? '<span class="badge b-idle">基准</span>' : '<span class="badge b-bad">不划算</span>'));
+      TK.rows(bt, '<tr><td><b>' + x.mah + ' mAh</b></td><td class="num">' + x.h.toFixed(1) + ' h</td>' +
+        '<td class="num">' + TK.money(x.bc) + '</td>' +
+        '<td class="num">' + (x.delta === 0 ? '—' : '+' + TK.money(x.delta)) + '</td>' +
+        '<td class="num">' + TK.money0(x.lift) + '</td>' +
+        '<td class="num">' + TK.money(x.margin) + '</td>' +
+        '<td class="num"><b>' + (x.delta === 0 ? '—' : (x.net >= 0 ? '+' : '') + TK.money(x.net)) + '</b></td>' +
+        '<td>' + tag + '</td></tr>');
+    });
+    var best = rows.filter(function(x){ return x.delta > 0; }).sort(function(a, b){ return b.net - a.net; })[0];
+    var bv = document.getElementById('battVerdict');
+    bv.className = 'callout co-' + (!best ? 'info' : (best.net > 1.5 ? 'ok' : 'warn'));
+    bv.innerHTML = !best
+      ? '把「每多 1 小时续航可多卖」填个数字，就能看出该不该上大电池。'
+      : ('按你填的参数，<b>' + best.mah + ' mAh</b> 是性价比最高的一档：电池成本多花 <b>' + TK.money(best.delta) +
+        '</b>，换来 <b>' + best.h.toFixed(1) + ' 小时</b>续航和约 <b>' + TK.money0(best.lift) +
+        '</b> 的溢价空间，净增益 <b>' + TK.money(best.net) + '</b>。<br>' +
+        (best.net > 1.5
+          ? '但请注意：续航溢价是<b>估计值</b>，真实能不能卖上价取决于竞品标注和买家感知。建议先小批量试，用真实转化验证再放量。'
+          : '净增益很薄，说明买家并不愿意为续航付这么多钱 —— 与其堆电池，不如把成本放在发热均匀性和面料舒适度上。'));
+
+    /* 敏感度 */
+    var sens = [];
+    function add(name, label, mut){
+      var vv = JSON.parse(JSON.stringify(v));
+      mut(vv);
+      var rr = calc(vv, vv.mah, vv.price);
+      sens.push({ name: name, label: label, margin: rr.margin, d: rr.margin - r.margin,
+                  month: (rr.margin - r.margin) * v.qty });
+    }
+    add('电池成本', '+20%', function(x){ x.cellp *= 1.2; });
+    add('电池成本', '−20%', function(x){ x.cellp *= 0.8; });
+    add('退货率', '+5 个百分点', function(x){ x.ret = Math.min(0.9, x.ret + 0.05); });
+    add('退货率', '−5 个百分点', function(x){ x.ret = Math.max(0, x.ret - 0.05); });
+    add('售价', '−10%', function(x){ x.price *= 0.9; });
+    add('售价', '+10%', function(x){ x.price *= 1.1; });
+    add('FBA 费', '+10%', function(x){ x.fba *= 1.1; });
+    add('头程', '+20%', function(x){ x.ship *= 1.2; });
+    add('认证投入', '×2', function(x){ x.once *= 2; });
+
+    var stb = document.getElementById('sensTbl');
+    TK.clear(stb);
+    var maxAbs = Math.max.apply(null, sens.map(function(s){ return Math.abs(s.d); }).concat([0.01]));
+    sens.forEach(function(s){
+      var lv2 = Math.abs(s.d) / maxAbs > 0.6 ? '<span class="badge b-bad">高</span>'
+        : (Math.abs(s.d) / maxAbs > 0.25 ? '<span class="badge b-warn">中</span>' : '<span class="badge b-idle">低</span>');
+      TK.rows(stb, '<tr><td><b>' + s.name + '</b></td><td>' + s.label + '</td>' +
+        '<td class="num">' + TK.money(s.margin) + '</td>' +
+        '<td class="num"><b>' + (s.d >= 0 ? '+' : '') + TK.money(s.d) + '</b></td>' +
+        '<td class="num">' + (s.month >= 0 ? '+' : '') + TK.money0(s.month) + '</td>' +
+        '<td>' + lv2 + '</td></tr>');
+    });
+    var top = sens.slice().sort(function(a, b){ return Math.abs(b.d) - Math.abs(a.d); })[0];
+    var sv = document.getElementById('sensVerdict');
+    sv.className = 'callout co-info';
+    sv.innerHTML = '对你的利润最敏感的是 <b>' + top.name + '（' + top.label + '）</b>：单件毛利变动 <b>' +
+      TK.money(top.d) + '</b>，按月销 ' + v.qty + ' 件算就是 <b>' + TK.money0(top.month) + '/月</b>。<br>' +
+      '管理优先级应该按这个表排：<b>敏感度高的变量，值得你花时间去谈价、去优化、去对冲</b>；' +
+      '敏感度低的（比如头程涨 20% 影响很小），不值得占用精力。';
+  }
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>
