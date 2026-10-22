@@ -1,10 +1,9 @@
-[README.md](https://github.com/user-attachments/files/33806308/README.md)
+[README.md](https://github.com/user-attachments/files/33810662/README.md)
 # 亚马逊运营工具箱
 
 精选亚马逊卖家常用在线小工具，**打开网页即用，无需安装、无需注册、免费**。
 
-> 在线体验：<https://你的用户名.github.io/仓库名/>
-> （首次部署后请把上面链接替换成你的真实地址）
+> 在线体验：<https://gavin-huang-maker.github.io/AMZ/>
 
 ## 这是什么
 
@@ -12,7 +11,16 @@
 
 这个仓库把这些高频运营决策，做成**一个个独立的网页计算器**：输入几个数字，直接得到答案。手机端也能正常打开，随时可以用来做决策。
 
-当前收录 **21 个工具**，分为 6 大类。
+当前收录 **25 个工具**，分为 7 大类。其中 4 个是**公司品类专用**工具（雪挡 / 加热护具），雪季看板带实时天气数据，作战指令台可推送企业微信。
+
+### 公司品类专用 · 雪挡 / 加热护具
+
+| 工具 | 说明 |
+| --- | --- |
+| 作战指令台 | 选内容模板（每日简报／降雪预警／降霜提醒／广告打法／Listing 自查／雪后复盘）+ 定发送时间与接收人，生成可直接交给 AI 执行的指令；配置完成后由 WorkBuddy 定时任务在指定时间抓天气、生成简报并推送到企业微信 |
+| 雪季实时作战看板 | 打开自动抓取欧美 35 城未来 14 天逐日降雪与气温，加权成「需求脉冲指数」0–100，输出阶段判定（备战/临门/爆发/回落）、起量倒计时、每日广告预算金额、雪前作战时序（D-7／D-3／D-1／D0／D+2）、结霜日提醒与 8 项 Listing 自查（面向货已在 FBA 的卖家，不含补货测算） |
+| 加热护具参数化利润器 | 按电池 mAh／电芯单价／发热片／温控／认证摊销／带电头程／高退货率拆解真实成本，算出允许 CPA 与保本销量，并给出续航档位的边际收益曲线与敏感度排序 |
+| 带电产品合规上市清单 | 美国站 20 项自查：UL/ETL、电池认证、FCC、UN38.3 与锂电池运输、Prop 65、亚马逊带电审核、FDA 医疗宣称红线；含费用区间、关键路径周期、单件摊销，进度自动保存 |
 
 ### 流量与转化
 
@@ -128,7 +136,7 @@ python -m http.server 8000
 
 ```text
 仓库根目录/
-├── index.html          # 首页导航（21 个工具入口，按 6 大类分组）
+├── index.html          # 首页导航（25 个工具入口，按 7 大类分组）
 ├── assets/
 │   ├── tool.css        # 全部工具共用的样式（含暗色模式）
 │   └── tool.js         # 共用算法库 TK（幂律拟合、滚动窗口、节奏仿真、格式化）
@@ -137,7 +145,9 @@ python -m http.server 8000
 └── README.md
 ```
 
-21 个工具目录：`traffic-funnel`、`kw-gap`、`cvr-tree`、`blue-ocean`、`review-audit`、`search-term`、`ad-audit`、`ad-incremental`、`bsr-calculator`、`launch-sim`、`category-matrix`、`profit-calculator`、`fulfillment`、`fx-cash`、`replenish`、`stockout-loss`、`excess-inventory`、`variant-matrix`、`seasonality`、`promo-planner`、`account-health`。
+25 个工具目录：`ops-console`、`snow-radar`、`heated-profit`、`heated-compliance`、`traffic-funnel`、`kw-gap`、`cvr-tree`、`blue-ocean`、`review-audit`、`search-term`、`ad-audit`、`ad-incremental`、`bsr-calculator`、`launch-sim`、`category-matrix`、`profit-calculator`、`fulfillment`、`fx-cash`、`replenish`、`stockout-loss`、`excess-inventory`、`variant-matrix`、`seasonality`、`promo-planner`、`account-health`。
+
+其中 `snow-radar` 是唯一需要联网的工具：它在浏览器端直接请求 [Open-Meteo](https://open-meteo.com/) 的公开气象接口（免费、无需 API Key），只发送城市坐标，不发送任何经营数据；请求失败时页面会给出提示，不影响其他工具使用。
 
 新增工具时，新建一个文件夹（如 `new-tool/`），里面放一个 `index.html`，引用 `../assets/tool.css` 与 `../assets/tool.js`，并在根 `index.html` 加一张卡片即可 —— 样式和公共算法都不用重复写。
 
