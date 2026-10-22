@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>广告结构体检与预算重分配</title>
+<link rel="stylesheet" href="../assets/tool.css">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="../index.html">← 返回工具箱</a>
+  <header>
+    <h1>广告结构体检与预算重分配</h1>
+    <p class="lead">把广告活动报表黏进来，找出「有钱花不出去的」「该加钱的」「在烧钱的」「同一个词在互相打架的」，并直接给出每个活动该调成多少钱。</p>
+  </header>
+
+  <div class="card">
+    <h2>粘贴广告活动报表</h2>
+    <p class="desc">后台路径：广告活动管理 → 衡量与报告 → 推广广告报告 → 创建报告（Sponsored Products，广告活动级别）。需要包含：广告活动名称、预算、花费、曝光量、点击量、订单、销售额。多段日期范围会自动按活动名合并。</p>
+    <div class="fields">
+      <div class="field full"><label>粘贴内容 <span class="unit">含表头</span></label>
+        <textarea id="raw" rows="8" placeholder="广告活动名称	预算	花费	曝光量	点击量	订单	销售额"></textarea></div>
+      <div class="field"><label>目标 ACOS <span class="unit">%</span></label><input id="tAcos" type="number" value="30" min="0" step="1"></div>
+      <div class="field"><label>销售毛利率 <span class="unit">%，用于算合不合算</span></label><input id="gmRate" type="number" value="30" min="0" max="100" step="1"></div>
+      <div class="field"><label>对低效活动的预算削减 <span class="unit">%</span></label><input id="cut" type="number" value="30" min="0" max="100" step="5"></div>
+      <div class="field"><label>加预算后 ACOS 恶化系数</label><input id="decay" type="number" value="1.2" min="1" max="3" step="0.1"></div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <button id="demo" style="padding:9px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--row-alt);color:var(--text);font-size:13px;cursor:pointer">填入示例数据</button>
+      <button id="exp" style="padding:9px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--row-alt);color:var(--text);font-size:13px;cursor:pointer">导出调整方案 CSV</button>
+    </div>
+    <div class="callout co-info" id="parseInfo"></div>
+  </div>
+
+  <div class="card">
+    <h2>结构体检总览</h2>
+    <div class="kv" id="kv1"></div>
+    <div class="callout co-info" id="top"></div>
+  </div>
+
+  <div class="card">
+    <h2>预算调整方案</h2>
+    <p class="desc">预算单位是<b>每天</b>（亚马逊后台即按日预算管理）。「调整后日预算」可以直接照着填进后台。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>广告活动</th><th>花费/预算</th><th>ACOS</th><th>CVR</th><th>CPC</th><th>诊断</th><th>当前日预算</th><th>调整后日预算</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <div class="kv" id="kv2"></div>
+    <div class="callout co-info" id="verdict"></div>
+    <div class="formula">
+      判断规则：<br>
+      ① <b>该加钱</b>＝预算利用率 ≥ 90% 且 ACOS ≤ 目标值 —— 钱进来就赚钱，是现有结构里最确定的机会。<br>
+      ② <b>该砍</b>＝ACOS &gt; 目标值 × 1.4 —— 花钱的效率低于毛利承受线。<br>
+      ③ <b>借不来人</b>＝利用率 &lt; 60% —— 有钱花不出去，通常是 bid 太低、词太少或相关性差。<br>
+      ④ <b>建议暂停</b>＝有花费但零订单，或 ACOS 高得离谱且预算利用率不低。<br>
+      预计净收益 ＝ 多花的钱带来的毛利 − 多花的钱 ＋ 砍掉省下的钱 − 砍掉损失的毛利。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>重复投放检测（可选）</h2>
+    <p class="desc">同一种意图的关键词散落在多个广告活动里会自己跟自己抬价。粘贴含「广告活动名称 + 关键词」的明细表，找出互相打架的词。</p>
+    <div class="fields">
+      <div class="field full"><label>关键词级明细 <span class="unit">含表头，两列即可</span></label>
+        <textarea id="raw2" rows="5" placeholder="广告活动名称	用户搜索词&#10;Manual-Exact-Mask	snorkel mask&#10;Manual-Phrase-Set	snorkel mask"></textarea></div>
+      <div class="field"><label>冲突词花费门槛 <span class="unit">USD</span></label><input id="dupCost" type="number" value="15" min="0" step="1"></div>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>关键词</th><th>同时出现在</th><th>合计花费</th><th>合计订单</th><th>合计 ACOS</th><th>建议</th></tr></thead>
+        <tbody id="tbl2"></tbody>
+      </table>
+    </div>
+    <p class="note">本项是可选的。没有关键词级明细也能用上面的预算调整 —— 只是少了「内部竞价」这一层诊断。</p>
+  </div>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script>
+(function(){
+  var ROWS = [], DUP = [];
+
+  function findIdx(heads, keys){
+    var i, j;
+    for (i = 0; i < heads.length; i++)
+      for (j = 0; j < keys.length; j++)
+        if (heads[i].indexOf(keys[j]) >= 0) return i;
+    return -1;
+  }
+  function splitRow(line, sep){
+    var out = [], cur = '', q = false, i, c;
+    for (i = 0; i < line.length; i++){
+      c = line[i];
+      if (c === '"'){ if (q && line[i+1] === '"'){ cur += '"'; i++; } else q = !q; }
+      else if (c === sep && !q){ out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(function(x){ return x.trim().replace(/^="|"$/g, ''); });
+  }
+  function num(s){ var v = parseFloat(String(s || '').replace(/[,%$"\s]/g, '')); return isNaN(v) ? 0 : v; }
+
+  function parseCamp(text){
+    var lines = text.replace(/\r/g, '').split('\n').filter(function(l){ return l.trim(); });
+    if (!lines.length) return { rows: [], msg: '' };
+    var sep = (lines[0].split('\t').length >= lines[0].split(',').length) ? '\t' : ',';
+    var head = splitRow(lines[0], sep);
+    var iN = findIdx(head, ['广告活动名称','广告活动','campaign']);
+    var iB = findIdx(head, ['预算','budget']);
+    var iS = findIdx(head, ['花费','spend']);
+    var iI = findIdx(head, ['曝光量','展示量','impressions']);
+    var iC = findIdx(head, ['点击量','clicks']);
+    var iO = findIdx(head, ['订单','orders','购买量']);
+    var iA = findIdx(head, ['销售额','sales','销售金额']);
+    if (iN < 0 || iS < 0) return { rows: [], msg: '没能识别出「广告活动名称」和「花费」两列，请确认带了表头。' };
+    var map = {}, order = [], i, cs, k;
+    for (i = 1; i < lines.length; i++){
+      cs = splitRow(lines[i], sep);
+      k = (cs[iN] || '').replace(/"/g, '');
+      if (!k) continue;
+      if (!map[k]){
+        map[k] = { name:k, budget:0, spend:0, impr:0, clicks:0, orders:0, sales:0 };
+        order.push(k);
+      }
+      map[k].budget += iB >= 0 ? num(cs[iB]) : 0;
+      map[k].spend += iS >= 0 ? num(cs[iS]) : 0;
+      map[k].impr += iI >= 0 ? num(cs[iI]) : 0;
+      map[k].clicks += iC >= 0 ? num(cs[iC]) : 0;
+      map[k].orders += iO >= 0 ? num(cs[iO]) : 0;
+      map[k].sales += iA >= 0 ? num(cs[iA]) : 0;
+    }
+    return { rows: order.map(function(x){ return map[x]; }),
+             msg: '已合并为 <b>' + order.length + '</b> 个广告活动' + (lines.length - 1 > order.length ? '（原表 ' + (lines.length - 1) + ' 行，按活动名聚合）' : '') + '。' };
+  }
+
+  function parseDup(text){
+    var lines = text.replace(/\r/g, '').split('\n').filter(function(l){ return l.trim(); });
+    if (lines.length < 2) return { rows: [], msg: '' };
+    var sep = (lines[0].split('\t').length >= lines[0].split(',').length) ? '\t' : ',';
+    var head = splitRow(lines[0], sep);
+    var iN = findIdx(head, ['广告活动名称','广告活动','campaign']);
+    var iK = findIdx(head, ['用户搜索词','关键词','搜索词','keyword']);
+    var iS = findIdx(head, ['花费','spend']);
+    var iO = findIdx(head, ['订单','orders']);
+    var iA = findIdx(head, ['销售额','sales']);
+    if (iN < 0 || iK < 0) return { rows: [], msg: '关键词明细需要「广告活动名称」和「关键词/用户搜索词」两列。' };
+    var map = {}, order = [], i, cs, k;
+    for (i = 1; i < lines.length; i++){
+      cs = splitRow(lines[i], sep);
+      k = (cs[iK] || '').replace(/"/g, '').toLowerCase();
+      if (!k) continue;
+      if (!map[k]){ map[k] = { kw:k, camps:[], spend:0, orders:0, sales:0 }; order.push(k); }
+      var cn = (cs[iN] || '').replace(/"/g, '');
+      if (map[k].camps.indexOf(cn) < 0) map[k].camps.push(cn);
+      map[k].spend += iS >= 0 ? num(cs[iS]) : 0;
+      map[k].orders += iO >= 0 ? num(cs[iO]) : 0;
+      map[k].sales += iA >= 0 ? num(cs[iA]) : 0;
+    }
+    return { rows: order.map(function(x){ return map[x]; }), msg: 'keyword' };
+  }
+
+  function buildRows(){
+    var P = parseCamp(document.getElementById('raw').value);
+    ROWS = P.rows;
+    var target = TK.num('tAcos') / 100, cut = TK.num('cut') / 100, decay = TK.num('decay') || 1.2,
+        gm = TK.num('gmRate') / 100;
+    var cutGain = 0, i, x;
+    ROWS.forEach(function(c){
+      c.acos = c.sales > 0 ? c.spend / c.sales : (c.spend > 0 ? 99 : 0);
+      c.util = c.budget > 0 ? c.spend / c.budget : 0;
+      c.ctr = c.impr > 0 ? c.clicks / c.impr : 0;
+      c.cvr = c.clicks > 0 ? c.orders / c.clicks : 0;
+      c.cpc = c.clicks > 0 ? c.spend / c.clicks : 0;
+      c.newBudget = c.budget;
+      c.tag = ''; c.reason = '';
+    });
+
+    for (i = 0; i < ROWS.length; i++){
+      x = ROWS[i];
+      if (x.spend <= 0){ x.tag = '未投放'; x.reason = '这个统计周期内没有花费，检查是否被暂停或预算过低。'; continue; }
+      if (x.orders === 0){
+        x.tag = '建议暂停'; x.reason = '有花费但零订单，且金额已不容忽视。先降 bid 观察，连续两个周期无转化就暂停。';
+        x.newBudget = x.budget * (1 - cut);
+      } else if (x.acos > target * 1.4){
+        x.tag = '该砍'; x.reason = 'ACOS 远高于 ' + (target * 100).toFixed(0) + '% 的目标线，每花一块钱都在亏。';
+        x.newBudget = x.budget * (1 - cut);
+      } else if (x.util >= 0.9 && x.acos <= target){
+        x.tag = '该加钱'; x.reason = '预算基本花完了，而且 ACOS 在目标线以内 —— 这是最确定的加钱机会。';
+      } else if (x.util < 0.6){
+        x.tag = '花不出去'; x.reason = '预算只用了 ' + (x.util * 100).toFixed(0) + '%，通常是 bid 偏低或词太少。';
+      } else {
+        x.tag = '维持'; x.reason = '表现中规中矩，暂时不动。';
+      }
+    }
+
+    /* 汇总腾出来的池子 */
+    var pool = 0;
+    ROWS.forEach(function(c){ pool += Math.max(0, c.budget - c.newBudget); });
+
+    /* 按达标程度加权，把池子分给「该加钱」的活动 */
+    var adders = ROWS.filter(function(c){ return c.tag === '该加钱'; });
+    var weight = adders.map(function(c){ return Math.max(0.05, (target - c.acos) / Math.max(target, 0.01)); });
+    var wsum = weight.reduce(function(a, b){ return a + b; }, 0);
+    var addGain = 0;
+    adders.forEach(function(c, idx){
+      c.add = pool * weight[idx] / wsum;
+      c.newBudget = c.budget + c.add;
+      var marginalAcos = c.acos * decay;
+      addGain += c.add * (gm / Math.max(marginalAcos, 0.01)) - c.add;
+    });
+
+    var cutList = ROWS.filter(function(c){ return c.tag === '该砍' || c.tag === '建议暂停'; });
+    var cutGain = 0;
+    cutList.forEach(function(c){
+      var delta = c.budget - c.newBudget;
+      /* 省下的钱 − 少卖这几单损失的毛利；ACOS 越高，砍掉越划算 */
+      cutGain += delta * (1 - gm / Math.min(c.acos, 9));
+    });
+
+    return { pool:pool, addGain:addGain, cutGain:cutGain, target:target, cut:cut, decay:decay, gm:gm };
+  }
+
+  function render(){
+    var R = buildRows();
+    var msg = parseCamp(document.getElementById('raw').value).msg;
+    document.getElementById('parseInfo').innerHTML = msg || '把报表粘到上面，或点「填入示例数据」先看效果。';
+
+    var tS = 0, tA = 0, tO = 0, tC = 0, tI = 0;
+    ROWS.forEach(function(c){ tS += c.spend; tA += c.sales; tO += c.orders; tC += c.clicks; tI += c.impr; });
+    var overallAcos = tA > 0 ? tS / tA : 0;
+
+    document.getElementById('kv1').innerHTML =
+      '<div class="box"><div class="k">广告活动数</div><div class="v">' + ROWS.length + '</div></div>' +
+      '<div class="box"><div class="k">总花费</div><div class="v">' + TK.money0(tS) + '</div></div>' +
+      '<div class="box"><div class="k">广告销售额</div><div class="v">' + TK.money0(tA) + '</div></div>' +
+      '<div class="box"><div class="k">整体 ACOS</div><div class="v">' + TK.pct(overallAcos, 1) + '</div></div>' +
+      '<div class="box"><div class="k">订单数</div><div class="v">' + tO.toFixed(0) + '</div></div>' +
+      '<div class="box"><div class="k">vs 目标 ACOS</div><div class="v">' +
+        (overallAcos <= R.target ? '<span class="badge b-ok">达标</span>' : '<span class="badge b-bad">超标</span>') + '</div></div>';
+
+    var tb = document.getElementById('tbl');
+    TK.clear(tb);
+    ROWS.forEach(function(c){
+      var bcls = { '该加钱':'b-ok', '该砍':'b-bad', '建议暂停':'b-bad', '花不出去':'b-warn', '维持':'b-idle', '未投放':'b-idle' }[c.tag];
+      TK.rows(tb, '<tr><td><b>' + c.name + '</b><br><span class="tag">' + c.reason + '</span></td>' +
+        '<td class="num">' + TK.money0(c.spend) + ' / ' + TK.money0(c.budget) + '<br><span class="tag">' + (c.util * 100).toFixed(0) + '%</span></td>' +
+        '<td class="num">' + (c.acos >= 9 ? '无销售' : TK.pct(c.acos, 1)) + '</td>' +
+        '<td class="num">' + TK.pct(c.cvr, 1) + '</td>' +
+        '<td class="num">' + TK.money(c.cpc) + '</td>' +
+        '<td><span class="badge ' + bcls + '">' + c.tag + '</span></td>' +
+        '<td class="num">' + TK.money(c.budget) + '</td>' +
+        '<td class="num"><b>' + TK.money(c.newBudget) + '</b><br><span class="tag">' +
+          (c.newBudget > c.budget ? '+' : '') + TK.money(c.newBudget - c.budget) + '</span></td></tr>');
+    });
+
+    var adders = ROWS.filter(function(c){ return c.tag === '该加钱'; });
+    document.getElementById('kv2').innerHTML =
+      '<div class="box"><div class="k">可腾出的预算</div><div class="v">' + TK.money(R.pool) + ' / 天</div></div>' +
+      '<div class="box"><div class="k">加钱带来的月净收益</div><div class="v">' + TK.money0(R.addGain * 30) + '</div></div>' +
+      '<div class="box"><div class="k">砍钱省下的月净收益</div><div class="v">' + TK.money0(R.cutGain * 30) + '</div></div>' +
+      '<div class="box"><div class="k">合计改善</div><div class="v">' + TK.money0((R.addGain + R.cutGain) * 30) + ' / 月</div></div>' +
+      '<div class="box"><div class="k">获得加钱的活动数</div><div class="v">' + adders.length + '</div></div>' +
+      '<div class="box"><div class="k">日均预算总量</div><div class="v">' + TK.money0(ROWS.reduce(function(a, c){ return a + c.newBudget; }, 0)) + '</div></div>';
+
+    var el = document.getElementById('verdict');
+    if (!ROWS.length){
+      el.className = 'callout co-info'; el.innerHTML = '还没有数据。';
+    } else if (R.pool <= 0){
+      el.className = 'callout co-ok';
+      el.innerHTML = '<b>没有可以腾出来的预算。</b>说明当前结构里没有明显在浪费钱的活动 —— 这时候想放量只能<b>加总预算</b>，' +
+        '用「利润与广告承受力计算器」确认最多能加到多少。';
+    } else {
+      el.className = 'callout co-warn';
+      el.innerHTML = '<b>每天有 ' + TK.money(R.pool) + ' 的钱可以挪到更高效的活动上。</b>' +
+        '调整后预计每月净改善约 <b>' + TK.money0((R.addGain + R.cutGain) * 30) + '</b>。' +
+        '<b>执行提醒</b>：不要一次性改完所有活动 —— 先改加预算的那个（通常见效快），两天后再动砍预算的，否则你无法判断效果来自哪里。';
+    }
+
+    /* 重复投放 */
+    var D = parseDup(document.getElementById('raw2').value);
+    var t2 = document.getElementById('tbl2');
+    TK.clear(t2);
+    if (!D.rows.length){
+      TK.rows(t2, '<tr><td colspan="6" class="tag">未粘贴关键词明细，跳过重复投放检测。</td></tr>');
+      return 0;
+    }
+    var thr = TK.num('dupCost');
+    DUP = D.rows.filter(function(x){ return x.camps.length > 1; })
+      .sort(function(a, b){ return b.spend - a.spend; });
+    if (!DUP.length){
+      TK.rows(t2, '<tr><td colspan="6" class="tag">没有发现同一个词出现在多个活动里，结构干净。</td></tr>');
+    } else {
+      DUP.forEach(function(x){
+        var acos = x.sales > 0 ? x.spend / x.sales : 99;
+        var adv = x.spend >= thr
+          ? '<b>建议保留表现最好的那一个活动，在其他活动里把这个词否定掉或暂停该词的竞价</b> —— 否则两个活动内部互相抬 bid，CPC 会被自己推高。'
+          : '金额不大（低于 ' + TK.money(thr) + '），暂时可以不管，记下来下次清理。';
+        TK.rows(t2, '<tr><td>' + x.kw + '</td><td class="num">' + x.camps.length + ' 个活动</td>' +
+          '<td class="num">' + TK.money(x.spend) + '</td><td class="num">' + x.orders.toFixed(0) + '</td>' +
+          '<td class="num">' + (acos >= 9 ? '无销售' : TK.pct(acos, 1)) + '</td><td>' + adv + '</td></tr>');
+      });
+    }
+    return 0;
+  }
+
+  document.getElementById('demo').addEventListener('click', function(){
+    document.getElementById('raw').value =
+      '广告活动名称\t预算\t花费\t曝光量\t点击量\t订单\t销售额\n' +
+      'Auto-Broad-Snorkel\t40\t38.5\t12500\t128\t6\t180\n' +
+      'Manual-Exact-Mask\t50\t49.2\t8200\t105\t9\t270\n' +
+      'Manual-Phrase-Set\t35\t33.8\t9800\t112\t4\t120\n' +
+      'Manual-Broad-Diving\t30\t28.4\t15600\t121\t2\t60\n' +
+      'SB-Headline-Brand\t45\t44.1\t21000\t136\t5\t150\n' +
+      'SD-Product-Target\t25\t24.0\t14000\t88\t1\t29';
+    document.getElementById('raw2').value =
+      '广告活动名称\t用户搜索词\t花费\t订单\t销售额\n' +
+      'Auto-Broad-Snorkel\tsnorkel mask\t22.4\t3\t90\n' +
+      'Manual-Exact-Mask\tsnorkel mask\t18.2\t4\t120\n' +
+      'Auto-Broad-Snorkel\tfull face mask\t15.8\t2\t62\n' +
+      'Manual-Broad-Diving\tfull face mask\t9.6\t1\t29\n' +
+      'Manual-Exact-Mask\tsnorkel set adult\t11.4\t2\t60\n' +
+      'Manual-Phrase-Set\tsnorkel set adult\t13.5\t1\t30';
+    render();
+  });
+
+  document.getElementById('exp').addEventListener('click', function(){
+    if (!ROWS.length) return;
+    var csv = ['广告活动,当前日预算,调整后日预算,调整额,花费,销售额,ACOS,CVR,CPC,诊断,原因'];
+    ROWS.forEach(function(c){
+      csv.push(['"' + c.name.replace(/"/g, '""') + '"', c.budget.toFixed(2), c.newBudget.toFixed(2),
+        (c.newBudget - c.budget).toFixed(2), c.spend.toFixed(2), c.sales.toFixed(2),
+        (c.acos >= 9 ? '-' : (c.acos * 100).toFixed(1) + '%'), (c.cvr * 100).toFixed(1) + '%',
+        c.cpc.toFixed(2), c.tag, '"' + c.reason.replace(/"/g, '""') + '"'].join(','));
+    });
+    var blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '广告预算调整方案.csv';
+    a.click();
+  });
+
+  TK.bindAll(render);
+  render();
+})();
+</script>
+</body>
+</html>
