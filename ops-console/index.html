@@ -14,14 +14,16 @@
   .pk{border:1.5px solid var(--border);border-radius:13px;padding:13px 15px;background:var(--card);cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;}
   .pk:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
   .pk.on{border-color:#2f3f4c;box-shadow:0 0 0 2px rgba(47,63,76,.14);}
+  .pk.big{grid-column:1/-1;border-width:2px;background:linear-gradient(135deg,rgba(47,63,76,.05),rgba(27,147,168,.05));}
   .pk .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:7px;}
   .pk .ds{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:5px;}
   .pk .rl{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:#e8eef2;color:#2f3f4c;}
-  @media (prefers-color-scheme: dark){ .pk .rl{background:#2c3a45;color:#cfe0ea;} .pk.on{border-color:#7fb2c4;box-shadow:0 0 0 2px rgba(127,178,196,.2);} }
+  .pk.big .rl{background:#2f3f4c;color:#fff;}
+  @media (prefers-color-scheme: dark){ .pk .rl{background:#2c3a45;color:#cfe0ea;} .pk.on{border-color:#7fb2c4;box-shadow:0 0 0 2px rgba(127,178,196,.2);} .pk.big{background:linear-gradient(135deg,rgba(127,178,196,.08),rgba(127,178,196,.02));} .pk.big .rl{background:#7fb2c4;color:#10222c;} }
   .outs{border:1px solid var(--border);border-radius:14px;background:var(--card);padding:14px 16px;margin-top:12px;}
   .outs .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
   .outs .hd b{font-size:13.5px;}
-  pre.prev{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.75;background:var(--bg2,#f6f7f8);border-radius:10px;padding:12px 14px;margin:0;max-height:300px;overflow:auto;}
+  pre.prev{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.75;background:var(--bg2,#f6f7f8);border-radius:10px;padding:12px 14px;margin:0;max-height:460px;overflow:auto;}
   @media (prefers-color-scheme: dark){ pre.prev{background:#1b232a;} }
   .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
   .steps .s{border:1px solid var(--border);border-radius:12px;padding:13px 15px;background:var(--card);}
@@ -37,12 +39,12 @@
   <div class="hero">
     <h1>📮 作战指令台</h1>
     <p class="sub">在这里<b>选内容、定时间</b>，一键生成可以直接交给 AI 执行的指令 —— 到点自动抓天气、自动判断阶段、自动把消息发到你的企业微信。
-      不用每天盯着网页看，消息会主动来找你。</p>
+      推荐用第一张「<b>完整日报</b>」：雪档简报、降雪预警、降霜、广告、库存、活动、Listing、复盘、市场九块内容合成一份报告，一次看完。</p>
   </div>
 
   <div class="card">
     <h2>1. 选要推送的内容</h2>
-    <p class="desc">六个模板对应六种真实的运营节点。选中后会生成预览，你可以自由改字。</p>
+    <p class="desc">第一个是九合一的完整日报；后面六个是单一主题的轻量模板，适合分时段发或条件触发。选中后会生成预览，你可以自由改字。</p>
     <div class="picks" id="picks"></div>
   </div>
 
@@ -79,6 +81,10 @@
       <div class="field">
         <label>基础日广告预算 <span class="unit">$</span></label>
         <input id="budget" type="number" value="120" min="0">
+      </div>
+      <div class="field">
+        <label>FBA 可售天数 <span class="unit">（完整日报的库存提醒用）</span></label>
+        <input id="stock" type="number" value="30" min="0">
       </div>
     </div>
   </div>
@@ -117,6 +123,7 @@
         <thead><tr><th>名称</th><th>时间</th><th>内容</th><th>状态</th></tr></thead>
         <tbody>
           <tr><td><b>雪季每日作战简报</b></td><td>每天 09:30</td><td>阶段判定 + 需求指数 + 首雪倒计时 + 今日 P0/P1/P2 + 结霜提醒</td><td><span class="badge b-ok">运行中</span></td></tr>
+          <tr><td><b>雪挡完整日报（九合一）</b></td><td>自选</td><td>雪档简报 / 降雪预警 / 降霜 / 广告打法 / 库存 / 活动报名 / Listing 自查 / 雪后复盘 / 市场 —— 一份报告</td><td><span class="badge b-warn">待配置</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -125,10 +132,11 @@
 
   <div class="card">
     <h2>口径与边界</h2>
-    <div class="kv"><span>天气数据</span><b>Open-Meteo 公开接口，35 城（英国 12 / 欧洲 11 / 北美 12），过去 7 天 + 未来 14 天</b></div>
+    <div class="kv"><span>天气数据</span><b>Open-Meteo 公开接口，43 城四站点（英国 12 / 德国 10 / 加拿大 9 / 美国 12），各站独立计算，不跨站加权</b></div>
+    <div class="kv"><span>站点指数</span><b>全城平均 50% + 指数最高 3 城均值 50%（与雪季实时作战看板同口径）</b></div>
     <div class="kv"><span>发送通道</span><b>WorkBuddy 企业微信机器人（当前机器人名：雪档温度检测），仅能发给你本人或最近有往来的会话</b></div>
     <div class="kv"><span>隐私</span><b>这个页面不上传任何数据；指令里也不会包含你的店铺、ASIN 或销售数字</b></div>
-    <div class="kv"><span>边界</span><b>推送的是「天气驱动的动作建议」，不含你的实时广告与库存数据；具体出价仍要回后台确认</b></div>
+    <div class="kv"><span>边界</span><b>库存提醒读的是你填的「FBA 可售天数」；活动日期为 2026 年黑五 / 网一 / 圣诞固定日历，秒杀资格以卖家后台为准</b></div>
     <p class="note">⚠️ 自动化执行依赖电脑上的 WorkBuddy 处于可运行状态。如果某天没收到，先检查 WorkBuddy 是否开着、企业微信授权是否过期。</p>
   </div>
 
@@ -140,8 +148,37 @@
 (function(){
   'use strict';
 
+  /* ============ 四站点定义（与雪季看板同口径：43 城，各站独立计算） ============ */
+  var KEYS = ['UK','DE','CA','US'];
+  var SITES = {
+    UK:{ nm:'英国站', base:40, cities:[
+      ['伦敦',51.5072,-0.1276],['曼彻斯特',53.4808,-2.2426],['伯明翰',52.4862,-1.8904],
+      ['利兹',53.8008,-1.5491],['纽卡斯尔',54.9783,-1.6178],['谢菲尔德',53.3811,-1.4701],
+      ['利物浦',53.4084,-2.9916],['爱丁堡',55.9533,-3.1883],['格拉斯哥',55.8642,-4.2518],
+      ['阿伯丁',57.1497,-2.0943],['因弗内斯',57.4778,-4.2247],['卡莱尔',54.8925,-2.9325] ]},
+    DE:{ nm:'德国站', base:30, cities:[
+      ['柏林',52.52,13.405],['慕尼黑',48.1351,11.582],['汉堡',53.5511,9.9937],
+      ['科隆',50.9375,6.9603],['法兰克福',50.1109,8.6821],['斯图加特',48.7758,9.1829],
+      ['莱比锡',51.3397,12.3731],['德累斯顿',51.0504,13.7373],['汉诺威',52.3759,9.732],
+      ['纽伦堡',49.4521,11.0767] ]},
+    CA:{ nm:'加拿大站', base:25, cities:[
+      ['多伦多',43.6532,-79.3832],['蒙特利尔',45.5017,-73.5673],['魁北克城',46.8139,-71.208],
+      ['渥太华',45.4215,-75.6972],['卡尔加里',51.0447,-114.0719],['埃德蒙顿',53.5461,-113.4938],
+      ['温尼伯',49.8951,-97.1384],['温哥华',49.2827,-123.1207],['哈利法克斯',44.6488,-63.5752] ]},
+    US:{ nm:'美国站', base:60, cities:[
+      ['纽约',40.7128,-74.006],['波士顿',42.3601,-71.0589],['布法罗',42.8864,-78.8784],
+      ['费城',39.9526,-75.1652],['匹兹堡',40.4406,-79.9959],['芝加哥',41.8781,-87.6298],
+      ['明尼阿波利斯',44.9778,-93.265],['底特律',42.3314,-83.0458],['克利夫兰',41.4993,-81.6944],
+      ['丹佛',39.7392,-104.9903],['西雅图',47.6062,-122.3321],['哈特福德',41.7658,-72.6734] ]}
+  };
+  var LV = 45;  // 起量阈值
+
   var TPL = [
-    { id:'daily', nm:'每日雪季简报', role:'每天', 
+    { id:'full', nm:'完整日报（九合一汇总）', role:'推荐 · 每天', big:true,
+      ds:'雪档简报 + 降雪预警 + 降霜 + 广告打法 + 库存 + 活动报名 + Listing 自查 + 雪后复盘 + 市场情况，合成一份报告，一屏看完。',
+      cmd:'拉取 43 城四站点（英国 12 / 德国 10 / 加拿大 9 / 美国 12）过去 7 天实测 + 未来 14 天预报（Open-Meteo 公开接口），按「站点指数 = 全城平均 50% + 指数最高 3 城均值 50%」各站独立计算，判定各站阶段（爆发/临门/回落/备战，起量线 45），生成一份完整日报，固定包含九个章节：一、雪档简报（四站各一行：阶段/指数/距起量/建议预算）；二、降雪预警（未来 3 天有雪的站点 + D-1/D0 动作，无则写明）；三、降霜预警（最低温≤0.5℃无雪的结霜日 + frost 词占位建议）；四、广告打法（按全局阶段的预算倍数与结构比例）；五、库存提醒（按 FBA 可售天数给红黄绿判断）；六、活动报名提醒（黑五/网一/圣诞倒计时与报名窗口）；七、Listing 自查进度；八、雪后复盘（回落期给四个回看指标，否则说明留待雪后）；九、市场情况（哪个站点最先入冬、火力该对准谁）。'
+    },
+    { id:'daily', nm:'每日雪季简报', role:'每天',
       ds:'阶段 + 需求指数 + 首雪倒计时 + 今日三条动作。适合当每天早上的第一封消息。',
       body:[
         '❄️ 雪挡 · 每日作战简报 | {date}',
@@ -158,7 +195,7 @@
         '',
         '—— 由亚马逊运营工具箱自动生成'
       ].join('\n'),
-      cmd:'拉取欧美 35 城未来 14 天降雪与气温预报（Open-Meteo 公开接口），判定当前处于备战期/临门期/爆发期/回落期，算出需求脉冲指数、首个降雪日、今日建议广告预算倍数，并给出今日 P0/P1/P2 三条动作（针对「货已在 FBA」的卖家：只讲广告、促销、素材、库存周转，不要讲补货海运）。整理成 300 字以内的简报。'
+      cmd:'拉取 43 城四站点未来 14 天降雪与气温预报（Open-Meteo 公开接口），各站独立判定当前处于备战期/临门期/爆发期/回落期，算出需求脉冲指数、首个降雪日、今日建议广告预算倍数，并给出今日 P0/P1/P2 三条动作（针对「货已在 FBA」的卖家：只讲广告、促销、素材、库存周转，不要讲补货海运）。整理成 300 字以内的简报。'
     },
     { id:'snow', nm:'降雪预警（提前 3 天）', role:'条件触发',
       ds:'未来 3 天要下雪才发。含 D-1 / D0 的具体广告动作和促销建议。',
@@ -178,7 +215,7 @@
         '',
         '—— 由亚马逊运营工具箱自动生成'
       ].join('\n'),
-      cmd:'检查欧美 35 城未来 3 天降雪预报。若任意站点出现 ≥1cm 降雪，立即生成降雪预警，包含具体哪几天、哪些城市、降雪量级，并按「雪前作战时序」给出 D-1 与 D0 的广告出价、预算倍数、促销动作、Listing/QA 检查项，发到企业微信。若未来 3 天没有降雪，不要发送任何消息（避免打扰）。'
+      cmd:'检查 43 城四站点未来 3 天降雪预报。若任意站点出现 ≥1cm 降雪，立即生成降雪预警，包含具体哪几天、哪些城市、降雪量级，并按「雪前作战时序」给出 D-1 与 D0 的广告出价、预算倍数、促销动作、Listing/QA 检查项，发到企业微信。若未来 3 天没有降雪，不要发送任何消息（避免打扰）。'
     },
     { id:'frost', nm:'降霜提醒（零下无雪）',
       ds:'还没下雪但已经零下时发。提前开 frost 词占位，等真下雪就有数据可提价。',
@@ -197,7 +234,7 @@
         '',
         '—— 由亚马逊运营工具箱自动生成'
       ].join('\n'),
-      cmd:'检查欧美 35 城未来 7 天天气，找出「最低温 ≤0℃ 但没有降雪」的结霜日。若有，生成降霜提醒，说明哪几天、哪些城市、最低温多少，并给出 frost / de-icer 类词的占位投放建议（低 bid、20% 预算、手动精准），发到企业微信。没有结霜日就不发。'
+      cmd:'检查 43 城四站点未来 7 天天气，找出「最低温 ≤0.5℃ 但没有降雪」的结霜日。若有，生成降霜提醒，说明哪几天、哪些站点城市、最低温多少，并给出 frost / de-icer 类词的占位投放建议（低 bid、20% 预算、手动精准），发到企业微信。没有结霜日就不发。'
     },
     { id:'ads', nm:'广告打法包', role:'每周',
       ds:'每周一份：词根结构、预算分配、竞品价格带、该暂停的词。',
@@ -263,22 +300,14 @@
     }
   ];
 
-  var CITIES = [
-    [51.5074,-0.1278],[53.4808,-2.2426],[52.4862,-1.8904],[53.8008,-1.5491],[54.9783,-1.6178],[53.3811,-1.4701],
-    [53.4084,-2.9916],[55.9533,-3.1883],[55.8642,-4.2518],[57.1497,-2.0943],[57.4778,-4.2247],[54.8959,-2.9367],
-    [52.5200,13.4050],[48.1351,11.5820],[53.5511,9.9937],[50.9375,6.9603],[48.8566,2.3522],[45.7640,4.8357],
-    [52.2297,21.0122],[50.0647,19.9450],[52.3676,4.9041],[48.2082,16.3738],[47.3769,8.5417],
-    [40.7128,-74.0060],[42.3601,-71.0589],[42.8864,-78.8784],[40.4406,-79.9959],[41.8781,-87.6298],[44.9778,-93.2650],
-    [39.7392,-104.9903],[42.3314,-83.0458],[43.6532,-79.3832],[45.5019,-73.5674],[51.0447,-114.0719],[46.8139,-71.2080]
-  ];
-
-  var cur = 'daily', WX = null;
+  var cur = 'full', WX = null;
 
   function pad(n){ return n < 10 ? '0' + n : '' + n; }
   function todayStr(){
     var d = new Date();
     return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
   }
+  function md(dt){ return dt ? dt.slice(5) : '--'; }
   function dayScore(snow, tmin, tmax){
     var v = 0;
     if (snow > 0) v += Math.min(snow, 8) * 10;
@@ -288,67 +317,127 @@
     return TK.clamp(v, 0, 100);
   }
   function multOf(v){ return v >= 80 ? 2.5 : (v >= 60 ? 1.8 : (v >= 35 ? 1.3 : (v >= 20 ? 1.0 : 0.8))); }
+  function dtext(d){ return d === 0 ? '今天' : (d === 1 ? '明天' : d + ' 天后'); }
+  function daysUntil(ds){
+    var d = new Date(ds + 'T00:00:00'), n = new Date(); n.setHours(0,0,0,0);
+    return Math.round((d - n) / 86400000);
+  }
 
-  /* 轻量拉一次天气，用于把预览填成真数据 */
+  /* ============ 拉一次天气：43 城一次请求，按站点切片（与雪季看板同口径） ============ */
   function loadWx(cb){
-    var lat = [], lon = [];
-    CITIES.forEach(function(c){ lat.push(c[0]); lon.push(c[1]); });
+    var lat = [], lon = [], OFF = {}, p = 0;
+    KEYS.forEach(function(k){
+      var st = p;
+      SITES[k].cities.forEach(function(c){ lat.push(c[1]); lon.push(c[2]); p++; });
+      OFF[k] = [st, p];
+    });
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat.join(',') + '&longitude=' + lon.join(',') +
       '&daily=snowfall_sum,temperature_2m_min,temperature_2m_max&past_days=7&forecast_days=14&timezone=auto';
     fetch(url).then(function(r){ return r.json(); }).then(function(j){
-      var T = 7, n = j[0].daily.time.length, all = [];
-      for (var i = 0; i < n; i++){
-        var idx = 0, snowN = 0, maxS = 0, cold = 99;
-        for (var k = 0; k < CITIES.length; k++){
-          var d = j[k].daily;
-          var s = d.snowfall_sum[i] || 0, tmin = d.temperature_2m_min[i], tmax = d.temperature_2m_max[i];
-          idx += dayScore(s, tmin, tmax);
-          if (s > 0) snowN++;
-          if (s > maxS) maxS = s;
-          if (tmin < cold) cold = tmin;
+      var D = {};
+      KEYS.forEach(function(k){
+        var r = j.slice(OFF[k][0], OFF[k][1]), n = r.length, dates = r[0].daily.time, days = [];
+        for (var i = 0; i < dates.length; i++){
+          var arr = [], mx = 0, sc = 0, cold = 99;
+          for (var c = 0; c < n; c++){
+            var d = r[c].daily;
+            var s = +d.snowfall_sum[i] || 0, tmin = +d.temperature_2m_min[i], tmax = +d.temperature_2m_max[i];
+            if (!isFinite(tmin)) tmin = 0;
+            if (!isFinite(tmax)) tmax = 0;
+            arr.push(dayScore(s, tmin, tmax));
+            if (s > mx) mx = s;
+            if (s >= 0.2) sc++;
+            if (tmin < cold) cold = tmin;
+          }
+          var sum = 0, q;
+          for (q = 0; q < n; q++) sum += arr[q];
+          var srt = arr.slice().sort(function(a,b){ return b-a; });
+          var k3 = Math.min(3, n), top3 = 0;
+          for (q = 0; q < k3; q++) top3 += srt[q];
+          days.push({ date:dates[i], idx:Math.round(0.5*(sum/n) + 0.5*(top3/k3)),
+                      maxS:mx, sc:sc, cold:Math.round(cold*10)/10 });
         }
-        all.push({ date:j[0].daily.time[i], idx: idx / CITIES.length, snowN: snowN, maxS: maxS, cold: cold });
-      }
-      var future = all.slice(T), past = all.slice(0, T);
-      var max7 = Math.max.apply(null, future.slice(0,7).map(function(d){ return d.idx; }));
-      var maxPast = Math.max.apply(null, past.map(function(d){ return d.idx; }));
-      var firstSnow = null, frost = [];
-      for (var f = 0; f < future.length; f++){
-        if (!firstSnow && future[f].maxS >= 0.5) firstSnow = future[f];
-        if (future[f].cold <= 0 && future[f].maxS < 0.5) frost.push(future[f]);
-      }
-      var stage = max7 >= 60 ? '爆发期'
-        : (future[0].idx >= 35 || max7 >= 35 ? '临门期'
-        : (maxPast >= 35 ? '回落期' : '备战期'));
-      WX = { days: future, firstSnow: firstSnow, frost: frost, stage: stage, idx: future[0].idx,
-             peak: future.slice().sort(function(a,b){ return b.idx - a.idx; })[0], snowN: future[0].snowN };
+        var T = 7, fut = days.slice(T), past = days.slice(0, T);
+        var f7 = fut.slice(0,7);
+        var max7 = Math.max.apply(null, f7.map(function(d){ return d.idx; }));
+        var max14 = Math.max.apply(null, fut.map(function(d){ return d.idx; }));
+        var maxPast = Math.max.apply(null, past.map(function(d){ return d.idx; }));
+        var stage = max7 >= 60 ? '爆发期' : (max7 >= LV ? '临门期' : (maxPast >= LV ? '回落期' : '备战期'));
+        var cd = -1, fs = null, fsD = -1, frost = [];
+        for (var f2 = 0; f2 < fut.length; f2++){
+          if (cd < 0 && fut[f2].idx >= LV) cd = f2;
+          if (!fs && fut[f2].maxS >= 0.5){ fs = fut[f2]; fsD = f2; }
+          if (fut[f2].cold <= 0.5 && fut[f2].maxS < 0.5) frost.push(fut[f2]);
+        }
+        D[k] = { nm:SITES[k].nm, base:SITES[k].base, today:fut[0], fut:fut,
+                 stage:stage, idx:fut[0].idx, fmax7:max7, fmax14:max14, pmax:maxPast,
+                 cd:cd, fs:fs, fsD:fsD, frost:frost,
+                 sc:fut[0].sc, cityN:n, mult:multOf(fut[0].idx),
+                 budget:Math.round(SITES[k].base * multOf(fut[0].idx)) };
+      });
+      WX = D;
       cb(WX);
     }).catch(function(){ cb(null); });
   }
 
+  function globalStage(){
+    if (!WX) return '（当天判定）';
+    var pri = { '爆发期':3, '临门期':2, '回落期':1, '备战期':0 }, best = '备战期';
+    KEYS.forEach(function(k){ if (pri[WX[k].stage] > pri[best]) best = WX[k].stage; });
+    return best;
+  }
+  function leadSite(){
+    var best = KEYS[0];
+    KEYS.forEach(function(k){ if (WX[k].fmax14 > WX[best].fmax14) best = k; });
+    return best;
+  }
+  function listProgress(){
+    var all = {};
+    try { all = JSON.parse(localStorage.getItem('snowsite_listing_v1') || '{}'); } catch(e){}
+    return KEYS.map(function(k){
+      var o = all[k] || {}, n = 0, p;
+      for (p in o) if (o[p]) n++;
+      return SITES[k].nm.replace('站','') + ' ' + n + '/8';
+    }).join(' · ');
+  }
+
   function fillDate(t){ return t.replace('{date}', todayStr()); }
+
+  /* ============ 旧模板的占位符填充 ============ */
+  function buildVars(){
+    var bud = TK.num('budget') || 120;
+    var wxOn = document.getElementById('wx').value === '1';
+    var g = globalStage();
+    var mult = WX ? multOf(WX[leadSite()].idx) : 1.3;
+    var anySnow = WX ? KEYS.filter(function(k){ return WX[k].fs; }) : [];
+    var anyFrost = WX ? KEYS.filter(function(k){ return WX[k].frost.length; }) : [];
+    return {
+      date: todayStr(),
+      stage: wxOn && WX ? g : '（当天判定）',
+      idx: wxOn && WX ? WX[leadSite()].idx.toFixed(0) : '--',
+      mult: wxOn && WX ? mult.toFixed(1) : '1.3',
+      bud: Math.round(bud * mult),
+      snow: wxOn && WX
+        ? (anySnow.length ? anySnow.map(function(k){ return SITES[k].nm + ' ' + md(WX[k].fs.date); }).join('、') : '未来 14 天四站均无雪')
+        : '（当天判定）',
+      snowline: wxOn && WX
+        ? (anySnow.length
+            ? anySnow.map(function(k){ return SITES[k].nm + '：首雪 ' + md(WX[k].fs.date) + '（' + dtext(WX[k].fsD) + '），单城最高 ' + WX[k].fs.maxS.toFixed(1) + 'cm，' + WX[k].fs.sc + ' 城命中'; }).join('；')
+            : '未来 14 天 43 城无有效降雪')
+        : '（当天抓取后填入）',
+      frost: wxOn && WX
+        ? (anyFrost.length
+            ? anyFrost.map(function(k){ return SITES[k].nm + '：未来 14 天 ' + WX[k].frost.length + ' 个结霜日，最早 ' + md(WX[k].frost[0].date) + '（' + WX[k].frost[0].cold.toFixed(1) + '℃）'; }).join('；')
+            : '未来 14 天四站均无结霜日')
+        : '（当天判定）',
+      acts: wxOn && WX ? actsFor(g) : '· 按当天阶段给三条动作'
+    };
+  }
 
   function buildMsg(){
     var t = TPL.filter(function(x){ return x.id === cur; })[0];
-    var bud = TK.num('budget') || 120;
-    var wxOn = document.getElementById('wx').value === '1';
-    var mult = WX ? multOf(WX.idx) : 1.3;
-
-    var v = {
-      date: todayStr(),
-      stage: wxOn && WX ? WX.stage : '（当天判定）',
-      idx: wxOn && WX ? WX.idx.toFixed(0) : '--',
-      mult: wxOn && WX ? mult.toFixed(1) : '1.3',
-      bud: Math.round(bud * mult),
-      snow: wxOn && WX ? (WX.firstSnow ? (WX.firstSnow.date + '（' + WX.firstSnow.maxS.toFixed(1) + 'cm）') : '未来 14 天无雪') : '（当天判定）',
-      snowline: wxOn && WX
-        ? (WX.firstSnow ? ('首个降雪 ' + WX.firstSnow.date + '，' + WX.snowN + ' 城命中，最大 ' + WX.firstSnow.maxS.toFixed(1) + 'cm') : '未来 14 天 35 城无有效降雪')
-        : '（当天抓取后填入）',
-      frost: wxOn && WX
-        ? (WX.frost.length ? ('未来 14 天有 ' + WX.frost.length + ' 个结霜日，最早 ' + WX.frost[0].date + '（' + WX.frost[0].cold.toFixed(1) + '℃）→ 提前开 frost 词占位') : '未来 14 天无零下城市')
-        : '（当天判定）',
-      acts: wxOn && WX ? actsFor(WX.stage) : '· 按当天阶段给三条动作'
-    };
+    if (t.id === 'full') return buildFull();
+    var v = buildVars();
     var body = t.body;
     Object.keys(v).forEach(function(k){ body = body.split('{' + k + '}').join(v[k]); });
     return fillDate(body);
@@ -361,12 +450,143 @@
     return '1) 修链接：主图/A+ 的雪景版本定稿\n2) 搭广告结构，低预算养词根权重\n3) 把 D-7/D-3/D-1 的动作排进日历';
   }
 
+  /* ============ 完整日报（九合一） ============ */
+  function buildFull(){
+    var bud0 = TK.num('budget') || 120;
+    var stock = TK.num('stock'); if (!stock || stock < 0) stock = 30;
+    var NA = '（当天抓取后填入）';
+    var L = [];
+    L.push('📋 雪挡作战日报 · 完整版 | ' + todayStr());
+    L.push('');
+
+    if (!WX){
+      L.push('【一、雪档简报】' + NA);
+      L.push('（其余章节由 AI 当天抓取数据后生成）');
+      L.push('');
+      L.push('—— 由亚马逊运营工具箱自动生成');
+      return L.join('\n');
+    }
+
+    /* 一、雪档简报 */
+    var g = globalStage();
+    L.push('━━ 一、雪档简报 ━━');
+    KEYS.forEach(function(k){
+      var s = WX[k];
+      var cd = s.cd === 0 ? '今天' : (s.cd > 0 ? 'D-' + s.cd : '14 天内无');
+      L.push('· ' + s.nm + '：' + s.stage + ' ｜ 指数 ' + s.idx + '/100 ｜ 距起量 ' + cd + ' ｜ 今日有雪 ' + s.sc + '/' + s.cityN + ' 城 ｜ 建议 $' + s.budget + '/天');
+    });
+    L.push('全局阶段：' + g + '（按四站中最高优先级）｜ 四站合计建议预算 $' +
+      KEYS.reduce(function(a,k){ return a + WX[k].budget; }, 0) + '/天');
+    L.push('');
+
+    /* 二、降雪预警 */
+    L.push('━━ 二、降雪预警 ━━');
+    var snowHit = KEYS.filter(function(k){ return WX[k].fs && WX[k].fsD <= 3; });
+    var snowSoon = KEYS.filter(function(k){ return WX[k].fs && WX[k].fsD > 3; });
+    if (snowHit.length){
+      snowHit.forEach(function(k){
+        var s = WX[k];
+        L.push('⚠ ' + s.nm + '：' + dtext(s.fsD) + '（' + md(s.fs.date) + '）有雪，单城最高 ' + s.fs.maxS.toFixed(1) + 'cm，' + s.fs.sc + ' 城命中');
+      });
+      L.push('→ D-1 动作今天完成：精准词 bid +20~30%、预算按上表倍数、Coupon 5~8%、QA 置顶');
+    } else if (snowSoon.length){
+      snowSoon.forEach(function(k){
+        var s = WX[k];
+        L.push('· ' + s.nm + '：首雪在 ' + dtext(s.fsD) + '（' + md(s.fs.date) + '），先布 D-7 动作（加词根/换主图）');
+      });
+      L.push('→ 未来 3 天暂无降雪，不进入预警状态');
+    } else {
+      L.push('未来 14 天四站均无有效降雪，雪天词保持低 bid 观察即可');
+    }
+    L.push('');
+
+    /* 三、降霜预警 */
+    L.push('━━ 三、降霜预警 ━━');
+    var frostHit = KEYS.filter(function(k){ return WX[k].frost.length; });
+    if (frostHit.length){
+      frostHit.forEach(function(k){
+        var s = WX[k];
+        L.push('· ' + s.nm + '：' + s.frost.length + ' 个结霜日，最早 ' + md(s.frost[0].date) + '（最低 ' + s.frost[0].cold.toFixed(1) + '℃）');
+      });
+      L.push('→ frost / de-icer / ice 词低 bid 占位，预算 20%，只做手动精准');
+    } else {
+      L.push('四站未来 14 天均无结霜日，frost 词暂不启动');
+    }
+    L.push('');
+
+    /* 四、广告打法 */
+    L.push('━━ 四、广告打法 ━━');
+    L.push('全局阶段 ' + g + ' → 总预算 $' + bud0 + ' × ' + multOf(WX[leadSite()].idx).toFixed(1) + ' ≈ $' + Math.round(bud0 * multOf(WX[leadSite()].idx)) + '/天');
+    L.push('· 自动 20%（只找词）· 手动精准 55%（snow cover / windscreen cover / frost guard）· 手动广泛 25%');
+    if (g === '爆发期') L.push('重点：每 4~6 小时盯花费，Coupon 叠加抢转化，竞品断货时可提价 3~5%');
+    else if (g === '临门期') L.push('重点：主图换雪景实拍，精准词 bid +20~30%，QA 置顶适配与防盗');
+    else if (g === '回落期') L.push('重点：预算收回 1.2 倍内，复盘搜索词报表，否掉高花费零转化');
+    else L.push('重点：低价养词根权重，不提前抬价；把 D-7/D-3/D-1 动作排进日历');
+    L.push('');
+
+    /* 五、库存提醒 */
+    L.push('━━ 五、库存提醒 ━━');
+    if (stock < 14) L.push('🚨 FBA 可售 ' + stock + ' 天，低于 14 天安全线 → 立即提价控速 + 核查在途货件，雪前必须补上');
+    else if (stock < 21) L.push('⚠ FBA 可售 ' + stock + ' 天，低于 21 天 → 下一波降雪前需要处理（补货/调拨/控速）');
+    else L.push('✅ FBA 可售 ' + stock + ' 天，安全；按当前日销可撑过下一波降雪');
+    L.push('');
+
+    /* 六、活动报名提醒 */
+    L.push('━━ 六、活动报名提醒 ━━');
+    var ev = [
+      ['黑色星期五', '2026-11-27'],
+      ['网络星期一', '2026-11-30'],
+      ['圣诞节', '2026-12-25']
+    ];
+    ev.forEach(function(e){
+      var n = daysUntil(e[1]);
+      if (n >= 0){
+        var tip = '';
+        if (e[0] === '黑色星期五' && n <= 35) tip = ' → 秒杀/LD 报名窗口即将关闭，今天去后台确认推荐资格';
+        if (e[0] === '圣诞节') tip = ' → 雪挡最后销售窗口，之后进入淡季';
+        L.push('· ' + e[0] + ' ' + e[1] + '（还有 ' + n + ' 天）' + tip);
+      }
+    });
+    if (daysUntil('2026-11-27') > 35) L.push('· 黑五报名窗口通常 11 月初开启，提前把 Candidate Deals 准备好');
+    L.push('');
+
+    /* 七、Listing 自查 */
+    L.push('━━ 七、Listing 自查 ━━');
+    L.push('四站进度：' + listProgress());
+    L.push('（与雪季看板联动，在看板里勾选即同步；8 项：主图雪景/标题词根/五点适配/A+ 对照表/安装视频/QA 置顶/变体尺寸/价格与阶段匹配）');
+    L.push('');
+
+    /* 八、雪后复盘 */
+    L.push('━━ 八、雪后复盘 ━━');
+    if (g === '回落期'){
+      L.push('本波降雪已结束，回看四个数：');
+      L.push('1) 转化率：雪日 vs 平日  2) ACOS：雪日是否在目标线内');
+      L.push('3) 排名：峰值冲上去没有、雪后掉多少  4) 退货：有无尺寸不符集中退货');
+      L.push('→ 雪日表现好的词单独建组，下一波直接提价');
+    } else {
+      L.push('当前无刚结束的降雪波，复盘内容留待雪后 2 天自动补上');
+    }
+    L.push('');
+
+    /* 九、市场情况 */
+    var lead = leadSite();
+    L.push('━━ 九、市场情况 ━━');
+    L.push('未来 14 天各站峰值指数：' + KEYS.map(function(k){ return SITES[k].nm.replace('站','') + ' ' + WX[k].fmax14; }).join(' · '));
+    L.push('→ ' + WX[lead].nm + '最先进入雪季（峰值 ' + WX[lead].fmax14 + '），广告火力优先对准它；');
+    L.push('其余站点趁低价养词根权重，等各自的雪来再切高倍预算。');
+    L.push('');
+    L.push('—— 由亚马逊运营工具箱自动生成');
+    return L.join('\n');
+  }
+
   function buildCmd(){
     var t = TPL.filter(function(x){ return x.id === cur; })[0];
     var f = document.getElementById('freq').value;
     var h = document.getElementById('hour').value;
     var to = document.getElementById('to').value === 'me' ? '我本人（企业微信授权人）' : '雪挡运营群';
     var bud = TK.num('budget') || 120;
+    var stock = TK.num('stock') || 30;
+    var limit = t.id === 'full' ? 900 : 400;
 
     var when = {
       daily: '每天早上 ' + h + '（北京时间）',
@@ -385,12 +605,11 @@
     lines.push('【发送对象】' + to);
     lines.push('【内容模板】' + t.nm);
     lines.push('【基础日广告预算】' + bud + ' 美金（用于换算建议预算金额）');
+    if (t.id === 'full') lines.push('【FBA 可售天数】' + stock + ' 天（用于库存提醒章节，之后每天由我在对话里更新）');
     lines.push('');
     lines.push('【执行要求】');
     lines.push(t.cmd);
-    var wxOn = document.getElementById('wx').value === '1';
-    if (wxOn) lines.push('消息里要带上：当前阶段、需求指数、首个降雪日、今日建议广告预算金额、结霜日提醒。');
-    lines.push('消息用 markdown 发送，控制在 400 字以内，手机上一屏能看完；不要写客套话，直接给判断和动作。');
+    lines.push('消息用 markdown 发送，控制在 ' + limit + ' 字以内；不要写客套话，直接给判断和动作。');
     lines.push('');
     lines.push('【消息样式参考】');
     lines.push('-----');
@@ -401,7 +620,7 @@
 
   function render(){
     document.getElementById('picks').innerHTML = TPL.map(function(t){
-      return '<div class="pk' + (t.id === cur ? ' on' : '') + '" data-id="' + t.id + '">' +
+      return '<div class="pk' + (t.id === cur ? ' on' : '') + (t.big ? ' big' : '') + '" data-id="' + t.id + '">' +
         '<div class="nm">' + t.nm + (t.role ? '<span class="rl">' + t.role + '</span>' : '') + '</div>' +
         '<div class="ds">' + t.ds + '</div></div>';
     }).join('');
