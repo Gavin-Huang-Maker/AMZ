@@ -1,2 +1,2 @@
 # Amazon-Seller-Tools-
-亚马逊卖家运营工具箱：在线即用，无需安装，持续更新
+Amazon Seller Operation Toolkit: Ready to use online, no installation required, continuously updated
