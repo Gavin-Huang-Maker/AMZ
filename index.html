@@ -1,665 +1,494 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>作战指令台 · 企业微信自动推送 · 亚马逊运营工具箱</title>
-<link rel="stylesheet" href="../assets/tool.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>亚马逊运营工具箱</title>
+<meta name="description" content="亚马逊卖家免费在线工具箱：25 个单页工具，覆盖雪季实时作战看板、企业微信自动推送、加热护具合规与利润、BSR 反超、搜索词解剖、广告增量、流量漏斗、库存资金、季节性，打开即用，数据本地计算不上传。">
 <style>
-  .hero{background:linear-gradient(135deg,#1f2a33,#2f3f4c 55%,#3b5060);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;}
-  .hero h1{color:#fff;margin:0 0 6px;font-size:22px;}
-  .hero .sub{color:rgba(255,255,255,.87);font-size:13.5px;line-height:1.7;margin:0;}
-  @media (prefers-color-scheme: dark){ .hero{background:linear-gradient(135deg,#141c23,#22303b 55%,#2b3d4a);} }
-  .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
-  .pk{border:1.5px solid var(--border);border-radius:13px;padding:13px 15px;background:var(--card);cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;}
-  .pk:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
-  .pk.on{border-color:#2f3f4c;box-shadow:0 0 0 2px rgba(47,63,76,.14);}
-  .pk.big{grid-column:1/-1;border-width:2px;background:linear-gradient(135deg,rgba(47,63,76,.05),rgba(27,147,168,.05));}
-  .pk .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:7px;}
-  .pk .ds{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:5px;}
-  .pk .rl{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:#e8eef2;color:#2f3f4c;}
-  .pk.big .rl{background:#2f3f4c;color:#fff;}
-  @media (prefers-color-scheme: dark){ .pk .rl{background:#2c3a45;color:#cfe0ea;} .pk.on{border-color:#7fb2c4;box-shadow:0 0 0 2px rgba(127,178,196,.2);} .pk.big{background:linear-gradient(135deg,rgba(127,178,196,.08),rgba(127,178,196,.02));} .pk.big .rl{background:#7fb2c4;color:#10222c;} }
-  .outs{border:1px solid var(--border);border-radius:14px;background:var(--card);padding:14px 16px;margin-top:12px;}
-  .outs .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-  .outs .hd b{font-size:13.5px;}
-  pre.prev{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.75;background:var(--bg2,#f6f7f8);border-radius:10px;padding:12px 14px;margin:0;max-height:460px;overflow:auto;}
-  @media (prefers-color-scheme: dark){ pre.prev{background:#1b232a;} }
-  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
-  .steps .s{border:1px solid var(--border);border-radius:12px;padding:13px 15px;background:var(--card);}
-  .steps .s .n{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;background:#2f3f4c;color:#fff;font-size:12px;font-weight:700;margin-bottom:7px;}
-  .steps .s .t{font-weight:600;font-size:13.5px;margin-bottom:4px;}
-  .steps .s .d{font-size:12.5px;color:var(--muted);line-height:1.65;}
+:root{
+  --app-bg:#f4f5f7; --card:#ffffff; --text:#171a1f; --muted:#6b7280; --hint:#9aa1ab;
+  --border:#e5e8ec; --accent:#e8590c; --accent-soft:#fff2e8;
+  --row-alt:#f8f9fb;
+  --hero-bg:#ff8f3f; --hero-bg2:#d9480f; --hero-ink:#ffffff; --hero-sub:rgba(255,255,255,.86);
+  --cell:rgba(255,255,255,.18); --cell-br:rgba(255,255,255,.32);
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  --shadow-hi:0 2px 4px rgba(16,24,40,.06),0 14px 34px rgba(16,24,40,.13);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --app-bg:#0d0f13; --card:#171a20; --text:#e8eaed; --muted:#a2a8b3; --hint:#6f757f;
+    --border:#272c35; --accent:#ff7a33; --accent-soft:#241a14;
+    --row-alt:#1b1f26;
+    --hero-bg:#7a310f; --hero-bg2:#3a1a08; --hero-ink:#ffffff; --hero-sub:rgba(255,255,255,.72);
+    --cell:rgba(255,255,255,.10); --cell-br:rgba(255,255,255,.16);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.34);
+    --shadow-hi:0 2px 4px rgba(0,0,0,.44),0 16px 36px rgba(0,0,0,.5);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--app-bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased;}
+.page{max-width:980px;margin:0 auto;}
+
+/* ---------- 顶部横幅 ---------- */
+.hero{
+  background:linear-gradient(135deg,var(--hero-bg) 0%,var(--hero-bg2) 100%);
+  color:var(--hero-ink);
+  padding:56px 20px 46px;
+  position:relative;overflow:hidden;
+}
+.hero::after{
+  content:"";position:absolute;right:-90px;top:-110px;width:340px;height:340px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 70%);
+}
+.hero-in{max-width:980px;margin:0 auto;position:relative;text-align:center;}
+.kicker{
+  display:inline-block;font-size:12.5px;letter-spacing:.6px;font-weight:600;
+  padding:5px 13px;border-radius:999px;margin-bottom:18px;
+  background:var(--cell);border:1px solid var(--cell-br);color:var(--hero-ink);
+}
+.hero h1{font-size:34px;line-height:1.3;font-weight:700;letter-spacing:-.5px;margin-bottom:12px;}
+.hero .lead{font-size:15px;color:var(--hero-sub);max-width:660px;margin:0 auto;line-height:1.75;}
+.hero .lead b{color:#fff;font-weight:600;}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px;}
+.btn{
+  display:inline-block;text-decoration:none;font-size:14px;font-weight:600;
+  padding:11px 22px;border-radius:10px;transition:transform .15s,box-shadow .15s,background .15s;
+}
+.btn-p{background:#fff;color:var(--hero-bg2);box-shadow:0 6px 16px rgba(0,0,0,.16);}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,0,0,.22);}
+.btn-o{background:var(--cell);border:1px solid var(--cell-br);color:var(--hero-ink);}
+.btn-o:hover{transform:translateY(-2px);background:rgba(255,255,255,.26);}
+.stats{
+  max-width:820px;margin:30px auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  border-top:1px solid var(--cell-br);padding-top:20px;
+}
+.stats div{background:var(--cell);border:1px solid var(--cell-br);border-radius:12px;padding:14px 8px;}
+.stats b{display:block;font-size:22px;font-weight:700;line-height:1.3;}
+.stats span{font-size:12.5px;color:var(--hero-sub);}
+@media (max-width:640px){
+  .hero{padding:42px 16px 36px;}
+  .hero h1{font-size:26px;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+}
+
+/* ---------- 区块标题 ---------- */
+main{padding:34px 16px 10px;}
+.sect{display:flex;align-items:center;gap:10px;margin:30px 0 14px;}
+.sect::before{content:"";width:4px;height:17px;border-radius:2px;background:var(--accent);flex:none;}
+.sect h3{font-size:15.5px;font-weight:700;letter-spacing:-.2px;}
+.sect .cnt{font-size:12.5px;color:var(--muted);background:var(--card);border:1px solid var(--border);
+  padding:2px 10px;border-radius:999px;}
+.sect .line{flex:1;height:1px;background:var(--border);}
+
+/* ---------- 工具卡片 ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px;}
+a.card{
+  display:flex;flex-direction:column;text-decoration:none;color:inherit;
+  background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;
+  box-shadow:var(--shadow);transition:transform .16s,border-color .16s,box-shadow .16s;
+}
+a.card:hover{transform:translateY(-4px);border-color:var(--c);box-shadow:var(--shadow-hi);}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;}
+.ic{width:42px;height:42px;border-radius:12px;background:var(--c);flex:none;
+  display:flex;align-items:center;justify-content:center;}
+.ic svg{width:22px;height:22px;display:block;}
+.tag{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;
+  background:var(--cb);color:var(--c);}
+a.card h2{font-size:16px;font-weight:650;margin-bottom:7px;letter-spacing:-.2px;}
+a.card p{font-size:13px;color:var(--muted);line-height:1.72;flex:1;margin-bottom:14px;}
+.go{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--c);}
+.go i{font-style:normal;transition:transform .16s;}
+a.card:hover .go i{transform:translateX(4px);}
+
+/* ---------- 决策闭环 ---------- */
+.flow{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow);}
+.flow .hd{font-size:15.5px;font-weight:700;margin-bottom:4px;letter-spacing:-.2px;}
+.flow .sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;}
+.step{background:var(--row-alt);border:1px solid var(--border);border-radius:12px;padding:15px 16px;}
+.step .n{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:12px;font-weight:700;align-items:center;justify-content:center;margin-bottom:9px;}
+.step .t{font-size:14px;font-weight:650;margin-bottom:5px;}
+.step .d{font-size:12.5px;color:var(--muted);line-height:1.68;}
+
+/* ---------- 说明 / 页脚 ---------- */
+.note{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);}
+.note .hd{font-size:15.5px;font-weight:700;margin-bottom:11px;letter-spacing:-.2px;}
+.note ul{list-style:none;}
+.note li{font-size:13px;color:var(--muted);line-height:1.75;padding-left:20px;position:relative;margin-bottom:7px;}
+.note li::before{content:"";position:absolute;left:5px;top:9px;width:6px;height:6px;border-radius:2px;background:var(--accent);}
+.note b{color:var(--text);font-weight:600;}
+footer{text-align:center;color:var(--hint);font-size:12px;padding:30px 16px 40px;line-height:1.85;}
 </style>
 </head>
 <body>
-<a class="back" href="../index.html">← 返回工具箱</a>
-<div class="wrap">
 
-  <div class="hero">
-    <h1>📮 作战指令台</h1>
-    <p class="sub">在这里<b>选内容、定时间</b>，一键生成可以直接交给 AI 执行的指令 —— 到点自动抓天气、自动判断阶段、自动把消息发到你的企业微信。
-      推荐用第一张「<b>完整日报</b>」：雪档简报、降雪预警、降霜、广告、库存、活动、Listing、复盘、市场九块内容合成一份报告，一次看完。</p>
-  </div>
-
-  <div class="card">
-    <h2>1. 选要推送的内容</h2>
-    <p class="desc">第一个是九合一的完整日报；后面六个是单一主题的轻量模板，适合分时段发或条件触发。选中后会生成预览，你可以自由改字。</p>
-    <div class="picks" id="picks"></div>
-  </div>
-
-  <div class="card">
-    <h2>2. 定发送时间</h2>
-    <div class="fields">
-      <div class="field">
-        <label>频率</label>
-        <select id="freq">
-          <option value="daily">每天早上 9:30</option>
-          <option value="weekday">工作日早上 9:30</option>
-          <option value="weekly">每周一早上 9:30</option>
-          <option value="once">只发一次（现在）</option>
-          <option value="cond3">条件触发：未来 3 天有降雪就发</option>
-          <option value="cond1">条件触发：未来 1 天有降雪就发</option>
-          <option value="condf">条件触发：出现结霜日（零下无雪）就发</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>发送时点 <span class="unit">（本地时间）</span></label>
-        <select id="hour">
-          <option>08:00</option><option>08:30</option><option selected>09:30</option>
-          <option>10:00</option><option>12:00</option><option>18:00</option><option>20:00</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>接收人</label>
-        <select id="to"><option value="me" selected>我（企业微信授权人）</option><option value="group">雪挡运营群</option></select>
-      </div>
-      <div class="field">
-        <label>是否附当天天气数据</label>
-        <select id="wx"><option value="1" selected>附（阶段 + 指数 + 首个雪日）</option><option value="0">不附，只要动作清单</option></select>
-      </div>
-      <div class="field">
-        <label>基础日广告预算 <span class="unit">$</span></label>
-        <input id="budget" type="number" value="120" min="0">
-      </div>
-      <div class="field">
-        <label>FBA 可售天数 <span class="unit">（完整日报的库存提醒用）</span></label>
-        <input id="stock" type="number" value="30" min="0">
-      </div>
+<div class="hero">
+  <div class="hero-in">
+    <span class="kicker">免费 · 免登录 · 本地计算</span>
+    <h1>亚马逊运营工具箱</h1>
+    <p class="lead">
+      把高频运营决策做成一个个<b>在线计算器</b>：输入几个数字，直接给答案和动作清单。<br>
+      其中 4 个是<b>公司品类专用</b>（雪挡 / 加热护具）：雪季看板自动拉最新天气，作战指令台能把简报<b>自动推到你企业微信</b>。<br>
+      打开即用、无需注册、<b>数据全部在本地浏览器计算，不上传服务器</b>。
+    </p>
+    <div class="cta">
+      <a class="btn btn-p" href="snow-radar/">雪季看板：今天该干嘛 →</a>
+      <a class="btn btn-o" href="bsr-calculator/">测排名反超</a>
+    </div>
+    <div class="stats">
+      <div><b>25</b><span>可用工具</span></div>
+      <div><b>7</b><span>大类覆盖</span></div>
+      <div><b>1</b><span>配套作战方案</span></div>
+      <div><b>0</b><span>数据上传量</span></div>
     </div>
   </div>
-
-  <div class="card">
-    <h2>3. 生成结果</h2>
-    <div class="outs">
-      <div class="hd"><b>① 实际会发到企业微信的消息（预览）</b><button class="btn" id="copyMsg">复制消息</button></div>
-      <pre class="prev" id="msgPrev">选一个模板…</pre>
-    </div>
-    <div class="outs">
-      <div class="hd"><b>② 交给 AI 执行的指令（复制后粘贴到 WorkBuddy 对话框即可生效）</b><button class="btn primary" id="copyCmd">复制指令</button></div>
-      <pre class="prev" id="cmdPrev">选一个模板…</pre>
-    </div>
-    <p class="note" id="msg"></p>
-  </div>
-
-  <div class="card">
-    <h2>4. 为什么要点两下：网页能做什么、不能做什么</h2>
-    <div class="steps">
-      <div class="s"><span class="n">1</span><div class="t">网页负责「配置」</div><div class="d">选内容、定时间、改文字、看预览 —— 都在这个页面完成，数据不出浏览器。</div></div>
-      <div class="s"><span class="n">2</span><div class="t">AI 负责「执行」</div><div class="d">企业微信的发送权限在 WorkBuddy 这边，不在浏览器里。所以要把指令交给它。</div></div>
-      <div class="s"><span class="n">3</span><div class="t">之后就是全自动</div><div class="d">一旦配置好，每天到点自动跑、自动发，你不需要再打开这个页面。</div></div>
-    </div>
-    <div class="callout co-warn" style="margin-top:12px">
-      <b>说句实话：</b>浏览器出于安全限制，<b>没法直接调用本机的企业微信接口</b>（否则任何网页都能替你发消息）。
-      所以这里的正确用法是：<b>点「复制指令」→ 粘贴到 WorkBuddy 对话框 → 发送一次</b>。
-      这一次之后，它就会按你设定的时间和内容自动跑，不用再点。
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>5. 已生效的自动化</h2>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>名称</th><th>时间</th><th>内容</th><th>状态</th></tr></thead>
-        <tbody>
-          <tr><td><b>雪季每日作战简报</b></td><td>每天 09:30</td><td>阶段判定 + 需求指数 + 首雪倒计时 + 今日 P0/P1/P2 + 结霜提醒</td><td><span class="badge b-ok">运行中</span></td></tr>
-          <tr><td><b>雪挡完整日报（九合一）</b></td><td>自选</td><td>雪档简报 / 降雪预警 / 降霜 / 广告打法 / 库存 / 活动报名 / Listing 自查 / 雪后复盘 / 市场 —— 一份报告</td><td><span class="badge b-warn">待配置</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="note">想改时间或内容：在上面选好新模板 → 复制指令 → 粘到 WorkBuddy 对话框说「更新雪季简报这个自动化」，它会直接改掉，不会多建一条。</p>
-  </div>
-
-  <div class="card">
-    <h2>口径与边界</h2>
-    <div class="kv"><span>天气数据</span><b>Open-Meteo 公开接口，43 城四站点（英国 12 / 德国 10 / 加拿大 9 / 美国 12），各站独立计算，不跨站加权</b></div>
-    <div class="kv"><span>站点指数</span><b>全城平均 50% + 指数最高 3 城均值 50%（与雪季实时作战看板同口径）</b></div>
-    <div class="kv"><span>发送通道</span><b>WorkBuddy 企业微信机器人（当前机器人名：雪档温度检测），仅能发给你本人或最近有往来的会话</b></div>
-    <div class="kv"><span>隐私</span><b>这个页面不上传任何数据；指令里也不会包含你的店铺、ASIN 或销售数字</b></div>
-    <div class="kv"><span>边界</span><b>库存提醒读的是你填的「FBA 可售天数」；活动日期为 2026 年黑五 / 网一 / 圣诞固定日历，秒杀资格以卖家后台为准</b></div>
-    <p class="note">⚠️ 自动化执行依赖电脑上的 WorkBuddy 处于可运行状态。如果某天没收到，先检查 WorkBuddy 是否开着、企业微信授权是否过期。</p>
-  </div>
-
-  <p class="foot">亚马逊运营工具箱 · 作战指令台</p>
 </div>
 
-<script src="../assets/tool.js"></script>
-<script>
-(function(){
-  'use strict';
+<main class="page">
 
-  /* ============ 四站点定义（与雪季看板同口径：43 城，各站独立计算） ============ */
-  var KEYS = ['UK','DE','CA','US'];
-  var SITES = {
-    UK:{ nm:'英国站', base:40, cities:[
-      ['伦敦',51.5072,-0.1276],['曼彻斯特',53.4808,-2.2426],['伯明翰',52.4862,-1.8904],
-      ['利兹',53.8008,-1.5491],['纽卡斯尔',54.9783,-1.6178],['谢菲尔德',53.3811,-1.4701],
-      ['利物浦',53.4084,-2.9916],['爱丁堡',55.9533,-3.1883],['格拉斯哥',55.8642,-4.2518],
-      ['阿伯丁',57.1497,-2.0943],['因弗内斯',57.4778,-4.2247],['卡莱尔',54.8925,-2.9325] ]},
-    DE:{ nm:'德国站', base:30, cities:[
-      ['柏林',52.52,13.405],['慕尼黑',48.1351,11.582],['汉堡',53.5511,9.9937],
-      ['科隆',50.9375,6.9603],['法兰克福',50.1109,8.6821],['斯图加特',48.7758,9.1829],
-      ['莱比锡',51.3397,12.3731],['德累斯顿',51.0504,13.7373],['汉诺威',52.3759,9.732],
-      ['纽伦堡',49.4521,11.0767] ]},
-    CA:{ nm:'加拿大站', base:25, cities:[
-      ['多伦多',43.6532,-79.3832],['蒙特利尔',45.5017,-73.5673],['魁北克城',46.8139,-71.208],
-      ['渥太华',45.4215,-75.6972],['卡尔加里',51.0447,-114.0719],['埃德蒙顿',53.5461,-113.4938],
-      ['温尼伯',49.8951,-97.1384],['温哥华',49.2827,-123.1207],['哈利法克斯',44.6488,-63.5752] ]},
-    US:{ nm:'美国站', base:60, cities:[
-      ['纽约',40.7128,-74.006],['波士顿',42.3601,-71.0589],['布法罗',42.8864,-78.8784],
-      ['费城',39.9526,-75.1652],['匹兹堡',40.4406,-79.9959],['芝加哥',41.8781,-87.6298],
-      ['明尼阿波利斯',44.9778,-93.265],['底特律',42.3314,-83.0458],['克利夫兰',41.4993,-81.6944],
-      ['丹佛',39.7392,-104.9903],['西雅图',47.6062,-122.3321],['哈特福德',41.7658,-72.6734] ]}
-  };
-  var LV = 45;  // 起量阈值
+  <div class="sect"><h3>公司品类专用 · 雪挡 / 加热护具</h3><span class="cnt">4 个</span><span class="line"></span></div>
+  <div class="grid">
 
-  var TPL = [
-    { id:'full', nm:'完整日报（九合一汇总）', role:'推荐 · 每天', big:true,
-      ds:'雪档简报 + 降雪预警 + 降霜 + 广告打法 + 库存 + 活动报名 + Listing 自查 + 雪后复盘 + 市场情况，合成一份报告，一屏看完。',
-      cmd:'拉取 43 城四站点（英国 12 / 德国 10 / 加拿大 9 / 美国 12）过去 7 天实测 + 未来 14 天预报（Open-Meteo 公开接口），按「站点指数 = 全城平均 50% + 指数最高 3 城均值 50%」各站独立计算，判定各站阶段（爆发/临门/回落/备战，起量线 45），生成一份完整日报，固定包含九个章节：一、雪档简报（四站各一行：阶段/指数/距起量/建议预算）；二、降雪预警（未来 3 天有雪的站点 + D-1/D0 动作，无则写明）；三、降霜预警（最低温≤0.5℃无雪的结霜日 + frost 词占位建议）；四、广告打法（按全局阶段的预算倍数与结构比例）；五、库存提醒（按 FBA 可售天数给红黄绿判断）；六、活动报名提醒（黑五/网一/圣诞倒计时与报名窗口）；七、Listing 自查进度；八、雪后复盘（回落期给四个回看指标，否则说明留待雪后）；九、市场情况（哪个站点最先入冬、火力该对准谁）。'
-    },
-    { id:'daily', nm:'每日雪季简报', role:'每天',
-      ds:'阶段 + 需求指数 + 首雪倒计时 + 今日三条动作。适合当每天早上的第一封消息。',
-      body:[
-        '❄️ 雪挡 · 每日作战简报 | {date}',
-        '',
-        '【今日判断】',
-        '阶段：{stage}｜需求指数：{idx}/100｜首个降雪日：{snow}',
-        '建议广告预算：{mult} 倍（约 {bud} 美金/天）',
-        '',
-        '【今日必做】',
-        '{acts}',
-        '',
-        '【提醒】',
-        '{frost}',
-        '',
-        '—— 由亚马逊运营工具箱自动生成'
-      ].join('\n'),
-      cmd:'拉取 43 城四站点未来 14 天降雪与气温预报（Open-Meteo 公开接口），各站独立判定当前处于备战期/临门期/爆发期/回落期，算出需求脉冲指数、首个降雪日、今日建议广告预算倍数，并给出今日 P0/P1/P2 三条动作（针对「货已在 FBA」的卖家：只讲广告、促销、素材、库存周转，不要讲补货海运）。整理成 300 字以内的简报。'
-    },
-    { id:'snow', nm:'降雪预警（提前 3 天）', role:'条件触发',
-      ds:'未来 3 天要下雪才发。含 D-1 / D0 的具体广告动作和促销建议。',
-      body:[
-        '🚨 降雪预警 | {date}',
-        '',
-        '【雪情】{snowline}',
-        '',
-        '【现在就要做】（D-1 之前完成）',
-        '1) 核心词 bid 上调 20~30%，Top of Search 加价 30%',
-        '2) 预算提到 {mult} 倍（约 {bud} 美金/天）',
-        '3) 开 Coupon 5~8%，确认库存可售 ≥ 21 天',
-        '4) QA 置顶「会不会刮伤玻璃 / 会不会结冰」',
-        '',
-        '【雪当天】',
-        '预算拉到 2.5 倍，每 4~6 小时看一次 ACOS 与排名；素材挂「今晨实拍」。',
-        '',
-        '—— 由亚马逊运营工具箱自动生成'
-      ].join('\n'),
-      cmd:'检查 43 城四站点未来 3 天降雪预报。若任意站点出现 ≥1cm 降雪，立即生成降雪预警，包含具体哪几天、哪些城市、降雪量级，并按「雪前作战时序」给出 D-1 与 D0 的广告出价、预算倍数、促销动作、Listing/QA 检查项，发到企业微信。若未来 3 天没有降雪，不要发送任何消息（避免打扰）。'
-    },
-    { id:'frost', nm:'降霜提醒（零下无雪）',
-      ds:'还没下雪但已经零下时发。提前开 frost 词占位，等真下雪就有数据可提价。',
-      body:[
-        '🌡 降霜提醒 | {date}',
-        '',
-        '【情况】{frost}',
-        '',
-        '【建议动作】',
-        '1) 开 frost / de-icer / ice 类词根，低 bid 占位，用 20% 预算',
-        '2) 只做手动精准，不加自动（避免烧泛词）',
-        '3) 等真降雪时，这些词已有历史转化，可直接提价抢位',
-        '',
-        '【不要做】',
-        '此时不建议大幅加预算 —— 霜冻的转化率通常只有降雪日的 1/3。',
-        '',
-        '—— 由亚马逊运营工具箱自动生成'
-      ].join('\n'),
-      cmd:'检查 43 城四站点未来 7 天天气，找出「最低温 ≤0.5℃ 但没有降雪」的结霜日。若有，生成降霜提醒，说明哪几天、哪些站点城市、最低温多少，并给出 frost / de-icer 类词的占位投放建议（低 bid、20% 预算、手动精准），发到企业微信。没有结霜日就不发。'
-    },
-    { id:'ads', nm:'广告打法包', role:'每周',
-      ds:'每周一份：词根结构、预算分配、竞品价格带、该暂停的词。',
-      body:[
-        '📊 雪挡 · 本周广告打法 | {date}',
-        '',
-        '【本周阶段】{stage}｜需求指数 {idx}',
-        '',
-        '【结构】',
-        '· 自动：仅跑发现，预算占 20%，目的只找新词',
-        '· 手动精准：snow cover / windscreen frost / car snow cover，占 55%',
-        '· 手动广泛：长尾词 + 场景词，占 25%',
-        '',
-        '【预算】总预算 {bud} 美金/天，按阶段调整',
-        '',
-        '【该停的】上周花费 > 10 美金且零转化的词，先降 bid 50%，再两周无单直接暂停',
-        '',
-        '—— 由亚马逊运营工具箱自动生成'
-      ].join('\n'),
-      cmd:'结合当前雪季阶段，输出雪挡产品本周的广告打法：广告结构（自动/手动精准/手动广泛的比例）、预算分配、本周应重点加的词根、应暂停的词类型、竞品价格带观察要点。要求具体到数字和执行动作，不要泛泛而谈，控制在 400 字内，发到企业微信。'
-    },
-    { id:'listing', nm:'Listing 自查周检',
-      ds:'8 项雪季自查清单，逐条检查并列出还没做的。',
-      body:[
-        '🔍 雪挡 · Listing 雪季自查 | {date}',
-        '',
-        '逐条核对（没做的今天补上）：',
-        '1. 主图有雪景 / 积雪实拍',
-        '2. 标题含 snow cover / windscreen 核心词',
-        '3. A+ 有「有 / 无」对比场景图',
-        '4. 五点第一条直接回答「能不能防雪防冰」',
-        '5. 尺寸表对应车型清晰（S/M/L/XL）',
-        '6. QA 置顶 3 条高频疑问',
-        '7. FBA 可售天数 ≥ 21 天',
-        '8. 价格在类目中位以下 5~10%',
-        '',
-        '当前进度：{stage} 阶段，距首个降雪日 {snow}',
-        '',
-        '—— 由亚马逊运营工具箱自动生成'
-      ].join('\n'),
-      cmd:'按雪季 Listing 自查清单（主图雪景、标题核心词、A+ 对比图、五点第一条、尺寸表、QA 置顶、FBA 可售天数、价格带）逐条列出检查要点，结合当前雪季阶段说明每一项的优先级，整理成可执行的自查清单发到企业微信。'
-    },
-    { id:'review', nm:'雪后复盘',
-      ds:'降雪结束后 2 天发：这一波哪些词值得留、哪些钱白花了。',
-      body:[
-        '📈 雪挡 · 本波降雪复盘 | {date}',
-        '',
-        '【这一波的天气】{snowline}',
-        '',
-        '【要回看四个数】',
-        '1) 转化率：雪日 vs 平日的差距（判断你到底吃到没有）',
-        '2) ACOS：雪日是否可控在目标线内',
-        '3) 排名：峰值日有没有冲上去、雪后掉多少',
-        '4) 退货：有没有出现「尺寸不符 / 刮伤玻璃」集中退货',
-        '',
-        '【下一步】',
-        '· 把雪日表现好的词单独建组，留给下一波直接提价',
-        '· 表现差的词降 bid，不要直接删（留数据）',
-        '',
-        '—— 由亚马逊运营工具箱自动生成'
-      ].join('\n'),
-      cmd:'生成雪挡产品的降雪后复盘模板，列出需要回看的四个核心指标（转化率、ACOS、排名、退货原因），并给出「下一波降雪前应该怎么准备」的三条动作。语气像运营主管，不要客套话，发到企业微信。'
-    }
-  ];
+    <a class="card" style="--c:#2F3F4C;--cb:#e6ecf0" href="ops-console/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h17v11h-17z"/><path d="M3.5 6.5l8.5 6 8.5-6"/><path d="M8 21h8"/></svg></div>
+        <span class="tag">企业微信</span>
+      </div>
+      <h2>作战指令台</h2>
+      <p>选内容、定时间，一键生成交给 AI 执行的指令 —— 到点自动抓天气、自动判定阶段、自动把简报发到你的企业微信，不用天天盯网页。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  var cur = 'full', WX = null;
+    <a class="card" style="--c:#0B4F6C;--cb:#e2f0f5" href="snow-radar/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5v19M4 7.2l16 9.6M20 7.2l-16 9.6M12 6.5l-2-2M12 6.5l2-2M12 17.5l-2 2M12 17.5l2 2"/></svg></div>
+        <span class="tag">实时天气</span>
+      </div>
+      <h2>雪季实时作战看板</h2>
+      <p>英国 / 德国 / 加拿大 / 美国四个站点各自独立成板块，打开就拉取 43 城逐日降雪与气温，各算各的需求脉冲指数、阶段、起量倒计时和今天该开几倍预算。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  function pad(n){ return n < 10 ? '0' + n : '' + n; }
-  function todayStr(){
-    var d = new Date();
-    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
-  }
-  function md(dt){ return dt ? dt.slice(5) : '--'; }
-  function dayScore(snow, tmin, tmax){
-    var v = 0;
-    if (snow > 0) v += Math.min(snow, 8) * 10;
-    v += Math.max(0, 3 - tmin) * 5;
-    if (tmax <= 2) v += 12;
-    if (snow > 0 && tmax > 2) v -= 8;
-    return TK.clamp(v, 0, 100);
-  }
-  function multOf(v){ return v >= 80 ? 2.5 : (v >= 60 ? 1.8 : (v >= 35 ? 1.3 : (v >= 20 ? 1.0 : 0.8))); }
-  function dtext(d){ return d === 0 ? '今天' : (d === 1 ? '明天' : d + ' 天后'); }
-  function daysUntil(ds){
-    var d = new Date(ds + 'T00:00:00'), n = new Date(); n.setHours(0,0,0,0);
-    return Math.round((d - n) / 86400000);
-  }
+    <a class="card" style="--c:#9C3450;--cb:#fbeaf0" href="heated-profit/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c2.8 3.6 5 5.8 5 9a5 5 0 0 1-10 0c0-2.2 1.1-3.8 2.2-5.3.4 1.4 1.2 2 2.1 2.1.2-2.3-.4-4 .7-5.8z"/></svg></div>
+        <span class="tag">参数化</span>
+      </div>
+      <h2>加热护具参数化利润器</h2>
+      <p>按电池容量、电芯单价、发热片、认证摊销、带电头程和高退货率拆解真实成本，还能量出「加一档电池到底值不值」。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  /* ============ 拉一次天气：43 城一次请求，按站点切片（与雪季看板同口径） ============ */
-  function loadWx(cb){
-    var lat = [], lon = [], OFF = {}, p = 0;
-    KEYS.forEach(function(k){
-      var st = p;
-      SITES[k].cities.forEach(function(c){ lat.push(c[1]); lon.push(c[2]); p++; });
-      OFF[k] = [st, p];
-    });
-    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat.join(',') + '&longitude=' + lon.join(',') +
-      '&daily=snowfall_sum,temperature_2m_min,temperature_2m_max&past_days=7&forecast_days=14&timezone=auto';
-    fetch(url).then(function(r){ return r.json(); }).then(function(j){
-      var D = {};
-      KEYS.forEach(function(k){
-        var r = j.slice(OFF[k][0], OFF[k][1]), n = r.length, dates = r[0].daily.time, days = [];
-        for (var i = 0; i < dates.length; i++){
-          var arr = [], mx = 0, sc = 0, cold = 99;
-          for (var c = 0; c < n; c++){
-            var d = r[c].daily;
-            var s = +d.snowfall_sum[i] || 0, tmin = +d.temperature_2m_min[i], tmax = +d.temperature_2m_max[i];
-            if (!isFinite(tmin)) tmin = 0;
-            if (!isFinite(tmax)) tmax = 0;
-            arr.push(dayScore(s, tmin, tmax));
-            if (s > mx) mx = s;
-            if (s >= 0.2) sc++;
-            if (tmin < cold) cold = tmin;
-          }
-          var sum = 0, q;
-          for (q = 0; q < n; q++) sum += arr[q];
-          var srt = arr.slice().sort(function(a,b){ return b-a; });
-          var k3 = Math.min(3, n), top3 = 0;
-          for (q = 0; q < k3; q++) top3 += srt[q];
-          days.push({ date:dates[i], idx:Math.round(0.5*(sum/n) + 0.5*(top3/k3)),
-                      maxS:mx, sc:sc, cold:Math.round(cold*10)/10 });
-        }
-        var T = 7, fut = days.slice(T), past = days.slice(0, T);
-        var f7 = fut.slice(0,7);
-        var max7 = Math.max.apply(null, f7.map(function(d){ return d.idx; }));
-        var max14 = Math.max.apply(null, fut.map(function(d){ return d.idx; }));
-        var maxPast = Math.max.apply(null, past.map(function(d){ return d.idx; }));
-        var stage = max7 >= 60 ? '爆发期' : (max7 >= LV ? '临门期' : (maxPast >= LV ? '回落期' : '备战期'));
-        var cd = -1, fs = null, fsD = -1, frost = [];
-        for (var f2 = 0; f2 < fut.length; f2++){
-          if (cd < 0 && fut[f2].idx >= LV) cd = f2;
-          if (!fs && fut[f2].maxS >= 0.5){ fs = fut[f2]; fsD = f2; }
-          if (fut[f2].cold <= 0.5 && fut[f2].maxS < 0.5) frost.push(fut[f2]);
-        }
-        D[k] = { nm:SITES[k].nm, base:SITES[k].base, today:fut[0], fut:fut,
-                 stage:stage, idx:fut[0].idx, fmax7:max7, fmax14:max14, pmax:maxPast,
-                 cd:cd, fs:fs, fsD:fsD, frost:frost,
-                 sc:fut[0].sc, cityN:n, mult:multOf(fut[0].idx),
-                 budget:Math.round(SITES[k].base * multOf(fut[0].idx)) };
-      });
-      WX = D;
-      cb(WX);
-    }).catch(function(){ cb(null); });
-  }
+    <a class="card" style="--c:#8A4B12;--cb:#fbeee2" href="heated-compliance/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8l7.5 3.2v6.2c0 4.6-3.2 7.7-7.5 9.3-4.3-1.6-7.5-4.7-7.5-9.3V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg></div>
+        <span class="tag">美国站</span>
+      </div>
+      <h2>带电产品合规上市清单</h2>
+      <p>UL/ETL、FCC、UN38.3、锂电池运输、Prop 65、亚马逊带电审核、医疗宣称红线，20 项自查带费用与周期，进度自动保存。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  function globalStage(){
-    if (!WX) return '（当天判定）';
-    var pri = { '爆发期':3, '临门期':2, '回落期':1, '备战期':0 }, best = '备战期';
-    KEYS.forEach(function(k){ if (pri[WX[k].stage] > pri[best]) best = WX[k].stage; });
-    return best;
-  }
-  function leadSite(){
-    var best = KEYS[0];
-    KEYS.forEach(function(k){ if (WX[k].fmax14 > WX[best].fmax14) best = k; });
-    return best;
-  }
-  function listProgress(){
-    var all = {};
-    try { all = JSON.parse(localStorage.getItem('snowsite_listing_v1') || '{}'); } catch(e){}
-    return KEYS.map(function(k){
-      var o = all[k] || {}, n = 0, p;
-      for (p in o) if (o[p]) n++;
-      return SITES[k].nm.replace('站','') + ' ' + n + '/8';
-    }).join(' · ');
-  }
+  </div>
 
-  function fillDate(t){ return t.replace('{date}', todayStr()); }
+  <div class="sect"><h3>流量与转化</h3><span class="cnt">5 个</span><span class="line"></span></div>
+  <div class="grid">
 
-  /* ============ 旧模板的占位符填充 ============ */
-  function buildVars(){
-    var bud = TK.num('budget') || 120;
-    var wxOn = document.getElementById('wx').value === '1';
-    var g = globalStage();
-    var mult = WX ? multOf(WX[leadSite()].idx) : 1.3;
-    var anySnow = WX ? KEYS.filter(function(k){ return WX[k].fs; }) : [];
-    var anyFrost = WX ? KEYS.filter(function(k){ return WX[k].frost.length; }) : [];
-    return {
-      date: todayStr(),
-      stage: wxOn && WX ? g : '（当天判定）',
-      idx: wxOn && WX ? WX[leadSite()].idx.toFixed(0) : '--',
-      mult: wxOn && WX ? mult.toFixed(1) : '1.3',
-      bud: Math.round(bud * mult),
-      snow: wxOn && WX
-        ? (anySnow.length ? anySnow.map(function(k){ return SITES[k].nm + ' ' + md(WX[k].fs.date); }).join('、') : '未来 14 天四站均无雪')
-        : '（当天判定）',
-      snowline: wxOn && WX
-        ? (anySnow.length
-            ? anySnow.map(function(k){ return SITES[k].nm + '：首雪 ' + md(WX[k].fs.date) + '（' + dtext(WX[k].fsD) + '），单城最高 ' + WX[k].fs.maxS.toFixed(1) + 'cm，' + WX[k].fs.sc + ' 城命中'; }).join('；')
-            : '未来 14 天 43 城无有效降雪')
-        : '（当天抓取后填入）',
-      frost: wxOn && WX
-        ? (anyFrost.length
-            ? anyFrost.map(function(k){ return SITES[k].nm + '：未来 14 天 ' + WX[k].frost.length + ' 个结霜日，最早 ' + md(WX[k].frost[0].date) + '（' + WX[k].frost[0].cold.toFixed(1) + '℃）'; }).join('；')
-            : '未来 14 天四站均无结霜日')
-        : '（当天判定）',
-      acts: wxOn && WX ? actsFor(g) : '· 按当天阶段给三条动作'
-    };
-  }
+    <a class="card" style="--c:#0F6E56;--cb:#e4f4ee" href="traffic-funnel/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v8l-4-2v-6L3 4z"/></svg></div>
+        <span class="tag">业务报告</span>
+      </div>
+      <h2>流量漏斗诊断</h2>
+      <p>黏入业务报告，逐层体检曝光→会话→浏览→加购→成交，并把环比下滑精确拆成「流量贡献」和「转化贡献」两部分。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  function buildMsg(){
-    var t = TPL.filter(function(x){ return x.id === cur; })[0];
-    if (t.id === 'full') return buildFull();
-    var v = buildVars();
-    var body = t.body;
-    Object.keys(v).forEach(function(k){ body = body.split('{' + k + '}').join(v[k]); });
-    return fillDate(body);
-  }
+    <a class="card" style="--c:#0B7285;--cb:#e2f2f6" href="kw-gap/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></div>
+        <span class="tag">关键词</span>
+      </div>
+      <h2>关键词流量缺口地图</h2>
+      <p>按位置流量份额算出每个词「打上去多赚多少」和「多久回本」，排出真正的攻坚顺序，而不是按搜索量排。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  function actsFor(stage){
-    if (stage === '爆发期') return '1) 预算拉到 2.5 倍，主推词抢首页\n2) 确认 FBA 可售 ≥ 21 天，盯住库存\n3) 开 Coupon/秒杀，素材挂实拍雪景';
-    if (stage === '临门期') return '1) 冬季素材全部上线（主图/A+/视频）\n2) 加雪季词根到手动精准，预算 ×1.3\n3) 核对库存能撑到峰值后 14 天';
-    if (stage === '回落期') return '1) 预算收回 0.8 倍，停高 ACOS 长尾\n2) 清尾货，算季末降价 vs 存仓过夏\n3) 复盘本波：哪些词值得留';
-    return '1) 修链接：主图/A+ 的雪景版本定稿\n2) 搭广告结构，低预算养词根权重\n3) 把 D-7/D-3/D-1 的动作排进日历';
-  }
+    <a class="card" style="--c:#3B6D11;--cb:#ecf6e2" href="cvr-tree/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16M4 8h7M4 16h7"/><path d="M11 8h9M11 16h9"/></svg></div>
+        <span class="tag">短板归因</span>
+      </div>
+      <h2>Listing 转化率短板诊断树</h2>
+      <p>评分、评价数、价格、促销、内容、配送逐项对标类目均值，算出「改哪一项最值钱」和「多久能见效」。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  /* ============ 完整日报（九合一） ============ */
-  function buildFull(){
-    var bud0 = TK.num('budget') || 120;
-    var stock = TK.num('stock'); if (!stock || stock < 0) stock = 30;
-    var NA = '（当天抓取后填入）';
-    var L = [];
-    L.push('📋 雪挡作战日报 · 完整版 | ' + todayStr());
-    L.push('');
+    <a class="card" style="--c:#1D4E89;--cb:#e6eefb" href="blue-ocean/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 9.5h17M3.5 15h17M9.5 3.5v17M15 3.5v17"/><circle cx="12.2" cy="12.2" r="1.6" fill="#fff" stroke="none"/></svg></div>
+        <span class="tag">竞争格局</span>
+      </div>
+      <h2>价格带 × 评分蓝海定位</h2>
+      <p>把竞品铺成价格 × 评分格子图，用稀缺度指数找出「对手少、每人却都赚得动」的那一格。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-    if (!WX){
-      L.push('【一、雪档简报】' + NA);
-      L.push('（其余章节由 AI 当天抓取数据后生成）');
-      L.push('');
-      L.push('—— 由亚马逊运营工具箱自动生成');
-      return L.join('\n');
-    }
+    <a class="card" style="--c:#4361A8;--cb:#eaedfa" href="review-audit/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a2 2 0 01-2 2H8l-4 4V6a2 2 0 012-2h12a2 2 0 012 2z"/><path d="M12 8v4M12 14.5v.5"/></svg></div>
+        <span class="tag">竞品监控</span>
+      </div>
+      <h2>竞品 Review 健康度检测</h2>
+      <p>用中位数 + MAD 稳健统计揪出异常突增窗口，剥掉水分后算出对手真实有机增速和你多久能追上。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-    /* 一、雪档简报 */
-    var g = globalStage();
-    L.push('━━ 一、雪档简报 ━━');
-    KEYS.forEach(function(k){
-      var s = WX[k];
-      var cd = s.cd === 0 ? '今天' : (s.cd > 0 ? 'D-' + s.cd : '14 天内无');
-      L.push('· ' + s.nm + '：' + s.stage + ' ｜ 指数 ' + s.idx + '/100 ｜ 距起量 ' + cd + ' ｜ 今日有雪 ' + s.sc + '/' + s.cityN + ' 城 ｜ 建议 $' + s.budget + '/天');
-    });
-    L.push('全局阶段：' + g + '（按四站中最高优先级）｜ 四站合计建议预算 $' +
-      KEYS.reduce(function(a,k){ return a + WX[k].budget; }, 0) + '/天');
-    L.push('');
+  </div>
 
-    /* 二、降雪预警 */
-    L.push('━━ 二、降雪预警 ━━');
-    var snowHit = KEYS.filter(function(k){ return WX[k].fs && WX[k].fsD <= 3; });
-    var snowSoon = KEYS.filter(function(k){ return WX[k].fs && WX[k].fsD > 3; });
-    if (snowHit.length){
-      snowHit.forEach(function(k){
-        var s = WX[k];
-        L.push('⚠ ' + s.nm + '：' + dtext(s.fsD) + '（' + md(s.fs.date) + '）有雪，单城最高 ' + s.fs.maxS.toFixed(1) + 'cm，' + s.fs.sc + ' 城命中');
-      });
-      L.push('→ D-1 动作今天完成：精准词 bid +20~30%、预算按上表倍数、Coupon 5~8%、QA 置顶');
-    } else if (snowSoon.length){
-      snowSoon.forEach(function(k){
-        var s = WX[k];
-        L.push('· ' + s.nm + '：首雪在 ' + dtext(s.fsD) + '（' + md(s.fs.date) + '），先布 D-7 动作（加词根/换主图）');
-      });
-      L.push('→ 未来 3 天暂无降雪，不进入预警状态');
-    } else {
-      L.push('未来 14 天四站均无有效降雪，雪天词保持低 bid 观察即可');
-    }
-    L.push('');
+  <div class="sect"><h3>广告投放</h3><span class="cnt">3 个</span><span class="line"></span></div>
+  <div class="grid">
 
-    /* 三、降霜预警 */
-    L.push('━━ 三、降霜预警 ━━');
-    var frostHit = KEYS.filter(function(k){ return WX[k].frost.length; });
-    if (frostHit.length){
-      frostHit.forEach(function(k){
-        var s = WX[k];
-        L.push('· ' + s.nm + '：' + s.frost.length + ' 个结霜日，最早 ' + md(s.frost[0].date) + '（最低 ' + s.frost[0].cold.toFixed(1) + '℃）');
-      });
-      L.push('→ frost / de-icer / ice 词低 bid 占位，预算 20%，只做手动精准');
-    } else {
-      L.push('四站未来 14 天均无结霜日，frost 词暂不启动');
-    }
-    L.push('');
+    <a class="card" style="--c:#0F6E56;--cb:#e4f4ee" href="search-term/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M8.5 11h5"/></svg></div>
+        <span class="tag">报告加工</span>
+      </div>
+      <h2>搜索词报告解剖器</h2>
+      <p>导入后台搜索词报告（中文表头可用），按词去重聚合 + 词根聚类，输出否定词、加投词、需控 bid 清单，可导出直接执行。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-    /* 四、广告打法 */
-    L.push('━━ 四、广告打法 ━━');
-    L.push('全局阶段 ' + g + ' → 总预算 $' + bud0 + ' × ' + multOf(WX[leadSite()].idx).toFixed(1) + ' ≈ $' + Math.round(bud0 * multOf(WX[leadSite()].idx)) + '/天');
-    L.push('· 自动 20%（只找词）· 手动精准 55%（snow cover / windscreen cover / frost guard）· 手动广泛 25%');
-    if (g === '爆发期') L.push('重点：每 4~6 小时盯花费，Coupon 叠加抢转化，竞品断货时可提价 3~5%');
-    else if (g === '临门期') L.push('重点：主图换雪景实拍，精准词 bid +20~30%，QA 置顶适配与防盗');
-    else if (g === '回落期') L.push('重点：预算收回 1.2 倍内，复盘搜索词报表，否掉高花费零转化');
-    else L.push('重点：低价养词根权重，不提前抬价；把 D-7/D-3/D-1 动作排进日历');
-    L.push('');
+    <a class="card" style="--c:#534AB7;--cb:#edebfa" href="ad-audit/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h10M18 8h2M4 16h4M12 16h8"/><circle cx="16" cy="8" r="2"/><circle cx="10" cy="16" r="2"/></svg></div>
+        <span class="tag">预算重分配</span>
+      </div>
+      <h2>广告结构体检与预算重分配</h2>
+      <p>找出该加钱、该砍、花不出去的活动，外加重复投放检测，直接给出每个活动该改成多少日预算。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-    /* 五、库存提醒 */
-    L.push('━━ 五、库存提醒 ━━');
-    if (stock < 14) L.push('🚨 FBA 可售 ' + stock + ' 天，低于 14 天安全线 → 立即提价控速 + 核查在途货件，雪前必须补上');
-    else if (stock < 21) L.push('⚠ FBA 可售 ' + stock + ' 天，低于 21 天 → 下一波降雪前需要处理（补货/调拨/控速）');
-    else L.push('✅ FBA 可售 ' + stock + ' 天，安全；按当前日销可撑过下一波降雪');
-    L.push('');
+    <a class="card" style="--c:#993556;--cb:#fbeaf0" href="ad-incremental/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18L10 12l4 4 6-8"/><path d="M16 6h4v4"/></svg></div>
+        <span class="tag">效果验证</span>
+      </div>
+      <h2>广告增量效应检测器</h2>
+      <p>回归法 + 对照法两种口径算「真实增量比」，给出真实 ACOS，并用盈亏平衡增量比回答该不该砍预算。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-    /* 六、活动报名提醒 */
-    L.push('━━ 六、活动报名提醒 ━━');
-    var ev = [
-      ['黑色星期五', '2026-11-27'],
-      ['网络星期一', '2026-11-30'],
-      ['圣诞节', '2026-12-25']
-    ];
-    ev.forEach(function(e){
-      var n = daysUntil(e[1]);
-      if (n >= 0){
-        var tip = '';
-        if (e[0] === '黑色星期五' && n <= 35) tip = ' → 秒杀/LD 报名窗口即将关闭，今天去后台确认推荐资格';
-        if (e[0] === '圣诞节') tip = ' → 雪挡最后销售窗口，之后进入淡季';
-        L.push('· ' + e[0] + ' ' + e[1] + '（还有 ' + n + ' 天）' + tip);
-      }
-    });
-    if (daysUntil('2026-11-27') > 35) L.push('· 黑五报名窗口通常 11 月初开启，提前把 Candidate Deals 准备好');
-    L.push('');
+  </div>
 
-    /* 七、Listing 自查 */
-    L.push('━━ 七、Listing 自查 ━━');
-    L.push('四站进度：' + listProgress());
-    L.push('（与雪季看板联动，在看板里勾选即同步；8 项：主图雪景/标题词根/五点适配/A+ 对照表/安装视频/QA 置顶/变体尺寸/价格与阶段匹配）');
-    L.push('');
+  <div class="sect"><h3>排名 · 选品 · 新品</h3><span class="cnt">3 个</span><span class="line"></span></div>
+  <div class="grid">
 
-    /* 八、雪后复盘 */
-    L.push('━━ 八、雪后复盘 ━━');
-    if (g === '回落期'){
-      L.push('本波降雪已结束，回看四个数：');
-      L.push('1) 转化率：雪日 vs 平日  2) ACOS：雪日是否在目标线内');
-      L.push('3) 排名：峰值冲上去没有、雪后掉多少  4) 退货：有无尺寸不符集中退货');
-      L.push('→ 雪日表现好的词单独建组，下一波直接提价');
-    } else {
-      L.push('当前无刚结束的降雪波，复盘内容留待雪后 2 天自动补上');
-    }
-    L.push('');
+    <a class="card" style="--c:#D85A30;--cb:#fdeceb" href="bsr-calculator/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18V9M12 18V4.5M18 18v-6"/><path d="M4 21h16"/></svg></div>
+        <span class="tag">排名冲刺</span>
+      </div>
+      <h2>BSR 反超测算器 Pro</h2>
+      <p>拟合类目集中度，推算 Top 1/3/5/10 各档所需日均单量；支持匀速、递增、促销爆量三种节奏，另含同比大盘诊断。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-    /* 九、市场情况 */
-    var lead = leadSite();
-    L.push('━━ 九、市场情况 ━━');
-    L.push('未来 14 天各站峰值指数：' + KEYS.map(function(k){ return SITES[k].nm.replace('站','') + ' ' + WX[k].fmax14; }).join(' · '));
-    L.push('→ ' + WX[lead].nm + '最先进入雪季（峰值 ' + WX[lead].fmax14 + '），广告火力优先对准它；');
-    L.push('其余站点趁低价养词根权重，等各自的雪来再切高倍预算。');
-    L.push('');
-    L.push('—— 由亚马逊运营工具箱自动生成');
-    return L.join('\n');
-  }
+    <a class="card" style="--c:#3B6D11;--cb:#ecf6e2" href="launch-sim/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 4.5c3.5-1.5 6-2 6-2s-.5 2.5-2 6c-1.2 2.8-3 5.2-5.3 7L9 12.8c1.8-2.3 4.2-4.1 7-5.3z"/><path d="M6.5 14.5c-1.2 1.2-1.5 4-1.5 4s2.8-.3 4-1.5"/></svg></div>
+        <span class="tag">新品决策</span>
+      </div>
+      <h2>新品上市成功率模拟</h2>
+      <p>给定期望名次与几个预算档，算出能否达标、多少天进榜、多少天回本，自动挑出「能达标的最省档位」。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  function buildCmd(){
-    var t = TPL.filter(function(x){ return x.id === cur; })[0];
-    var f = document.getElementById('freq').value;
-    var h = document.getElementById('hour').value;
-    var to = document.getElementById('to').value === 'me' ? '我本人（企业微信授权人）' : '雪挡运营群';
-    var bud = TK.num('budget') || 120;
-    var stock = TK.num('stock') || 30;
-    var limit = t.id === 'full' ? 900 : 400;
+    <a class="card" style="--c:#8A5A00;--cb:#fbf2e2" href="category-matrix/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M12 3.5v17M3.5 12h17"/><circle cx="8" cy="8" r="1.6" fill="#fff" stroke="none"/><circle cx="16" cy="16" r="2.2" fill="#fff" stroke="none"/></svg></div>
+        <span class="tag">选类目</span>
+      </div>
+      <h2>类目吸引力 × 进入难度矩阵</h2>
+      <p>候选类目按「能赚多少」和「打得进去吗」双维打分，落到四象限散点图，并算出启动资金与回本周期。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-    var when = {
-      daily: '每天早上 ' + h + '（北京时间）',
-      weekday: '每个工作日早上 ' + h + '（北京时间）',
-      weekly: '每周一早上 ' + h + '（北京时间）',
-      once: '现在执行一次，不重复',
-      cond3: '每天 ' + h + ' 检查一次，仅当未来 3 天有降雪时才发送',
-      cond1: '每天 ' + h + ' 检查一次，仅当未来 1 天有降雪时才发送',
-      condf: '每天 ' + h + ' 检查一次，仅当出现结霜日（零下无雪）时才发送'
-    }[f];
+  </div>
 
-    var lines = [];
-    lines.push('请帮我配置一条企业微信自动推送（用现有的「雪季每日作战简报」自动化，如果没有就新建一条；不要重复创建）。');
-    lines.push('');
-    lines.push('【发送时间】' + when);
-    lines.push('【发送对象】' + to);
-    lines.push('【内容模板】' + t.nm);
-    lines.push('【基础日广告预算】' + bud + ' 美金（用于换算建议预算金额）');
-    if (t.id === 'full') lines.push('【FBA 可售天数】' + stock + ' 天（用于库存提醒章节，之后每天由我在对话里更新）');
-    lines.push('');
-    lines.push('【执行要求】');
-    lines.push(t.cmd);
-    lines.push('消息用 markdown 发送，控制在 ' + limit + ' 字以内；不要写客套话，直接给判断和动作。');
-    lines.push('');
-    lines.push('【消息样式参考】');
-    lines.push('-----');
-    lines.push(buildMsg());
-    lines.push('-----');
-    return lines.join('\n');
-  }
+  <div class="sect"><h3>利润与成本</h3><span class="cnt">3 个</span><span class="line"></span></div>
+  <div class="grid">
 
-  function render(){
-    document.getElementById('picks').innerHTML = TPL.map(function(t){
-      return '<div class="pk' + (t.id === cur ? ' on' : '') + (t.big ? ' big' : '') + '" data-id="' + t.id + '">' +
-        '<div class="nm">' + t.nm + (t.role ? '<span class="rl">' + t.role + '</span>' : '') + '</div>' +
-        '<div class="ds">' + t.ds + '</div></div>';
-    }).join('');
-    [].forEach.call(document.querySelectorAll('.pk'), function(el){
-      el.addEventListener('click', function(){ cur = el.getAttribute('data-id'); render(); });
-    });
-    document.getElementById('msgPrev').textContent = buildMsg();
-    document.getElementById('cmdPrev').textContent = buildCmd();
-  }
+    <a class="card" style="--c:#185FA5;--cb:#e7effb" href="profit-calculator/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M9 9l3 3 3-3M12 12v4M9.6 14h4.8"/></svg></div>
+        <span class="tag">投入决策</span>
+      </div>
+      <h2>利润与广告承受力计算器</h2>
+      <p>算清单件毛利（含退货报废损失），推出盈亏平衡 CPA/ACOS 与允许 CPA，结合排名门槛算出卡位预算与回本天数。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  function copy(text, okMsg){
-    var ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); document.getElementById('msg').textContent = okMsg; }
-    catch(e){ document.getElementById('msg').textContent = '复制失败，请手动选择文本。'; }
-    document.body.removeChild(ta);
-  }
+    <a class="card" style="--c:#2F6F4E;--cb:#e7f2ec" href="fulfillment/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5h11v9h-11z"/><path d="M13.5 9.5h4l4 4v2h-8z"/><circle cx="6.5" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg></div>
+        <span class="tag">履约方式</span>
+      </div>
+      <h2>履约方式全成本对比</h2>
+      <p>FBA / 海外仓 / 自发货全成本对打，关键是把「不同履约方式对转化率的影响」也算进去，而非只比运费。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  document.getElementById('copyMsg').addEventListener('click', function(){
-    copy(document.getElementById('msgPrev').textContent, '消息内容已复制。');
-  });
-  document.getElementById('copyCmd').addEventListener('click', function(){
-    copy(document.getElementById('cmdPrev').textContent,
-      '指令已复制 —— 切到 WorkBuddy 对话框粘贴发送，它就会按这个时间和内容自动推送。');
-  });
+    <a class="card" style="--c:#6B3FA0;--cb:#f0eafa" href="fx-cash/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg></div>
+        <span class="tag">汇率账期</span>
+      </div>
+      <h2>汇率与账期对真实毛利的影响</h2>
+      <p>把汇率波动和账款占用折算成「相当于毛利率掉几个点」，并判断值不值得做汇兑管理。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
 
-  document.getElementById('freq').addEventListener('change', function(){
-    var v = this.value;
-    if (v === 'cond1' || v === 'cond3'){ cur = 'snow'; }
-    if (v === 'condf'){ cur = 'frost'; }
-    if (v === 'weekly'){ cur = 'ads'; }
-    render();
-  });
+  </div>
 
-  TK.bindAll(function(){ render(); });
-  render();
-  loadWx(function(){ render(); });
-})();
-</script>
+  <div class="sect"><h3>库存与资金</h3><span class="cnt">4 个</span><span class="line"></span></div>
+  <div class="grid">
+
+    <a class="card" style="--c:#854F0B;--cb:#fbf1e2" href="replenish/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5L12 4l8.5 3.5v9L12 20l-8.5-3.5v-9z"/><path d="M12 20v-6M12 14l4.5-2M12 14l-4.5-2"/></svg></div>
+        <span class="tag">补货预警</span>
+      </div>
+      <h2>库存与补货预警表</h2>
+      <p>库存还能卖几天、最晚哪天必须下单、要不要为赶时间改走快线，并算出「拖一天」的代价。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
+
+    <a class="card" style="--c:#A32D2D;--cb:#fbeaea" href="stockout-loss/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5L21 19H3l9-14.5z"/><path d="M12 10v4M12 16.8v.2"/></svg></div>
+        <span class="tag">风险测算</span>
+      </div>
+      <h2>断货损失与恢复成本</h2>
+      <p>断货几天掉多少名、恢复要约多少天烧多少钱，把「看不见的损失」换算成具体金额。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
+
+    <a class="card" style="--c:#4A5568;--cb:#eef0f3" href="excess-inventory/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5L12 4l8.5 4.5v7L12 20l-8.5-4.5v-7z"/><path d="M3.5 8.5L12 13l8.5-4.5M12 13v7"/></svg></div>
+        <span class="tag">库存处置</span>
+      </div>
+      <h2>冗余库存处置决策</h2>
+      <p>继续卖 / 降价清货 / 弃置 / 移除转运，四种方案的落袋现金对比，并算出「每犹豫一个月的拖延成本」。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
+
+    <a class="card" style="--c:#993556;--cb:#fbeaf0" href="variant-matrix/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><path d="M17 13.5v7M13.5 17h7"/></svg></div>
+        <span class="tag">结构优化</span>
+      </div>
+      <h2>多变体盈亏矩阵</h2>
+      <p>从 Excel 直接粘贴变体数据，标出该主推 / 该砍掉，并算出砍掉后释放的库存资金与广告预算。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
+
+  </div>
+
+  <div class="sect"><h3>节奏与风控</h3><span class="cnt">3 个</span><span class="line"></span></div>
+  <div class="grid">
+
+    <a class="card" style="--c:#2C5F2D;--cb:#e7f1e7" href="seasonality/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14c3-6 6 6 9 0s6-6 9 0"/><path d="M3 19h18"/></svg></div>
+        <span class="tag">季节性</span>
+      </div>
+      <h2>季节性去噪与入场窗口日历</h2>
+      <p>中心化移动平均剥掉淡旺季，看清真实增长，并输出月度季节指数、备货月份与广告投放节奏。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
+
+    <a class="card" style="--c:#B4532A;--cb:#fbece4" href="promo-planner/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/><path d="M9 14l6 3M15 14l-6 3"/></svg></div>
+        <span class="tag">大促规划</span>
+      </div>
+      <h2>大促节奏与预算规划器</h2>
+      <p>预热 / 爆发 / 恢复三段的单量曲线、让利与广告预算一起算，三档力度对比并做库存断货校验。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
+
+    <a class="card" style="--c:#534AB7;--cb:#edebfa" href="account-health/">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l7 2.6v5.6c0 4.2-2.8 7.4-7 8.8-4.2-1.4-7-4.6-7-8.8V6.1l7-2.6z"/><path d="M9 12.2l2.2 2.2L15.4 10"/></svg></div>
+        <span class="tag">账号安全</span>
+      </div>
+      <h2>账号绩效红线预警</h2>
+      <p>ODR、取消率、迟发率、有效追踪率、回复率换算成「离红线还有多远」，给出健康分与排序的处理动作。</p>
+      <span class="go">打开工具 <i>→</i></span>
+    </a>
+
+  </div>
+
+  <div class="sect"><h3>配套文档</h3><span class="cnt">1 份</span><span class="line"></span></div>
+  <div class="grid">
+    <a class="card" style="--c:#4B5563;--cb:#eef0f3" href="亚马逊BSR运营作战方案.md">
+      <div class="top">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 015.5 4H10a2.5 2.5 0 012.5 2.5V19a2 2 0 00-2-2H5.5A1.5 1.5 0 014 17V5.5z"/><path d="M20 5.5A1.5 1.5 0 0018.5 4H14a2.5 2.5 0 00-2.5 2.5V19a2 2 0 012-2h4.5a1.5 1.5 0 001.5-1.5V5.5z"/></svg></div>
+        <span class="tag">方法论</span>
+      </div>
+      <h2>亚马逊 BSR 运营作战方案</h2>
+      <p>口径定义、输入字段与缺失替代、敏感性分析、日常采集频率与字段、归因五步法、卡位与广告/促销节奏配合、季节性修正、落地检查清单。</p>
+      <span class="go">阅读文档 <i>→</i></span>
+    </a>
+  </div>
+
+  <div class="sect"><h3>推荐决策闭环</h3><span class="line"></span></div>
+  <div class="flow">
+    <div class="hd">从「要不要冲」到「怎么兜底」，三个工具串成一条线</div>
+    <div class="sub">按顺序走完这三步，一次卡位决策所需的判断依据就齐了。</div>
+    <div class="steps">
+      <div class="step">
+        <span class="n">1</span>
+        <div class="t">能不能冲得上</div>
+        <div class="d">BSR 测算器确认目标门槛 U*、所需日均单量与达成天数</div>
+      </div>
+      <div class="step">
+        <span class="n">2</span>
+        <div class="t">值不值得冲</div>
+        <div class="d">利润计算器算允许 CPA、所需预算与回本天数</div>
+      </div>
+      <div class="step">
+        <span class="n">3</span>
+        <div class="t">怎么执行与兜底</div>
+        <div class="d">新品模拟 + 断货测算 + 红线预警做前置风控</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sect"><h3>使用说明</h3><span class="line"></span></div>
+  <div class="note">
+    <div class="hd">开始之前，知道这四件事就够了</div>
+    <ul>
+      <li>所有计算均在<b>你的浏览器本地完成</b>，输入的经营数据不会上传到任何服务器。</li>
+      <li>「雪季实时作战看板」会实时请求公开气象接口（Open-Meteo），<b>只发送城市坐标，不发送任何经营数据</b>，所以每次打开都是最新预报。</li>
+      <li>每个工具都是单页网页，可保存离线使用，也可 iframe 嵌进你自己的系统。</li>
+      <li>基于公开经验模型（幂律门槛 + 加权滚动窗口等），亚马逊真实算法未公开，结果用于<b>方向判断与排期参考</b>，不构成收益承诺。</li>
+      <li>带输入框的工具都支持实时联动 —— 改任意一个数字，结果会立刻重算，方便做情景对比。</li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>
+  亚马逊运营工具箱 · 25 个工具持续更新<br>
+  发现问题或有想要的工具？欢迎在 GitHub 提 Issue
+</footer>
+
 </body>
 </html>
