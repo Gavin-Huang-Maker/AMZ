@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/33796503/README.md)
 # 亚马逊卖家运营工具箱
 
 精选亚马逊卖家常用在线小工具，**打开网页即用，无需安装、无需注册、免费**。
@@ -82,11 +81,13 @@ python -m http.server 8000
 
 ```text
 仓库根目录/
-├── index.html                     # BSR 反超测算器 Pro（单文件，含样式与逻辑）
-├── 亚马逊BSR运营作战方案.md         # BSR 配套方法论文档
+├── index.html                       # 首页导航（所有工具的入口）
+├── 亚马逊BSR运营作战方案.md           # BSR 配套方法论文档
+├── bsr-calculator/
+│   └── index.html                 # BSR 反超测算器 Pro
 ├── profit-calculator/
-│   └── index.html               # 利润与广告承受力计算器
-└── README.md                    # 本说明文档
+│   └── index.html                 # 利润与广告承受力计算器
+└── README.md                      # 本说明文档
 ```
 
 新增工具时，建议新建一个文件夹（如 `profit-calculator/`），每个文件夹放一个独立的 `index.html`，互不干扰、方便单独部署。
