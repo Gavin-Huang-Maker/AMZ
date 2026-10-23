@@ -100,13 +100,15 @@
     <div class="steps">
       <div class="s"><span class="n">1</span><div class="t">把书签拖到书签栏</div><div class="d">
         <a id="bm" class="btn" style="display:inline-block;text-decoration:none" href="#">📋 抓取本页文案（拖我到书签栏）</a>
+        <span style="display:inline-block;margin-top:6px;font-size:11px;color:var(--ok);background:var(--oksoft);border-radius:6px;padding:2px 8px">书签版本 v3 · 10-23 · 看不到这行就是旧版，请 Ctrl+Shift+R 后重新拖</span>
         <div style="margin-top:8px;font-size:11.5px;color:var(--hint)">用鼠标把这个按钮<b>拖到浏览器的书签栏</b>（Ctrl+Shift+B 可显示书签栏）。Chrome / Edge 都支持。</div>
       </div></div>
-      <div class="s"><span class="n">2</span><div class="t">在平台页面点它</div><div class="d">打开 TikTok 搜索页或话题页、IG 话题页、YouTube 搜索页、Reddit 搜索页 —— <b>先往下滚两三屏</b>让内容加载出来，再点书签栏里那个书签，会提示「已复制 N 条」。</div></div>
-      <div class="s"><span class="n">3</span><div class="t">回来点「从剪贴板导入」</div><div class="d">就是上面粘贴区旁边的那个按钮，点完词榜立刻重算，标签、词频、词包全部按你抓来的真内容重出。</div></div>
+      <div class="s"><span class="n">2</span><div class="t">先搜索，再点它</div><div class="d">打开 TikTok / IG / YouTube 后，<b>必须先搜索关键词</b>（推荐页 foryou 里没有文案，抓不到东西）。最省事：在本工具站点面板点「一键直达」的按钮，开出来就是搜好的结果页；或自己在顶部搜索框输入 heated shoulder brace 这类词。搜索结果出来后<b>先往下滚两三屏</b>，再点书签栏里那个书签 —— 会自动弹出一个词雷达页面，文案已填好、词榜已重算。</div></div>
+      <div class="s"><span class="n">3</span><div class="t">没弹窗时的备用动作</div><div class="d">书签除了自动开页，也把文案复制进了剪贴板。如果自动弹出的页面没动静，回到本页点「从剪贴板导入」，或直接在粘贴框里 Ctrl + V，效果一样。</div></div>
     </div>
     <div class="callout co-warn" style="margin-top:12px">
-      <b>只抓到几条怎么办：</b>这些页面是滚动加载的，滚得越多抓得越多。滚完再点一次书签即可，代码是幂等的，重复内容会自动去重。<br>
+      <b>抓不到文案，九成是这一个原因：</b>你停留在<b>推荐页</b>（地址是 tiktok.com/foryou 这种）—— 推荐页的视频下面只有「原声 - 作者名」，没有文案，抓什么都是空的。必须<b>先搜索</b>：地址栏出现 <b>/search?q=你的词</b> 才是搜索结果页，滚两屏再点书签就有东西。<br>
+      <b>只抓到几条怎么办：</b>这些页面是滚动加载的，滚得越多抓得越多。滚完再点一次书签即可，重复内容会自动去重，「原声 - xxx」这类噪音已自动过滤。<br>
       <b>什么都没抓到：</b>页面结构变了（平台会改版）时也偶尔失效 —— 这时直接手动框选页面上的文案复制，粘贴到上面的框里，效果完全一样。
     </div>
   </div>
@@ -162,16 +164,34 @@
     });
   }
 
-  function run(){
+  function run(offline){
     var btn = document.getElementById('loadBtn');
+    var st = document.getElementById('status');
     btn.disabled = true;
     btn.innerHTML = '<span class="spin"></span>抓取中…';
-    document.getElementById('status').innerHTML = '<span class="spin" style="border-color:#888;border-top-color:#fff"></span>正在尝试三个通道…';
+    st.innerHTML = '<span class="spin" style="border-color:#888;border-top-color:#fff"></span>正在尝试三个通道…';
 
     PASTED = (document.getElementById('paste').value || '')
       .split('\n').map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 8; });
 
     var key = KEYS.indexOf(CUR) >= 0 ? CUR : 'US';
+
+    /* 书签导入走这条：不等在线通道，立刻用粘贴内容出结果 */
+    if (offline === true){
+      var lang0 = H.SITES[key].lang;
+      var kb0 = document.getElementById('usekb').value === '1';
+      SOURCES = {
+        reddit:{ ok:false }, google:{ ok:false }, youtube:{ ok:false },
+        paste: PASTED.length ? { ok:true, n:PASTED.length } : { ok:false },
+        kb: kb0
+      };
+      buildData(key, lang0, [], [], [], PASTED);
+      render();
+      st.innerHTML = '已导入 ' + PASTED.length + ' 行粘贴内容，词榜已按这些内容重算（未走在线通道，想补在线数据再点「抓取在线讨论与联想词」）。';
+      btn.disabled = false;
+      btn.textContent = '重新抓取';
+      return;
+    }
     var seeds = H.SEEDS[key].slice(0, 8);
     var lang = H.SITES[key].lang;
 
@@ -338,8 +358,9 @@
     function enc(s){ return encodeURIComponent(s); }
     function slug(s){ return s.replace(/[^a-z0-9äöüß]/gi, '').toLowerCase(); }
     var rows = [
-      { nm:'TikTok 搜索', hint:'登录后内容最全、最贴近当下', f:function(q){ return 'https://www.tiktok.com/search?q=' + enc(q); } },
-      { nm:'YouTube 搜索', hint:'公开免登录，标题写得最完整', f:function(q){ return 'https://www.youtube.com/results?search_query=' + enc(q); } },
+      { nm:'TikTok 搜索', hint:'必须登录！未登录点搜索会被踹回推荐页', f:function(q){ return 'https://www.tiktok.com/search?q=' + enc(q); } },
+      { nm:'Google 搜 TK', hint:'免登录，Google 结果里就是 TK 视频标题', f:function(q){ return 'https://www.google.com/search?q=' + enc('site:tiktok.com ' + q) + '&num=30'; } },
+      { nm:'YouTube 搜索', hint:'免登录，标题写得最完整', f:function(q){ return 'https://www.youtube.com/results?search_query=' + enc(q); } },
       { nm:'Instagram 话题', hint:'需登录，看你账号所在地区', f:function(q){ return 'https://www.instagram.com/explore/tags/' + slug(q) + '/'; } },
       { nm:'Reddit 搜索', hint:'症状与人群的原生语言', f:function(q){ return 'https://www.reddit.com/search/?q=' + enc(q) + '&sort=top&t=year'; } }
     ];
@@ -517,9 +538,29 @@
   };
 
   /* 书签小工具：在你已登录的浏览器里抓当前页面的文案 */
-  var BM = 'javascript:(function(){var out=[],seen={};function add(t){t=(t||"").replace(/\s+/g," ").trim();if(t.length>12&&!seen[t]&&out.length<60){seen[t]=1;out.push(t);}}document.querySelectorAll("a[href*=\"/video/\"],a[href*=\"/reel/\"],a[href*=\"/reels/\"],a[href*=\"/p/\"]").forEach(function(a){add(a.innerText);});if(out.length<5){document.querySelectorAll("span[dir=\"auto\"],div[class*=\"Desc\"],h1,h2,article,[data-e2e]").forEach(function(e){if(e.children.length<4){add(e.innerText);}});}if(!out.length){alert("没抓到文案，先往下滚两三屏再点一次");return;}var ta=document.createElement("textarea");ta.value=out.join("\\n");document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);alert("已复制 "+out.length+" 条文案，回到词雷达点「从剪贴板导入」");})();';
+  var BM = ('javascript:(function(){var u=location.href;var out=[],seen={};function add(t){t=(t||@SQ@@SQ@).replace(/@BS@s+/g,@SQ@ @SQ@).trim();if(/^(原声|原聲|original sound|intro|outro|features|positives|negatives|pros|cons|chapters?)@BS@b/i.test(t)||/^@BS@d{1,2}:@BS@d{2}/.test(t))return;if(t.length>12&&!seen[t]&&out.length<60){seen[t]=1;out.push(t);}}document.querySelectorAll(@SQ@a[href*=@DQ@/video/@DQ@],a[href*=@DQ@/reel/@DQ@],a[href*=@DQ@/reels/@DQ@],a[href*=@DQ@/p/@DQ@],a[href*=@DQ@/watch@DQ@]@SQ@).forEach(function(a){add(a.innerText);});if(out.length<5){document.querySelectorAll(@SQ@span[dir=@DQ@auto@DQ@],div[class*=@DQ@Desc@DQ@],h1,h2,h3,article,[data-e2e]@SQ@).forEach(function(e){if(e.children.length<4){add(e.innerText);}});}if(!out.length){var s=u.indexOf(@SQ@search@SQ@)>=0||u.indexOf(@SQ@/tag@SQ@)>=0||u.indexOf(@SQ@/t/@SQ@)>=0;alert(s?@SQ@没抓到文案：先往下滚两三屏让内容加载，再点一次书签@SQ@:@SQ@这一页抓不到文案 —— 你现在在推荐页，推荐页没有文案。先在顶部搜索框输入关键词搜索（或回词雷达点「一键直达」按钮），出了搜索结果再点书签@SQ@);return;}var txt=out.join(@SQ@@BS@n@SQ@);try{var ta=document.createElement(@SQ@textarea@SQ@);ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand(@SQ@copy@SQ@);document.body.removeChild(ta);}catch(e){}window.open(@SQ@https://gavin-huang-maker.github.io/AMZ/heated-demand-radar/index.html#import=@SQ@+encodeURIComponent(txt),@SQ@amz_radar@SQ@);})();')
+    .replace(/@BS@/g, String.fromCharCode(92))
+    .replace(/@DQ@/g, String.fromCharCode(34))
+    .replace(/@SQ@/g, String.fromCharCode(39));
   var bm = document.getElementById('bm');
   if (bm) bm.setAttribute('href', BM);
+
+  /* 书签抓完会自动打开本页并带上 #import= 数据，这里接住并自动分析 */
+  var IMPORTED = false;
+  (function(){
+    var h = location.hash || '';
+    if (h.indexOf('#import=') !== 0) return;
+    try{
+      var txt = decodeURIComponent(h.slice(8));
+      var ta = document.getElementById('paste');
+      if (ta && txt){
+        ta.value = (ta.value && ta.value.trim() ? ta.value.replace(/\s+$/,'') + '\n' : '') + txt;
+        history.replaceState(null, '', location.pathname + location.search);
+        IMPORTED = true;
+        run(true);
+      }
+    }catch(e){}
+  })();
 
   window.fromClip = function(){
     var ta = document.getElementById('paste'), tip = document.getElementById('status');
@@ -553,13 +594,15 @@
     if (DATA){ buildData(DATA.key, DATA.lang, [], [], [], PASTED); render(); }
   });
 
-  /* 首次进入：直接用内置词库给个成品，不让页面空着 */
-  PASTED = [];
-  SOURCES = { reddit:{ok:false}, google:{ok:false}, youtube:{ok:false}, paste:{ok:false}, kb:true };
-  buildData('US', 'en', [], [], [], []);
-  render();
-  document.getElementById('status').textContent =
-    '已用内置词库生成一份示意结果 —— 点上面的按钮尝试在线通道，或在粘贴框放几行内容即时重算。';
+  /* 首次进入：直接用内置词库给个成品，不让页面空着（书签导入时不覆盖） */
+  if (!IMPORTED){
+    PASTED = [];
+    SOURCES = { reddit:{ok:false}, google:{ok:false}, youtube:{ok:false}, paste:{ok:false}, kb:true };
+    buildData('US', 'en', [], [], [], []);
+    render();
+    document.getElementById('status').textContent =
+      '已用内置词库生成一份示意结果 —— 点上面的按钮尝试在线通道，或在粘贴框放几行内容即时重算。';
+  }
 })();
 </script>
 </body>
