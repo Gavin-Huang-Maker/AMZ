@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>加热品类广告结构与出价器 · 亚马逊运营工具箱</title>
+<link rel="stylesheet" href="../assets/tool.css">
+<style>
+  .hero{background:linear-gradient(135deg,#123f2e,#1d6e50 55%,#2a8a63);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;}
+  .hero h1{color:#fff;margin:0 0 8px;font-size:22px;}
+  .hero .sub{color:rgba(255,255,255,.9);font-size:13.5px;line-height:1.75;margin:0;}
+  .hero .sub b{color:#fff;}
+  @media (prefers-color-scheme: dark){ .hero{background:linear-gradient(135deg,#0c2a1e,#12402e 55%,#1a543c);} }
+  .k-US{--sc:#2F3F4C;} .k-CA{--sc:#9C3450;} .k-UK{--sc:#0B4F6C;} .k-DE{--sc:#8A4B12;}
+  .sitebar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .sbtn{font-family:inherit;font-size:13px;padding:8px 15px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;color:var(--text);}
+  .sbtn.on{border-color:var(--sc);box-shadow:0 0 0 2px rgba(0,0,0,.06);font-weight:600;}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:11px;margin:14px 0;}
+  .sb{border:1px solid var(--border);border-radius:14px;padding:14px 16px;background:var(--card);}
+  .sb .k{font-size:12px;color:var(--muted);margin-bottom:5px;}
+  .sb .v{font-size:22px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;}
+  .sb .m{font-size:12px;color:var(--muted);margin-top:4px;}
+  .warn{border-left:3px solid var(--warn);background:var(--warnsoft);border-radius:0 10px 10px 0;padding:10px 14px;font-size:12.5px;margin:8px 0;color:var(--warn);}
+  .ok2{border-left:3px solid var(--ok);background:var(--oksoft);border-radius:0 10px 10px 0;padding:10px 14px;font-size:12.5px;margin:8px 0;color:var(--ok);}
+  .badge2{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;color:#fff;}
+  pre.pack{white-space:pre-wrap;font-size:12.5px;line-height:1.85;background:var(--row-alt);border-radius:10px;padding:13px 15px;font-family:ui-monospace,Menlo,Consolas,monospace;max-height:440px;overflow:auto;}
+  .btnrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;}
+  .btn{font-family:inherit;font-size:13.5px;font-weight:500;padding:9px 16px;border-radius:10px;cursor:pointer;border:1px solid var(--border-strong);background:var(--card);color:var(--text);}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-p{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn-p:hover{background:#c94c08;color:#fff;}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">← 返回工具箱</a>
+<div class="page">
+
+  <div class="hero">
+    <h1>🎯 加热类目广告结构与出价器</h1>
+    <p class="sub">加热护具是<b>低频高客单、晚间搜索、Q4 礼物季爆发</b>的类目 —— 照搬通用品类的广告打法一定亏。
+      这里根据你的<b>允许 CPA</b>（利润器里算好的）和站点竞价水平，自动给出结构分配、bid 区间、分时策略和每阶段动作。</p>
+  </div>
+
+  <div class="card">
+    <h2>1. 基础参数</h2>
+    <div class="sitebar" id="sitebar"></div>
+    <div class="fields">
+      <div class="field"><label>产品单价 <span class="unit">$</span></label><input id="price" type="number" value="59.99" step="0.01"></div>
+      <div class="field"><label>允许 CPA <span class="unit">$ / 单</span></label><input id="cpa" type="number" value="9.00" step="0.01"></div>
+      <div class="field"><label>类目转化率 <span class="unit">%</span></label><input id="cvr" type="number" value="12" step="0.5"></div>
+      <div class="field"><label>总日预算 <span class="unit">$</span></label><input id="budget" type="number" value="60"></div>
+      <div class="field"><label>产品阶段</label><select id="stage">
+        <option value="new">新品期（上架 30 天内，攒数据）</option>
+        <option value="grow" selected>成长期（有 20+ 评论）</option>
+        <option value="peak">爆发期（11-12 月礼物季）</option>
+        <option value="steady">平稳期（春季回落）</option>
+      </select></div>
+    </div>
+    <p class="note">允许 CPA 来自「加热护具利润器」的输出（单件毛利 − 售价 × 目标净利率）。转化率先用类目均值 8%，跑两周后换成你广告后台的真实值。</p>
+  </div>
+
+  <div class="card" id="out"></div>
+
+  <div class="card">
+    <h2>加热类目的三条铁律（为什么这么分配）</h2>
+    <div class="kv"><span>① 转化发生在晚上</span><b>搜索高峰 19:00–23:00（下班到家才想起来肩疼）。白天 bid 降到 70%，晚间拉到 120%，同样的钱多买 30% 的转化</b></div>
+    <div class="kv"><span>② 自动广告只当侦察兵</span><b>自动组预算永不超过 20%，出单词 7 天内搬运到精准组，然后自动组否定该词 —— 否则自动组会一直烧钱重复买你已经赢的词</b></div>
+    <div class="kv"><span>③ 礼物季换人群不换产品</span><b>11 月起 40% 流量切 gift 受众（SD：给父母/长辈买礼物人群），主图第 2 张换成礼盒场景。产品还是那个产品，叙事完全不同</b></div>
+    <p class="note">表格里的 bid 是「建议竞价」的系数，不是最终出价 —— 后台建议竞价每天变，系数不变。跑两周后把实际 ACOS 回填进来对照。</p>
+  </div>
+
+  <footer>亚马逊运营工具箱 · 加热类目广告结构与出价器</footer>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script src="../assets/heated_kb.js"></script>
+<script>
+(function(){
+  'use strict';
+  var H = window.HEATED;
+  var CUR = 'US';
+
+  var STAGE = {
+    new:   { nm:'新品期', bidAuto:0.7, bidExact:1.10, bidBroad:0.75, note:'目标是攒词与评论，允许 ACOS 超标 20%，但每次点击都要沉淀成搜索词数据' },
+    grow:  { nm:'成长期', bidAuto:0.6, bidExact:1.00, bidBroad:0.70, note:'主力推精准组，把预算集中到已验证出单的 10-15 个词上' },
+    peak:  { nm:'爆发期（礼物季）', bidAuto:0.6, bidExact:1.25, bidBroad:0.85, note:'11 月起精准词 bid 上浮 25%，同时开 SD 礼物受众 —— 这两个月挣一年的钱' },
+    steady:{ nm:'平稳期', bidAuto:0.5, bidExact:0.85, bidBroad:0.60, note:'全面收缩，只保留自然排名首页的那几个词，其余 bid 降到保底' }
+  };
+
+  function renderSitebar(){
+    document.getElementById('sitebar').innerHTML = H.KEYS.map(function(k){
+      return '<button class="sbtn k-' + k + (k === CUR ? ' on' : '') + '" data-k="' + k + '">' +
+             H.SITES[k].flag + ' ' + H.SITES[k].nm + '</button>';
+    }).join('');
+    [].forEach.call(document.querySelectorAll('.sbtn'), function(b){
+      b.onclick = function(){ CUR = b.getAttribute('data-k'); renderSitebar(); render(); };
+    });
+  }
+
+  function calc(){
+    var price = +document.getElementById('price').value || 59.99;
+    var cpa   = +document.getElementById('cpa').value || 6;
+    var cvr   = (+document.getElementById('cvr').value || 8) / 100;
+    var bud   = +document.getElementById('budget').value || 60;
+    var stKey = document.getElementById('stage').value;
+    var st = STAGE[stKey];
+    var site = H.SITES[CUR];
+
+    var cpc = site.cpc * 1.0;                     // 站点平均 CPC
+    var beakACOS = cpa / price;                   // 保本 ACOS
+    var targetACOS = beakACOS * 0.8;              // 留 20% 安全垫
+    var clicks = bud / cpc;
+    var orders = clicks * cvr;
+    var realCPA = orders > 0 ? bud / orders : 0;
+    var cvrFloor = cpc / cpa;                     // 该预算下不亏的最低转化率
+
+    var rows = [
+      { nm:'自动 · 侦察', share:0.20, bid:cpc * st.bidAuto, why:'只找新词；出单词 7 天内搬进精准组并否定' },
+      { nm:'手动 · 精准', share:0.55, bid:cpc * st.bidExact, why:'主力出单组，只放已验证的词（来自需求词雷达）' },
+      { nm:'手动 · 广泛', share:0.15, bid:cpc * st.bidBroad, why:'场景词根：driving / desk / night / outdoor / gift' },
+      { nm:'SD · 兴趣受众', share:0.10, bid:0, why:'按人群标签定向（司机/办公/长辈/礼物）' }
+    ];
+    return { price:price, cpa:cpa, cvr:cvr, bud:bud, st:st, stKey:stKey, site:site,
+             cpc:cpc, beakACOS:beakACOS, targetACOS:targetACOS, clicks:clicks,
+             orders:orders, realCPA:realCPA, cvrFloor:cvrFloor, rows:rows };
+  }
+
+  function render(){
+    var r = calc();
+    var h = '<h2>2. 结构与出价（' + r.site.flag + ' ' + r.site.nm + ' · ' + r.st.nm + '）</h2>';
+    h += '<p class="desc">' + r.st.note + '</p>';
+
+    h += '<div class="stats">' +
+      '<div class="sb"><div class="k">保本 ACOS</div><div class="v">' + (r.beakACOS * 100).toFixed(1) + '%</div><div class="m">允许 CPA $' + r.cpa.toFixed(2) + ' ÷ 售价 $' + r.price.toFixed(2) + '</div></div>' +
+      '<div class="sb"><div class="k">建议目标 ACOS</div><div class="v">' + (r.targetACOS * 100).toFixed(1) + '%</div><div class="m">保本 × 0.8，留安全垫</div></div>' +
+      '<div class="sb"><div class="k">预估日出单</div><div class="v">' + r.orders.toFixed(1) + '<small> 单</small></div><div class="m">预算 $' + r.bud + ' ÷ CPC $' + r.cpc.toFixed(2) + ' × CVR ' + (r.cvr * 100).toFixed(1) + '%</div></div>' +
+      '<div class="sb"><div class="k">实际 CPA</div><div class="v">$' + r.realCPA.toFixed(2) + '</div><div class="m">' + (r.realCPA <= r.cpa ? '在允许范围内 ✓' : '超过允许 CPA ⚠') + '</div></div>' +
+    '</div>';
+
+    if (r.realCPA > r.cpa){
+      h += '<div class="warn">当前参数下实际 CPA（$' + r.realCPA.toFixed(2) + '）已超过允许 CPA（$' + r.cpa.toFixed(2) + '）。' +
+           '三个解法：① 转化率提到 ' + (r.cvrFloor * 100).toFixed(1) + '% 以上（先优化主图与首屏评价）；' +
+           '② 把出单集中在转化率最高的 5 个精准词上；③ 降低自动组预算占比。</div>';
+    } else {
+      h += '<div class="ok2">当前结构下实际 CPA $' + r.realCPA.toFixed(2) + ' ≤ 允许 $' + r.cpa.toFixed(2) + '，结构成立。剩余空间可以加到 SD 受众组测试礼物人群。</div>';
+    }
+
+    h += '<h3 style="font-size:14px;font-weight:600;margin:14px 0 10px">预算分配与 bid 区间</h3>';
+    h += '<div class="scroll"><table><thead><tr><th>广告组</th><th>占比</th><th>日预算</th><th>建议 bid</th><th>这个组干什么</th></tr></thead><tbody>';
+    r.rows.forEach(function(row){
+      h += '<tr><td><b>' + row.nm + '</b></td>' +
+           '<td class="num">' + Math.round(row.share * 100) + '%</td>' +
+           '<td class="num">$' + (r.bud * row.share).toFixed(2) + '</td>' +
+           '<td class="num">' + (row.bid > 0 ? '$' + row.bid.toFixed(2) + '<span class="tag">（后台建议 × ' + (row.bid / r.cpc).toFixed(2) + '）</span>' : '<span class="badge b-idle">CPM 竞价</span>') + '</td>' +
+           '<td>' + row.why + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+
+    /* 分时 */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:16px 0 10px">分时出价（加热品类专属）</h3>';
+    h += '<div class="scroll"><table><thead><tr><th>时段（站点本地时间）</th><th>bid 系数</th><th>为什么</th></tr></thead><tbody>' +
+      '<tr><td class="num">00:00 – 08:00</td><td class="num">60%</td><td>睡眠时段，点击少且多为无意图浏览</td></tr>' +
+      '<tr><td class="num">08:00 – 17:00</td><td class="num">70%</td><td>工作时间，搜索多为办公场景铺垫，先低价曝光</td></tr>' +
+      '<tr><td class="num">17:00 – 19:00</td><td class="num">100%</td><td>下班通勤开始想起疼痛</td></tr>' +
+      '<tr><td class="num">19:00 – 23:00</td><td class="num">120%</td><td><b>黄金时段</b>：夜里疼痛最明显，转化率全天最高</td></tr>' +
+      '<tr><td class="num">23:00 – 24:00</td><td class="num">90%</td><td>回落但仍有睡前搜索</td></tr>' +
+      '</tbody></table></div>';
+    if (r.stKey === 'peak'){
+      h += '<div class="warn">礼物季提示（11 月 1 日 – 12 月 20 日）：SD 礼物受众预算提到 25%；主图第 2 张换礼盒场景；标题句式换成 gift-for 句式（表达矩阵里一键切换）；黑五前两周精准词 bid 再 +20%，因为竞争陡增。</div>';
+    }
+
+    /* 词包入口 */
+    var seeds = H.SEEDS[CUR];
+    h += '<h3 style="font-size:14px;font-weight:600;margin:16px 0 10px">精准组首选词（本站点种子词，跑两周后按报表替换）</h3>';
+    h += '<p class="note" style="margin-top:0">' + seeds.slice(0, 10).join(' · ') + '</p>';
+    h += '<p class="note">更多词来自「需求词雷达」的高频词组榜 —— 出过单的词永远优先于任何词表。</p>';
+
+    /* 输出 */
+    var L = [];
+    L.push('【' + r.site.nm + ' · 广告结构方案】' + r.st.nm);
+    L.push('售价 $' + r.price.toFixed(2) + '｜允许 CPA $' + r.cpa.toFixed(2) + '｜保本 ACOS ' + (r.beakACOS * 100).toFixed(1) + '%｜目标 ACOS ' + (r.targetACOS * 100).toFixed(1) + '%');
+    L.push('日预算 $' + r.bud + ' → 预估 ' + r.clicks.toFixed(0) + ' 次点击 / ' + r.orders.toFixed(1) + ' 单 / 实际 CPA $' + r.realCPA.toFixed(2));
+    L.push('');
+    r.rows.forEach(function(row){
+      L.push('· ' + row.nm + '：' + Math.round(row.share * 100) + '%（$' + (r.bud * row.share).toFixed(2) + '/天）' +
+             (row.bid > 0 ? '，bid ≈ $' + row.bid.toFixed(2) : '，CPM 竞价') + ' —— ' + row.why);
+    });
+    L.push('');
+    L.push('分时：白天 70%，19:00-23:00 拉到 120%（加热品类黄金时段）');
+    if (r.stKey === 'peak') L.push('礼物季：SD 预算提到 25%，主图第 2 张换礼盒，黑五前两周精准 bid +20%');
+    L.push('');
+    L.push('首批精准词：' + seeds.slice(0, 8).join(', '));
+
+    h += '<h3 style="font-size:14px;font-weight:600;margin:16px 0 10px">完整方案（一键复制发企微）</h3>';
+    h += '<pre class="pack" id="pack">' + L.join('\n') + '</pre>';
+    h += '<div class="btnrow"><button class="btn btn-p" onclick="copyAll()">复制方案</button><span class="tag" id="copyTip"></span></div>';
+
+    document.getElementById('out').innerHTML = h;
+  }
+
+  window.copyAll = function(){
+    var ta = document.createElement('textarea');
+    ta.value = document.getElementById('pack').textContent;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); document.getElementById('copyTip').textContent = '已复制 ✓'; }
+    catch(e){ document.getElementById('copyTip').textContent = '复制失败'; }
+    document.body.removeChild(ta);
+    setTimeout(function(){ var t = document.getElementById('copyTip'); if (t) t.textContent = ''; }, 2000);
+  };
+
+  ['price','cpa','cvr','budget','stage'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', render);
+  });
+  renderSitebar();
+  render();
+})();
+</script>
+</body>
+</html>

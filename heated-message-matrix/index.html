@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>加热品类表达矩阵 · 亚马逊运营工具箱</title>
+<link rel="stylesheet" href="../assets/tool.css">
+<style>
+  .hero{background:linear-gradient(135deg,#4a2380,#5d3aa8 55%,#7a52c4);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;}
+  .hero h1{color:#fff;margin:0 0 8px;font-size:22px;}
+  .hero .sub{color:rgba(255,255,255,.9);font-size:13.5px;line-height:1.75;margin:0;}
+  .hero .sub b{color:#fff;}
+  @media (prefers-color-scheme: dark){ .hero{background:linear-gradient(135deg,#2c1a4d,#3a2568 55%,#4a2f80);} }
+  .k-US{--sc:#2F3F4C;} .k-CA{--sc:#9C3450;} .k-UK{--sc:#0B4F6C;} .k-DE{--sc:#8A4B12;}
+  .sitebar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .sbtn{font-family:inherit;font-size:13px;padding:8px 15px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;color:var(--text);}
+  .sbtn.on{border-color:var(--sc);box-shadow:0 0 0 2px rgba(0,0,0,.06);font-weight:600;}
+  .pickrow{margin-bottom:12px;}
+  .pickrow .g{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:5px 13px;font-size:12.5px;background:var(--card);cursor:pointer;margin:0 6px 6px 0;}
+  .chip:hover{border-color:var(--border-strong);}
+  .chip.on{border-color:#5d3aa8;background:#EEEDFE;color:#3C3489;font-weight:600;}
+  @media (prefers-color-scheme: dark){ .chip.on{background:#2c2450;color:#cfc8f2;border-color:#7a52c4;} }
+  .blk{border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:12px;background:var(--card);}
+  .blk h3{font-size:14px;font-weight:600;margin:0 0 10px;display:flex;align-items:center;gap:8px;}
+  .blk h3 .why{font-size:11.5px;font-weight:400;color:var(--muted);}
+  .blk ol.n,.blk ul.n{padding-left:20px;font-size:13px;color:var(--text);}
+  .blk li{margin-bottom:8px;line-height:1.7;}
+  .blk .en{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
+  .risk{border-left:3px solid var(--bad);background:var(--badsoft);border-radius:0 10px 10px 0;padding:10px 14px;font-size:12.5px;margin:8px 0;color:var(--bad);}
+  .ok2{border-left:3px solid var(--ok);background:var(--oksoft);border-radius:0 10px 10px 0;padding:10px 14px;font-size:12.5px;margin:8px 0;color:var(--ok);}
+  .btnrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;}
+  .btn{font-family:inherit;font-size:13.5px;font-weight:500;padding:9px 16px;border-radius:10px;cursor:pointer;border:1px solid var(--border-strong);background:var(--card);color:var(--text);}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-p{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn-p:hover{background:#c94c08;color:#fff;}
+  pre.pack{white-space:pre-wrap;font-size:12.5px;line-height:1.85;background:var(--row-alt);border-radius:10px;padding:13px 15px;font-family:ui-monospace,Menlo,Consolas,monospace;max-height:460px;overflow:auto;}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">← 返回工具箱</a>
+<div class="page">
+
+  <div class="hero">
+    <h1>✍️ 加热品类表达矩阵</h1>
+    <p class="sub">把「需求词雷达」抓到的<b>人群 × 痛点 × 部位</b>直接变成能贴进后台的句子：
+      标题、五点、A+ 模块、QA、视频钩子一次生成。每一句都过<b>疗效宣称红线</b>扫描 ——
+      美英加通用规则 + 德国站 HWG 特殊规则，红色句子绝不能上线。</p>
+  </div>
+
+  <div class="card">
+    <h2>1. 选站点与切入点</h2>
+    <div class="sitebar" id="sitebar"></div>
+    <div id="pickers"></div>
+    <div class="fields" style="margin-top:6px">
+      <div class="field"><label>续航时长（写进卖点）<span class="unit">小时</span></label><input id="hrs" type="number" value="4" min="1" max="12"></div>
+      <div class="field"><label>温度档位</label><select id="lv"><option>3 档</option><option>5 档</option><option selected>3 档 + 定时关</option></select></div>
+      <div class="field"><label>充电口</label><select id="chg"><option selected>USB-C</option><option>Micro-USB</option><option>磁吸充电</option></select></div>
+    </div>
+    <p class="note" id="fromRadar" hidden style="color:var(--ok)"></p>
+  </div>
+
+  <div class="card" id="out"></div>
+
+  <div class="card">
+    <h2>疗效宣称红线（为什么有的句子标红）</h2>
+    <div class="kv"><span>红线词（美国 / 英国 / 加拿大）</span><b>treat / cure / heal / medical device / FDA approved / therapy device —— 涉嫌把保暖产品说成医疗器械，会被下架或要求提供证明</b></div>
+    <div class="kv"><span>慎用词</span><b>arthritis / sciatica / neuropathy 直接点名疾病、"pain relief for X 病"句式 —— 写"soothing warmth for stiff shoulders"这类感受句更安全</b></div>
+    <div class="kv"><span>德国站特有（HWG 药品广告法）</span><b>heilt / Heilung / lindert Krankheiten / wirkt bei ... —— 德国对疗效宣称的执法比美国严格得多，只用"wohltuende Wärme"（舒缓的温暖）这类表述</b></div>
+    <p class="note">扫描覆盖你粘贴的旧文案：把现有 Listing 贴进下面第 3 块的输入框即可体检。</p>
+  </div>
+
+  <footer>亚马逊运营工具箱 · 加热品类表达矩阵</footer>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script src="../assets/heated_kb.js"></script>
+<script>
+(function(){
+  'use strict';
+  var H = window.HEATED;
+  var CUR = 'US';
+  var sel = { scene:'', person:'', part:'', pain:'', product:[] };
+
+  /* ============ 中文标签 -> 两国语言的表达素材 ============ */
+  var M = {
+    part:{ '肩':{en:'shoulder',de:'Schulter'}, '颈':{en:'neck',de:'Nacken'}, '上背':{en:'upper back',de:'oberen Rücken'},
+      '下背':{en:'lower back',de:'unteren Rücken'}, '膝':{en:'knee',de:'Knie'}, '手腕':{en:'wrist',de:'Handgelenk'},
+      '手部':{en:'hands',de:'Hände'}, '足部':{en:'feet',de:'Füße'}, '肘':{en:'elbow',de:'Ellenbogen'}, '全身':{en:'full body',de:'ganzen Körper'} },
+    scene:{ '驾驶通勤':{en:'behind the wheel',de:'am Steuer'}, '办公久坐':{en:'at your desk',de:'am Schreibtisch'},
+      '夜间睡眠':{en:'at night',de:'in der Nacht'}, '居家放松':{en:'on the couch',de:'auf der Couch'},
+      '户外作业':{en:'working outdoors',de:'draußen bei der Arbeit'}, '狩猎钓鱼':{en:'in the tree stand',de:'auf der Jagd'},
+      '冬季运动':{en:'on the slopes',de:'auf der Piste'}, '术后康复':{en:'during recovery',de:'in der Erholung'},
+      '礼物场景':{en:'as a gift',de:'als Geschenk'}, '月子／照护':{en:'for someone you care for',de:'für Angehörige'} },
+    person:{ '长途司机':{en:'truck drivers',de:'Fernfahrer'}, '办公室人群':{en:'office workers',de:'Büromenschen'},
+      '中老年':{en:'parents and grandparents',de:'Eltern und Großeltern'}, '运动员健身':{en:'athletes',de:'Sportler'},
+      '医护夜班':{en:'nurses on night shift',de:'Pflegekräfte im Nachtdienst'}, '手冷人群':{en:'anyone with always-cold hands',de:'Menschen mit kalten Händen'},
+      '关节退行':{en:'aging joints',de:'beanspruchte Gelenke'}, '礼赠者':{en:'gift buyers',de:'Schenkende'},
+      '户外工人':{en:'outdoor crews',de:'Aussendienst und Handwerker'} },
+    pain:{ '夜间酸痛':{en:'aches that keep you up',de:'Schmerzen, die dich wachhalten'}, '僵硬受限':{en:'morning stiffness',de:'Morgensteifigkeit'},
+      '手脚冰凉':{en:'cold hands and feet',de:'kalte Hände und Füße'}, '循环麻木':{en:'poor circulation',de:'schlechte Durchblutung'},
+      '关节疼痛':{en:'aching joints',de:'ziehende Gelenke'}, '痉挛抽筋':{en:'muscle cramps',de:'Muskelkrämpfe'},
+      '久坐酸痛':{en:'soreness from sitting',de:'Verspannung vom Sitzen'}, '运动后酸':{en:'post-workout soreness',de:'Muskelkater'},
+      '经期宫寒':{en:'period cramps',de:'Regelschmerzen'} },
+    product:{ '续航':{en:'',de:''}, '温度档位':{en:'',de:''}, '无线便携':{en:'',de:''},
+      '贴合设计':{en:'an adjustable strap that stays put',de:'einen verstellbaren Gurt, der nicht verrutscht'},
+      '可洗耐用':{en:'a machine-washable cover',de:'einen waschbaren Bezug'}, '送礼包装':{en:'gift-ready packaging',de:'Geschenkverpackung'},
+      '快充':{en:'fast USB-C charging',de:'schnelles Laden über USB-C'} }
+  };
+
+  /* ============ 合规红线 ============ */
+  var RED = {
+    en:[[/\btreat(s|ing|ment)?\b/i,'treat —— 治疗宣称，红线'],[/\bcure(s|d)?\b/i,'cure —— 治愈宣称，红线'],
+        [/\bheal(s|ing|ed)?\b/i,'heal —— 愈合宣称，红线'],[/FDA approved/i,'FDA approved —— 未获批不得使用，红线'],
+        [/medical device/i,'medical device —— 自认器械，红线'],[/\btherapy device\b/i,'therapy device —— 慎用，建议改成 heat wrap'],
+        [/\btherapeutic\b/i,'therapeutic —— 慎用'],[/\brelieves? (arthritis|sciatica|neuropathy)/i,'点名疾病缓解 —— 红线'],
+        [/\bfor (arthritis|sciatica|neuropathy)\b/i,'直接写疾病名 —— 慎用，建议改成 for stiff, aching joints']],
+    de:[[/heilt|Heilung/i,'heilt / Heilung —— HWG 红线'],[/lindert Krankheiten/i,'lindert Krankheiten —— HWG 红线'],
+        [/wirkt bei\b/i,'wirkt bei ...（对某病有效）—— HWG 红线'],[/medizinisch/i,'medizinisch —— 慎用'],
+        [/\barthritis/i,'点名关节炎 —— 慎用，改 beschwerden 措辞'],[/Therapieger/i,'Therapiegerät —— 慎用']]
+  };
+
+  function scan(text, lang){
+    var rules = RED[lang === 'de' ? 'de' : 'en'], out = [];
+    rules.forEach(function(r){ if (r[0].test(text)) out.push(r[1]); });
+    return out;
+  }
+
+  /* ============ UI ============ */
+  function renderSitebar(){
+    document.getElementById('sitebar').innerHTML = H.KEYS.map(function(k){
+      return '<button class="sbtn k-' + k + (k === CUR ? ' on' : '') + '" data-k="' + k + '">' +
+             H.SITES[k].flag + ' ' + H.SITES[k].nm + '</button>';
+    }).join('');
+    [].forEach.call(document.querySelectorAll('.sbtn'), function(b){
+      b.onclick = function(){ CUR = b.getAttribute('data-k'); renderSitebar(); renderPickers(); render(); };
+    });
+  }
+
+  function renderPickers(){
+    var h = '';
+    H.TAG_GROUPS.forEach(function(g){
+      var dict = H.TAGS[g[0]], names = Object.keys(dict), multi = g[0] === 'product';
+      h += '<div class="pickrow"><div class="g">' + g[1] + (multi ? '（可多选，最多 3 个）' : '（单选）') + '</div>';
+      names.forEach(function(n){
+        var on = multi ? sel.product.indexOf(n) >= 0 : sel[g[0]] === n;
+        h += '<span class="chip' + (on ? ' on' : '') + '" data-g="' + g[0] + '" data-n="' + n + '">' + n + '</span>';
+      });
+      h += '</div>';
+    });
+    var box = document.getElementById('pickers');
+    box.innerHTML = h;
+    [].forEach.call(box.querySelectorAll('.chip'), function(c){
+      c.onclick = function(){
+        var g = c.getAttribute('data-g'), n = c.getAttribute('data-n');
+        if (g === 'product'){
+          var i = sel.product.indexOf(n);
+          if (i >= 0) sel.product.splice(i, 1);
+          else if (sel.product.length < 3) sel.product.push(n);
+        } else {
+          sel[g] = (sel[g] === n) ? '' : n;
+        }
+        renderPickers(); render();
+      };
+    });
+  }
+
+  /* ============ 生成 ============ */
+  function fill(){
+    return {
+      part: sel.part ? M.part[sel.part] : M.part['肩'],
+      scene: sel.scene ? M.scene[sel.scene] : M.scene['夜间睡眠'],
+      person: sel.person ? M.person[sel.person] : M.person['中老年'],
+      pain: sel.pain ? M.pain[sel.pain] : M.pain['僵硬受限'],
+      hrs: (+document.getElementById('hrs').value) || 4,
+      lv: document.getElementById('lv').value,
+      lvM: ({'3 档':{'en':'3 heat levels','de':'3 Stufen'},'5 档':{'en':'5 heat levels','de':'5 Stufen'},'3 档 + 定时关':{'en':'3 heat levels with auto shut-off','de':'3 Stufen mit Auto-Aus'}})[document.getElementById('lv').value],
+      chg: document.getElementById('chg').value,
+      prods: sel.product
+    };
+  }
+
+  function genEn(v){
+    var P = v.part.en, S = v.scene.en, who = v.person.en, pain = v.pain.en;
+    var prodFeats = v.prods.map(function(p){ return M.product[p].en; }).filter(Boolean);
+    var o = {};
+    o.title = [
+      'Cordless ' + P + ' Heat Wrap — ' + v.hrs + 'H Rechargeable, ' + v.lv + ', USB-C — Soothing Warmth for ' + pain + ', Great for ' + who,
+      v.chg + ' Heated ' + P.charAt(0).toUpperCase() + P.slice(1) + ' Wrap for ' + S + ' — ' + v.hrs + ' Hours of Warmth, No Cord Needed',
+      'Heated ' + P + ' Warmer with ' + (prodFeats[0] || 'Adjustable Straps') + ' — Comfort for ' + pain + ', Gift-Ready for ' + who
+    ];
+    o.bullets = [
+      '【痛点场景】Stiff, aching ' + P + ' ' + S + '? Three levels of soothing heat go to work in 30 seconds — and hold steady for up to ' + v.hrs + ' hours on a single charge.',
+      '【真无线】No outlet, no cord dragging across the room. ' + v.chg + ' recharging, slips into a bag — warmth wherever the day takes you.',
+      (prodFeats[0] ? '【设计细节】' + prodFeats[0].charAt(0).toUpperCase() + prodFeats[0].slice(1) + ' — heat stays where you put it, even while you move.' : '【贴合设计】Adjustable strap keeps the heat panel right where you need it — no slipping, no readjusting.'),
+      '【好打理】' + (H.TAGS.product['可洗耐用'] ? 'Machine-washable fabric means it stays fresh through the whole season.' : 'Soft, skin-friendly fabric; wipe clean or hand wash.'),
+      '【送礼理由】A practical gift for ' + who + ' — arrives in clean, gift-ready packaging, no wrapping needed.'
+    ];
+    o.aplus = [
+      ['Warmth in 30 Seconds','Graphene heating element spreads heat evenly across the ' + P + ' — no hot spots, no cold patches.'],
+      ['Made for ' + S.charAt(0).toUpperCase() + S.slice(1),'Lightweight enough to wear ' + S + ', warm enough to notice the difference in minutes.'],
+      ['All-Day Battery, ' + v.lvM.en,v.hrs + ' hours per charge at medium. ' + v.chg + ' top-up takes it back to full.'],
+      ['Stays Where You Put It','Adjustable straps fit most body sizes; the panel hugs the ' + P + ' instead of sliding off.'],
+      ['Easy to Live With','Washable cover, quiet operation, auto shut-off for safety.']
+    ];
+    o.qa = [
+      ['How long does the battery really last?', 'Up to ' + v.hrs + ' hours on medium, less on the highest setting. Cold weather shortens it a bit — keep the spare charged if you use it outdoors.'],
+      ['Will this help my ' + pain + '?', 'It delivers steady, soothing warmth — many customers say warmth is exactly what they want for ' + pain + '. It is a warming wrap, not a medical device, so please follow your doctor for any condition.'],
+      ['Can I wear it ' + S + '?', 'Yes — it is cordless and lightweight, designed exactly for ' + S + '.'],
+      ['Is it washable?', 'The fabric cover unzips and is machine washable; remove the heating element first.'],
+      ['Does it get hot enough?', v.lv + ' with an auto shut-off. Most customers use medium — high is quite intense.'],
+      ['Is the sizing adjustable?', 'Yes, the strap extends to fit most adults; check the size chart in the images for details.']
+    ];
+    o.video = [
+      '【15 秒钩子 · 场景】Open on ' + S + ' — cold hands, stiff ' + P + '. Snap the wrap on. Timer on screen: 30 seconds to warm. End card: ' + v.hrs + ' hours, no cord.',
+      '【15 秒钩子 · 对比】Split screen: messy plug-in cord everywhere vs. one silent rechargeable wrap. Tagline: "Warmth that follows you."',
+      '【15 秒钩子 · 送礼】"Looking for a gift for ' + who + '? They do not need another scarf." Unbox, hand over, they put it on and sigh. End card with gift box shot.'
+    ];
+    return o;
+  }
+
+  function genDe(v){
+    var P = v.part.de, S = v.scene.de, who = v.person.de, pain = v.pain.de;
+    var prodFeats = v.prods.map(function(p){ return M.product[p].de; }).filter(Boolean);
+    var o = {};
+    o.title = [
+      'Heizkissen ' + P + ' kabellos — ' + v.hrs + ' Std. Akku, ' + v.lvM.de + ', ' + v.chg + ' — wohltuende Wärme bei verspannter Schulter',
+      v.chg + ' Wärmepad ' + P + ' ' + S + ' — kabellose Wärme für ' + who,
+      P + '-Wärmer mit ' + (prodFeats[0] || 'verstellbarem Gurt') + ' — wohltuende Wärme, ideal als Geschenk'
+    ];
+    o.bullets = [
+      '【痛点场景】Verspannte ' + P + ' ' + S + '? Drei Wärmestufen wirken in 30 Sekunden — und halten bis zu ' + v.hrs + ' Stunden.',
+      '【Kabellos】Ohne Steckdose, ohne Kabel. ' + v.chg + '-Laden, passt in jede Tasche — Wärme, wo der Tag dich hinbringt.',
+      (prodFeats[0] ? '【Detail】' + prodFeats[0].charAt(0).toUpperCase() + prodFeats[0].slice(1) + ' — die Wärme bleibt, wo du sie brauchst.' : '【Passform】Verstellbarer Gurt — das Wärmefeld bleibt an Ort und Stelle.'),
+      '【Pflegeleicht】Waschbarer Bezug — bleibt die ganze Saison frisch.',
+      '【Geschenk】Ein praktisches Geschenk für ' + who + ' — in sauberer Geschenkverpackung.'
+    ];
+    o.aplus = [
+      ['Wärme in 30 Sekunden','Graphen-Heizelement verteilt die Wärme gleichmäßig über die ' + P + '.'],
+      ['Gemacht für ' + S,'Leicht genug, um ' + S + ' getragen zu werden — spürbar warm in Minuten.'],
+      ['Akku für den ganzen Tag, ' + v.lvM.de,v.hrs + ' Stunden pro Ladung bei mittlerer Stufe.'],
+      ['Bleibt, wo du es hinsetzt','Verstellbare Gurte passen für die meisten Größen.'],
+      ['Einfach im Alltag','Waschbarer Bezug, leiser Betrieb, automatische Abschaltung.']
+    ];
+    o.qa = [
+      ['Wie lange hält der Akku wirklich?', 'Bis zu ' + v.hrs + ' Stunden auf mittlerer Stufe. Bei Kälte etwas kürzer — den Zweitakku geladen mitnehmen.'],
+      ['Hilft das bei ' + pain + '?', 'Es liefert anhaltende, wohltuende Wärme. Es ist ein Wärmepad, kein Medizinprodukt — bei gesundheitlichen Fragen bitte den Arzt fragen.'],
+      ['Kann ich es ' + S + ' tragen?', 'Ja — kabellos und leicht, genau dafür gemacht.'],
+      ['Ist es waschbar?', 'Der Bezug ist abnehmbar und waschmaschinengeeignet; das Heizelement vorher entnehmen.'],
+      ['Wird es heiß genug?', v.lv + ' mit Abschaltautomatik. Die meisten nutzen Stufe zwei — Stufe drei ist sehr intensiv.'],
+      ['Passt die Größe?', 'Der Gurt ist verstellbar und passt für die meisten Erwachsenen.']
+    ];
+    o.video = [
+      '【15 Sekunden · Szene】' + S + ', kalte Hände, verspannte ' + P + '. Wärmer anlegen. Timer: 30 Sekunden bis warm. Endcard: ' + v.hrs + ' Stunden kabellos.',
+      '【15 Sekunden · Vergleich】Kabelsalat vs. ein leises Akku-Pad. Slogan: „Wärme, die mitgeht."',
+      '【15 Sekunden · Geschenk】„Ein Geschenk für ' + who + '? Sie brauchen keinen weiteren Schal." Auspacken, anlegen, entspannt aufatmen.'
+    ];
+    return o;
+  }
+
+  /* ============ 渲染输出 ============ */
+  function render(){
+    var v = fill();
+    var lang = H.SITES[CUR].lang === 'de' ? 'de' : 'en';
+    var g = lang === 'de' ? genDe(v) : genEn(v);
+    var box = document.getElementById('out');
+    var siteNm = H.SITES[CUR].flag + ' ' + H.SITES[CUR].nm;
+    var h = '<h2>2. 生成结果（' + siteNm + '）</h2><p class="desc">句子基于你选的切入点生成，可直接改字后使用。所有文案已过一遍红线扫描，扫描结果附后。</p>';
+
+    function block(title, why, items, cls){
+      var b = '<div class="blk"><h3>' + title + '<span class="why">' + why + '</span></h3><ol class="n">';
+      items.forEach(function(t){
+        var risks = scan(t, lang);
+        b += '<li class="en">' + t + (risks.length ? ' <span style="color:var(--bad)">⚠ ' + risks.join('；') + '</span>' : '') + '</li>';
+      });
+      return b + '</ol></div>';
+    }
+    function blockU(title, why, items){
+      var b = '<div class="blk"><h3>' + title + '<span class="why">' + why + '</span></h3><ul class="n">';
+      items.forEach(function(p){ b += '<li class="en"><b>' + p[0] + '</b> — ' + p[1] + '</li>'; });
+      return b + '</ul></div>';
+    }
+
+    h += block('标题（3 个方向）','卖点导向 / 场景导向 / 礼物导向', g.title);
+    h += block('五点描述','第一条永远给痛点场景', g.bullets);
+    h += blockU('A+ 模块','5 个模块的标题 + 正文', g.aplus);
+    h += block('QA 问答（6 条）','把最集中的疑虑前置', g.qa.map(function(q){ return 'Q: ' + q[0] + '\nA: ' + q[1]; }));
+    h += block('视频钩子（15 秒）','前 3 秒必须出现痛点画面', g.video);
+
+    /* 自查旧文案 */
+    h += '<div class="blk"><h3>顺手体检你的旧 Listing 文案<span class="why">贴进来扫红线，不改字</span></h3>' +
+         '<div class="fields"><div class="field full"><textarea id="oldCopy" rows="4" placeholder="把现有的标题或五点贴进来…"></textarea></div></div>' +
+         '<div id="oldScan" style="margin-top:8px"></div></div>';
+
+    /* 全量输出 + 复制 */
+    var all = [];
+    all.push('===== ' + siteNm + ' · 表达矩阵 =====');
+    all.push('切入点：部位 ' + (sel.part || '肩') + '｜场景 ' + (sel.scene || '夜间睡眠') + '｜人群 ' + (sel.person || '中老年') + '｜痛点 ' + (sel.pain || '僵硬受限'));
+    all.push('');
+    all.push('— 标题 —'); g.title.forEach(function(t,i){ all.push((i+1) + '. ' + t); });
+    all.push(''); all.push('— 五点 —'); g.bullets.forEach(function(t,i){ all.push((i+1) + '. ' + t); });
+    all.push(''); all.push('— A+ —'); g.aplus.forEach(function(p,i){ all.push((i+1) + '. ' + p[0] + ': ' + p[1]); });
+    all.push(''); all.push('— QA —'); g.qa.forEach(function(q,i){ all.push('Q' + (i+1) + ': ' + q[0]); all.push('A' + (i+1) + ': ' + q[1]); });
+    all.push(''); all.push('— 视频钩子 —'); g.video.forEach(function(t,i){ all.push((i+1) + '. ' + t); });
+    var joined = all.join('\n');
+    var risks = scan(joined, lang);
+    h += '<h3 style="font-size:14px;font-weight:600;margin:6px 0 10px">合规扫描结果</h3>';
+    h += risks.length
+      ? '<div class="risk">检测到 ' + risks.length + ' 处红线/慎用表述：<br>' + risks.join('<br>') + '</div>'
+      : '<div class="ok2">本次生成的全部文案未命中红线词，可放心进入下一轮校对。</div>';
+
+    h += '<h3 style="font-size:14px;font-weight:600;margin:16px 0 10px">完整输出（一键复制）</h3>';
+    h += '<pre class="pack" id="pack">' + joined + '</pre>';
+    h += '<div class="btnrow"><button class="btn btn-p" onclick="copyAll()">复制全部</button><span class="tag" id="copyTip"></span></div>';
+
+    box.innerHTML = h;
+
+    var oc = document.getElementById('oldCopy');
+    oc.addEventListener('input', function(){
+      var rs = scan(this.value, lang);
+      document.getElementById('oldScan').innerHTML = this.value.trim().length === 0 ? '' :
+        (rs.length ? '<div class="risk">' + rs.join('<br>') + '</div>'
+                   : '<div class="ok2">没有命中红线词。</div>');
+    });
+    document.getElementById('pack').__text = joined;
+  }
+
+  window.copyAll = function(){
+    var ta = document.createElement('textarea');
+    ta.value = document.getElementById('pack').__text || '';
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); document.getElementById('copyTip').textContent = '已复制 ✓'; }
+    catch(e){ document.getElementById('copyTip').textContent = '复制失败'; }
+    document.body.removeChild(ta);
+    setTimeout(function(){ var t = document.getElementById('copyTip'); if (t) t.textContent = ''; }, 2000);
+  };
+
+  /* 从需求词雷达带过来的切入点 */
+  (function(){
+    var m = null;
+    try { m = JSON.parse(localStorage.getItem('heated_matrix_input') || 'null'); } catch(e){}
+    if (!m) return;
+    var map = { part:'part', scene:'scene', person:'person', pain:'pain' };
+    (m.tags || []).forEach(function(n){
+      Object.keys(map).forEach(function(g){
+        if (H.TAGS[g][n] && !sel[g]) sel[g] = n;
+      });
+    });
+    var note = document.getElementById('fromRadar');
+    note.hidden = false;
+    note.textContent = '已从需求词雷达带入 ' + (m.date || '') + ' 的切入点（' + H.SITES[m.site || 'US'].nm + '）—— 可在下方继续调整。';
+    if (m.site && H.SITES[m.site]) CUR = m.site;
+  })();
+
+  renderSitebar();
+  renderPickers();
+  render();
+})();
+</script>
+</body>
+</html>

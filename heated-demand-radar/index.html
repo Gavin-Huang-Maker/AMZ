@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>加热需求词雷达 · 亚马逊运营工具箱</title>
+<link rel="stylesheet" href="../assets/tool.css">
+<style>
+  .hero{background:linear-gradient(135deg,#7a2f2f,#9c3450 55%,#b8546f);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;}
+  .hero h1{color:#fff;margin:0 0 8px;font-size:22px;}
+  .hero .sub{color:rgba(255,255,255,.9);font-size:13.5px;line-height:1.75;margin:0;}
+  .hero .sub b{color:#fff;}
+  @media (prefers-color-scheme: dark){ .hero{background:linear-gradient(135deg,#4a1b24,#63202f 55%,#7b2c3e);} }
+  .k-US{--sc:#2F3F4C;} .k-CA{--sc:#9C3450;} .k-UK{--sc:#0B4F6C;} .k-DE{--sc:#8A4B12;}
+  @media (prefers-color-scheme: dark){ .k-US{--sc:#a3b8c8;} .k-CA{--sc:#e88aa2;} .k-UK{--sc:#6cbcd8;} .k-DE{--sc:#e0a268;} }
+  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+  @media (max-width:760px){.tabs{grid-template-columns:repeat(2,1fr);}}
+  .tab{text-align:left;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;cursor:pointer;font-family:inherit;color:var(--text);transition:.15s;position:relative;overflow:hidden;}
+  .tab::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sc);opacity:.35;}
+  .tab:hover{border-color:var(--border-strong);transform:translateY(-1px);}
+  .tab.on{border-color:var(--sc);box-shadow:0 2px 10px rgba(0,0,0,.07);}
+  .tab.on::before{opacity:1;}
+  .tab .tn{font-size:13.5px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+  .tab .tm{font-size:11.5px;color:var(--muted);line-height:1.55;}
+  .tab .tm b{font-size:16px;color:var(--text);font-variant-numeric:tabular-nums;margin-right:2px;}
+  .shead{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;border-left:4px solid var(--sc);padding-left:12px;margin-bottom:14px;}
+  .shead h2{font-size:18px;margin:0;}
+  .shead .meta{font-size:12.5px;color:var(--muted);}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:11px;margin-bottom:16px;}
+  .sb{border:1px solid var(--border);border-radius:14px;padding:14px 16px;background:var(--card);}
+  .sb .k{font-size:12px;color:var(--muted);margin-bottom:5px;}
+  .sb .v{font-size:24px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;}
+  .sb .m{font-size:12px;color:var(--muted);margin-top:4px;}
+  .tagrow{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px;}
+  .tagrow .grp{font-size:12px;color:var(--muted);width:100%;margin-top:8px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:4px 11px;font-size:12.5px;background:var(--card);}
+  .chip i{font-style:normal;font-size:11px;font-weight:600;color:#fff;background:#9c3450;border-radius:999px;padding:1px 6px;}
+  .chip.hi{border-color:#9c3450;}
+  .srcbar{border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:12.5px;line-height:1.8;background:var(--row-alt);margin-bottom:14px;}
+  .srcbar b{font-size:13px;}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:0;}
+  .dot.ok{background:var(--ok);} .dot.no{background:var(--bad);} .dot.na{background:var(--hint);}
+  .btnrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  .btn{font-family:inherit;font-size:13.5px;font-weight:500;padding:9px 16px;border-radius:10px;cursor:pointer;border:1px solid var(--border-strong);background:var(--card);color:var(--text);}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn:disabled{opacity:.55;cursor:default;}
+  .btn-p{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn-p:hover{background:#c94c08;color:#fff;}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  pre.pack{white-space:pre-wrap;font-size:12.5px;line-height:1.8;background:var(--row-alt);border-radius:10px;padding:13px 15px;font-family:ui-monospace,Menlo,Consolas,monospace;max-height:420px;overflow:auto;}
+  tr.new td{background:rgba(156,52,80,.07);}
+  .nflag{display:inline-block;font-size:10.5px;font-weight:700;color:#fff;background:#9c3450;border-radius:4px;padding:1px 5px;margin-left:6px;}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">← 返回工具箱</a>
+<div class="page">
+
+  <div class="hero">
+    <h1>🔥 加热需求词雷达</h1>
+    <p class="sub">需求先出现在讨论和搜索里，才轮到亚马逊。这个工具一边去 <b>Reddit 真实讨论</b>和<b>搜索联想词</b>抓原话，
+      一边让你<b>粘贴</b> TikTok / IG / YouTube 的标题和评论，然后自动给每条内容打上<b>场景 / 人群 / 部位 / 痛点 / 产品诉求</b>标签，
+      四个站点各自跑各自的本地语言，最后给你一份能直接投放的词包。</p>
+  </div>
+
+  <div class="card">
+    <h2>1. 取数据</h2>
+    <div class="btnrow">
+      <button class="btn btn-p" id="loadBtn" onclick="load()">抓取在线讨论与联想词</button>
+      <span class="tag" id="srcTip">点击后自动尝试三个通道；任一通道失败会自动降级到内置词库，页面永远有东西可看</span>
+    </div>
+    <div class="fields" style="margin-top:13px">
+      <div class="field full">
+        <label>粘贴 TikTok / Instagram / YouTube 的标题或评论（每行一条，随时可用，这一条永远走得通）</label>
+        <textarea id="paste" rows="5" placeholder="例：three hours behind the wheel and my shoulder is completely locked up&#10;my mom has arthritis and wakes up sore every morning"></textarea>
+      </div>
+      <div class="field">
+        <label>是否并入内置词库</label>
+        <select id="usekb"><option value="1" selected>并入（离线词库 + 在线 + 粘贴）</option><option value="0">只用在线 + 粘贴</option></select>
+      </div>
+      <div class="field">
+        <label>取词粒度</label>
+        <select id="ngram"><option value="1" selected>单词 + 词组（推荐）</option><option value="0">只要单词</option></select>
+      </div>
+    </div>
+    <p class="note" id="status">尚未取数 —— 直接点上面按钮，或粘贴内容后点「分析」即可。</p>
+  </div>
+
+  <div class="tabs" id="tabs" hidden></div>
+  <div id="panel"></div>
+
+  <div class="card">
+    <h2>三条通道分别负责什么</h2>
+    <div class="kv"><span>Reddit 讨论</span><b>症状与人群的原生语言。这里写的句式可以直接搬进五点第一条，比你自己想更贴近真实表达</b></div>
+    <div class="kv"><span>搜索联想词</span><b>真实的人在搜索框里敲了什么，代表购买意图。用来做 SP 精准词和标题词根</b></div>
+    <div class="kv"><span>手动粘贴</span><b>TikTok / IG / YouTube 的内容。这三个平台禁止网页直连（登录墙 + 反爬 + 跨域），所以由你复制过来</b></div>
+    <div class="kv"><span>每天自动更新</span><b>网页只负责看图；每天定时刷新交给 WorkBuddy 自动化，它会取数后把当天新增词推到企业微信</b></div>
+    <p class="note">词频是相对值不是绝对值：语料越大排序越稳。每天跑一次，看「今日新增」那一列才有意义 —— 新冒出来的词就是需求变化的信号。</p>
+  </div>
+
+  <footer>亚马逊运营工具箱 · 加热需求词雷达 · 数据在本地分析，不上传</footer>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script src="../assets/heated_kb.js"></script>
+<script>
+(function(){
+  'use strict';
+  var H = window.HEATED;
+  var KEYS = H.KEYS, CUR = 'US', DATA = null, SOURCES = {}, PASTED = [];
+
+  function today(){
+    var d = new Date(), p = function(n){ return n < 10 ? '0' + n : '' + n; };
+    return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+  }
+  function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k) || '{}'); }catch(e){ return {}; } }
+  function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+  /* ============ 三个通道 ============ */
+  function tryFetch(url, timeout){
+    return new Promise(function(res){
+      var t = setTimeout(function(){ res({ ok:false, why:'超时' }); }, timeout || 8000);
+      fetch(url, { mode:'cors' }).then(function(r){
+        clearTimeout(t);
+        if (!r.ok) return res({ ok:false, why:'HTTP ' + r.status });
+        return r.json().then(function(j){ res({ ok:true, data:j }); })
+                       .catch(function(){ res({ ok:false, why:'解析失败' }); });
+      }).catch(function(){
+        clearTimeout(t); res({ ok:false, why:'网络或被拦截（跨域）' });
+      });
+    });
+  }
+
+  function suggREST(q, ds){
+    var u = 'https://suggestqueries.google.com/complete/search?client=firefox&q=' +
+            encodeURIComponent(q) + (ds ? '&ds=' + ds : '');
+    return tryFetch(u).then(function(r){
+      if (!r.ok || !r.data || !r.data[1]) return [];
+      return r.data[1];
+    });
+  }
+
+  function run(){
+    var btn = document.getElementById('loadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span>抓取中…';
+    document.getElementById('status').innerHTML = '<span class="spin" style="border-color:#888;border-top-color:#fff"></span>正在尝试三个通道…';
+
+    PASTED = (document.getElementById('paste').value || '')
+      .split('\n').map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 8; });
+
+    var key = KEYS[CUR] ? CUR : 'US';
+    var seeds = H.SEEDS[key].slice(0, 8);
+    var lang = H.SITES[key].lang;
+
+    var tasks = [], names = [];
+    seeds.forEach(function(s){
+      var q = encodeURIComponent(s);
+      tasks.push(tryFetch('https://www.reddit.com/search.json?q=' + q + '&limit=25&sort=relevance', 9000));
+      names.push('reddit');
+      tasks.push(suggREST(s, ''));
+      names.push('google');
+    });
+    tasks.push(suggREST(seeds[0], 'yt'));
+    names.push('youtube');
+
+    Promise.all(tasks).then(function(rs){
+      var redditLines = [], googleLines = [], ytLines = [];
+      rs.forEach(function(r, i){
+        if (!r.ok || !r.data) return;
+        var d = r.data;
+        if (names[i] === 'reddit' && d && d.data && d.data.children){
+          d.data.children.forEach(function(c){
+            var x = c.data || {};
+            var line = (x.title || '') + '. ' + String(x.selftext || '').slice(0, 300);
+            if (line.length > 30) redditLines.push(line);
+          });
+        } else if (names[i] === 'google'){
+          (Array.isArray(d) && Array.isArray(d[1]) ? d[1] : []).forEach(function(w){ googleLines.push(w); });
+        } else if (names[i] === 'youtube'){
+          (Array.isArray(d) && Array.isArray(d[1]) ? d[1] : []).forEach(function(w){ ytLines.push(w); });
+        }
+      });
+
+      SOURCES = {
+        reddit: redditLines.length ? { ok:true, n:redditLines.length } : { ok:false, why:'未取到（多为跨域或网络限制）' },
+        google: googleLines.length ? { ok:true, n:googleLines.length } : { ok:false, why:'未取到' },
+        youtube: ytLines.length ? { ok:true, n:ytLines.length } : { ok:false, why:'未取到' },
+        paste: PASTED.length ? { ok:true, n:PASTED.length } : { ok:false, why:'本次未粘贴' },
+        kb: document.getElementById('usekb').value === '1'
+      };
+
+      buildData(key, lang, redditLines, googleLines, ytLines, PASTED);
+      render();
+
+      var parts = [];
+      if (SOURCES.reddit.ok) parts.push('Reddit ' + SOURCES.reddit.n + ' 条');
+      if (SOURCES.google.ok) parts.push('联想词 ' + SOURCES.google.n + ' 条');
+      if (SOURCES.youtube.ok) parts.push('YouTube ' + SOURCES.youtube.n + ' 条');
+      if (SOURCES.paste.ok) parts.push('粘贴 ' + SOURCES.paste.n + ' 条');
+      if (SOURCES.kb) parts.push('内置词库 ' + H.CORPUS[lang].length + ' 条');
+      document.getElementById('status').innerHTML =
+        (parts.length ? '本次分析基于：' + parts.join(' · ') : '没有任何语料') +
+        '。共 ' + Object.keys(DATA.words).length + ' 个词待用。';
+    }).then(function(){
+      btn.disabled = false;
+      btn.textContent = '重新抓取';
+      document.getElementById('loadBtn').onclick = null;
+    });
+  }
+  window.load = run;
+
+  /* ============ 组装分析 ============ */
+  function buildData(key, lang, reddit, google, yt, pasted){
+    var useKb = document.getElementById('usekb').value === '1';
+    var lines = [];
+    (reddit || []).forEach(function(t){ lines.push({ t:t, src:'Reddit' }); });
+    (google || []).forEach(function(t){ lines.push({ t:t, src:'联想词' }); });
+    (yt || []).forEach(function(t){ lines.push({ t:t, src:'YouTube' }); });
+    (pasted || []).forEach(function(t){ lines.push({ t:t, src:'粘贴' }); });
+    if (useKb) H.CORPUS[lang].forEach(function(t){ lines.push({ t:t, src:'内置' }); });
+
+    /* 词 -> 次数 / 标签 / 来源 */
+    var words = {}, tagCount = {}, srcCount = {};
+    lines.forEach(function(o){
+      var tg = H.tagsOf(o.t);
+      Object.keys(tg).forEach(function(name){
+        if (!tagCount[name]) tagCount[name] = { n:0, gp:tg[name] };
+        tagCount[name].n++;
+      });
+      srcCount[o.src] = (srcCount[o.src] || 0) + 1;
+      var toks = H.tokenize(o.t, lang);
+      var grams = [];
+      for (var i = 0; i < toks.length - 1; i++) grams.push(toks[i] + ' ' + toks[i+1]);
+      toks.concat(grams).forEach(function(w){
+        if (!H.relevant(w) && srcCount.total !== 0) { /* 保留高频词，不在此筛除 */ }
+        if (!words[w]) words[w] = { w:w, n:0, tags:{}, tagN:{}, srcs:{} };
+        words[w].n++;
+        words[w].srcs[o.src] = (words[w].srcs[o.src] || 0) + 1;
+        Object.keys(tg).forEach(function(name){ words[w].tagN[name] = (words[w].tagN[name] || 0) + 1; });
+      });
+    });
+
+    /* 排序 + 只保留有信息量的词 */
+    var GENERIC = ['hours','hour','every','minutes','seconds','three','two','one','four','five','ten','twenty','thirty','fifteen','bought','buy','battery life is','totally','things','thing','time','day','days','actually','anyone','someone','always','sometimes','little','better','best','really','know','think','want','need','get','got','said','told','wish','people','guys','idea','said','different','problem','works','working','useless','worth','third','second','first','mine','ones','place','stuff','season','part','chance','undo'];
+    Object.keys(words).forEach(function(w){
+      var o = words[w], min = Math.max(2, Math.ceil(o.n * 0.4));
+      Object.keys(o.tagN).forEach(function(n){ if (o.tagN[n] >= min) o.tags[n] = 1; });
+    });
+    var all = Object.keys(words).map(function(w){ return words[w]; });
+    all = all.filter(function(o){ return o.n >= 2; });
+    var uni = [], bi = [];
+    all.forEach(function(o){
+      if (GENERIC.indexOf(o.w) >= 0) return;
+      var isBi = o.w.indexOf(' ') > 0;
+      if (isBi){ if (H.relevant(o.w) || Object.keys(o.tags).length) bi.push(o); }
+      else { if (H.relevant(o.w) || Object.keys(o.tags).length) uni.push(o); }
+    });
+    uni.sort(function(a,b){ return b.n - a.n; });
+    bi.sort(function(a,b){ return b.n - a.n; });
+    var list = uni.concat(bi);
+
+    /* 昨日对比 */
+    var cache = lsGet('heated_radar_v1');
+    var prev = cache[CUR] || { date:'', ws:[] };
+    var prevSet = {}; prev.ws.forEach(function(w){ prevSet[w] = 1; });
+    var nowWords = list.slice(0, 60).map(function(o){ return o.w; });
+    cache[CUR] = { date: today(), ws: nowWords, n: list.length };
+    lsSet('heated_radar_v1', cache);
+
+    DATA = {
+      key:key, lang:lang, lines:lines, tagCount:tagCount, srcCount:srcCount,
+      list:list, uni:uni, bi:bi, prevSet:prevSet, prevDate:prev.date,
+      newCount: nowWords.filter(function(w){ return !prevSet[w]; }).length
+    };
+  }
+
+  /* ============ 渲染 ============ */
+  function renderTabs(){
+    var h = '';
+    KEYS.forEach(function(k){
+      var on = k === CUR;
+      var has = DATA && DATA.key === k;
+      h += '<button class="tab k-' + k + (on ? ' on' : '') + '" data-k="' + k + '">' +
+             '<div class="tn">' + H.SITES[k].flag + ' ' + H.SITES[k].nm +
+               '<span class="badge ' + (on ? 'b-warn' : 'b-idle') + '" style="margin-left:auto;font-size:10.5px">' +
+               (H.SITES[k].lang === 'de' ? '德语' : '英语') + '</span></div>' +
+             '<div class="tm"><b>' + (has ? DATA.list.length : '—') + '</b>个词 · 语料 ' +
+               (has ? DATA.lines.length : '—') + ' 条<br>新增 ' + (has ? DATA.newCount : '—') + ' 词</div>' +
+           '</button>';
+    });
+    var box = document.getElementById('tabs');
+    box.innerHTML = h;
+    [].forEach.call(box.querySelectorAll('.tab'), function(b){
+      b.onclick = function(){ CUR = b.getAttribute('data-k'); run(); };
+    });
+  }
+
+  function srcBar(){
+    var s = SOURCES, h = '<div class="srcbar"><b>本次数据源</b>　';
+    function row(name, o, always){
+      var cls = o && o.ok ? 'ok' : (always ? 'na' : 'no');
+      return '<span class="dot ' + cls + '"></span>' + name + (o && o.ok ? '（' + o.n + ' 条）' : '') + '　';
+    }
+    h += row('Reddit 讨论', s.reddit) + row('搜索联想词', s.google) + row('YouTube', s.youtube) +
+         row('手动粘贴', s.paste) + row('内置词库', s.kb ? { ok:true, n:H.CORPUS[DATA.lang].length } : { ok:false });
+    var fail = (s.reddit && !s.reddit.ok) && (s.google && !s.google.ok);
+    if (fail) h += '<br><span style="color:var(--warn)">在线通道都没连上（公司网络、浏览器插件或对方跨域限制都会导致）。已自动降级到内置词库 —— 想要实时数据，去 <b>粘贴框</b>放一段内容，或让 WorkBuddy 自动化每天代为抓取。</span>';
+    h += '</div>';
+    return h;
+  }
+
+  function render(){
+    if (!DATA) return;
+    var d = DATA, S = H.SITES[d.key];
+    document.getElementById('tabs').hidden = false;
+    renderTabs();
+
+    var h = '';
+    h += '<div class="card k-' + d.key + '">';
+    h += '<div class="shead"><h2>' + S.flag + ' ' + S.nm + '</h2><span class="meta">' + S.note + '</span></div>';
+    h += srcBar();
+
+    h += '<div class="stats">' +
+      '<div class="sb"><div class="k">分析语料</div><div class="v">' + d.lines.length + '<small> 条</small></div><div class="m">' +
+        Object.keys(d.srcCount).map(function(k){ return k + ' ' + d.srcCount[k]; }).join(' · ') + '</div></div>' +
+      '<div class="sb"><div class="k">识别出的词</div><div class="v">' + d.list.length + '</div><div class="m">出现 ≥2 次且与加热品类相关</div></div>' +
+      '<div class="sb"><div class="k">今日新增词</div><div class="v">' + d.newCount + '</div><div class="m">' +
+        (d.prevDate ? '对比 ' + d.prevDate + '的记录' : '首次运行，明天起可对比') + '</div></div>' +
+      '<div class="sb"><div class="k">命中的标签</div><div class="v">' + Object.keys(d.tagCount).length + '</div><div class="m">场景 / 人群 / 部位 / 痛点 / 诉求</div></div>' +
+    '</div>';
+
+    /* 标签分布 */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:6px 0 4px">标签分布（按命中条数排序）</h3>';
+    H.TAG_GROUPS.forEach(function(g){
+      var dict = H.TAGS[g[0]], items = [];
+      Object.keys(dict).forEach(function(name){
+        if (d.tagCount[name]) items.push({ nm:name, n:d.tagCount[name].n });
+      });
+      if (!items.length) return;
+      items.sort(function(a,b){ return b.n - a.n; });
+      var max = items[0].n;
+      h += '<div class="grp tagrow"><span class="grp" style="margin:0">' + g[1] + '</span>';
+      items.forEach(function(it){
+        h += '<span class="chip' + (it.n >= max * 0.6 ? ' hi' : '') + '">' + it.nm + '<i>' + it.n + '</i></span>';
+      });
+      h += '</div>';
+    });
+
+    /* 词榜 */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:20px 0 10px">高频单词（前 20，做词根）</h3>';
+    h += tbl(d.uni.slice(0, 20));
+    h += '<h3 style="font-size:14px;font-weight:600;margin:20px 0 10px">高频词组（前 15，直接做精准词）</h3>';
+    h += (d.bi.length ? tbl(d.bi.slice(0, 15)) : '<p class="note">本次语料还没有形成有价值的词组 —— 词组需要一个来源是真实句子（Reddit 讨论或粘贴内容），联想词这种短句给不出词组。</p>');
+
+    /* 原句 -> 标签（最有价值的部分） */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:20px 0 10px">原话 → 标签（可直接改成五点首句）</h3>';
+    h += '<div class="scroll"><table><thead><tr><th>原始表达</th><th>来源</th><th>识别标签</th></tr></thead><tbody>';
+    var withTags = d.lines.filter(function(o){ return Object.keys(H.tagsOf(o.t)).length >= 2; }).slice(0, 12);
+    if (!withTags.length){
+      h += '<tr><td colspan="3" style="color:var(--muted)">本次语料还没出现高信息量的句子 —— 多粘几条真实讨论会更有东西。</td></tr>';
+    }
+    withTags.forEach(function(o){
+      var tg = H.tagsOf(o.t);
+      h += '<tr><td>' + o.t.slice(0, 130) + '</td><td>' + o.src + '</td><td>' +
+           Object.keys(tg).join('·') + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+
+    /* 词包 */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:20px 0 10px">投放词包（可直接复制）</h3>';
+    h += '<pre class="pack" id="pack">' + wordPack(d) + '</pre>';
+    h += '<div class="btnrow" style="margin-top:10px">' +
+         '<button class="btn" onclick="copyPack()">复制词包</button>' +
+         '<button class="btn" onclick="toMatrix()">用这些词去生成文案 →</button>' +
+         '<span class="tag" id="copyTip"></span></div>';
+
+    h += '</div>';
+    document.getElementById('panel').innerHTML = h;
+  }
+
+  function tbl(rows){
+    var h = '<div class="scroll"><table><thead><tr><th>#</th><th>词 / 词组</th><th>次数</th><th>来源</th><th>标签</th><th>建议用法</th></tr></thead><tbody>';
+    rows.forEach(function(o, i){
+      var tags = Object.keys(o.tags);
+      var isNew = DATA.prevSet && !DATA.prevSet[o.w] && DATA.prevDate;
+      h += '<tr' + (isNew ? ' class="new"' : '') + '><td class="num">' + (i+1) + '</td>' +
+           '<td><b>' + o.w + '</b>' + (isNew ? '<span class="nflag">新</span>' : '') + '</td>' +
+           '<td class="num">' + o.n + '</td>' +
+           '<td>' + Object.keys(o.srcs).join('/') + '</td>' +
+           '<td>' + (tags.length ? tags.slice(0,3).join('·') : '—') + '</td>' +
+           '<td>' + useOf(o, tags) + '</td></tr>';
+    });
+    return h + '</tbody></table></div>';
+  }
+
+  function useOf(o, tags){
+    var gp = {};
+    tags.forEach(function(n){
+      H.TAG_GROUPS.forEach(function(g){ if (H.TAGS[g[0]][n]) gp[g[0]] = (gp[g[0]] || 0) + 1; });
+    });
+    if (gp.product) return 'Listing 卖点 + QA';
+    if (gp.person) return 'SD 受众 + 视频口播对象';
+    if (gp.scene) return 'SP 场景词 + 视频钩子';
+    if (gp.part) return 'SP 精准词根';
+    if (gp.pain) return '五点 / QA 痛点句';
+    return 'SP 关键词（先观察）';
+  }
+
+  function wordPack(d){
+    var L = [], lang = d.lang;
+    L.push('【' + H.SITES[d.key].nm + ' · 加热需求词包】' + today());
+    L.push('语料 ' + d.lines.length + ' 条，识别词 ' + d.list.length + ' 个，今日新增 ' + d.newCount + ' 个');
+    L.push('');
+
+    L.push('■ SP 关键词（按频次排序，直接拿去建词组）');
+    d.list.slice(0, 15).forEach(function(o, i){ L.push('  ' + (i+1) + '. ' + o.w + '　（' + o.n + ' 次，' + Object.keys(o.tags).slice(0,2).join('/') + '）'); });
+    L.push('');
+
+    L.push('■ 场景词根（用于手动广泛组）');
+    ['drive driving truck','office desk sitting','sleep night bedtime','outdoor work cold warehouse','hunting fishing tree stand','ski winter sports','post surgery recovery']
+      .forEach(function(w){ L.push('  · ' + w); });
+    L.push('');
+
+    L.push('■ 人群（SD 受众兴趣与视频口播对象）');
+    var persons = Object.keys(d.tagCount).filter(function(n){ return d.tagCount[n].gp === 'person'; })
+      .sort(function(a,b){ return d.tagCount[b].n - d.tagCount[a].n; });
+    (persons.length ? persons : ['长途司机','办公室人群','中老年','医护夜班','手冷人群'])
+      .forEach(function(n){ L.push('  · ' + n + '（命中 ' + (d.tagCount[n] ? d.tagCount[n].n : 0) + ' 条）'); });
+    L.push('');
+
+    L.push('■ 可直接改写的原话（→ 五点第一条备选）');
+    d.lines.filter(function(o){ return Object.keys(H.tagsOf(o.t)).length >= 2; }).slice(0, 6)
+      .forEach(function(o){ L.push('  · "' + o.t.slice(0, 100) + '"'); });
+    L.push('');
+    L.push('（本地生成 · 数据来源：Reddit 讨论 / 搜索联想词 / 手动粘贴 / 内置词库）');
+    return L.join('\n');
+  }
+
+  window.copyPack = function(){
+    var el = document.getElementById('pack'), tip = document.getElementById('copyTip');
+    var txt = el.textContent;
+    function done(){ tip.textContent = '已复制 ✓'; setTimeout(function(){ tip.textContent = ''; }, 2000); }
+    function fb(){
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e){ tip.textContent = '复制失败，手动选吧'; }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(fb);
+    } else fb();
+  };
+
+  window.toMatrix = function(){
+    var ws = DATA.list.slice(0, 12).map(function(o){ return o.w; });
+    var tags = Object.keys(DATA.tagCount).slice(0, 8);
+    lsSet('heated_matrix_input', { site:DATA.key, words:ws, tags:tags, date:today() });
+    location.href = '../heated-message-matrix/';
+  };
+
+  /* 粘贴后立即重算（保证这条通道永远可用） */
+  document.getElementById('paste').addEventListener('input', function(){
+    if (DATA){
+      PASTED = (this.value || '').split('\n').map(function(s){ return s.trim(); })
+        .filter(function(s){ return s.length > 8; });
+      SOURCES.paste = PASTED.length ? { ok:true, n:PASTED.length } : { ok:false };
+      buildData(DATA.key, DATA.lang, [], [], [], PASTED);
+      render();
+    }
+  });
+  document.getElementById('usekb').addEventListener('change', function(){
+    if (DATA){ buildData(DATA.key, DATA.lang, [], [], [], PASTED); render(); }
+  });
+
+  /* 首次进入：直接用内置词库给个成品，不让页面空着 */
+  PASTED = [];
+  SOURCES = { reddit:{ok:false}, google:{ok:false}, youtube:{ok:false}, paste:{ok:false}, kb:true };
+  buildData('US', 'en', [], [], [], []);
+  render();
+  document.getElementById('status').textContent =
+    '已用内置词库生成一份示意结果 —— 点上面的按钮尝试在线通道，或在粘贴框放几行内容即时重算。';
+})();
+</script>
+</body>
+</html>

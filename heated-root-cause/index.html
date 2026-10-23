@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>加热品类退货差评归因器 · 亚马逊运营工具箱</title>
+<link rel="stylesheet" href="../assets/tool.css">
+<style>
+  .hero{background:linear-gradient(135deg,#6b3a12,#8a4b12 55%,#a86a2a);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;}
+  .hero h1{color:#fff;margin:0 0 8px;font-size:22px;}
+  .hero .sub{color:rgba(255,255,255,.9);font-size:13.5px;line-height:1.75;margin:0;}
+  .hero .sub b{color:#fff;}
+  @media (prefers-color-scheme: dark){ .hero{background:linear-gradient(135deg,#3a2310,#4d2f14 55%,#5f3d1d);} }
+  .cause{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .cause .nm{width:150px;font-size:13px;font-weight:600;flex:none;}
+  .cause .bar{flex:1;height:22px;background:var(--row-alt);border-radius:6px;overflow:hidden;}
+  .cause .bar i{display:block;height:100%;background:#8a4b12;border-radius:6px;min-width:2px;}
+  .cause .pc{width:64px;text-align:right;font-variant-numeric:tabular-nums;font-size:13px;flex:none;}
+  .fix{border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:10px;background:var(--card);}
+  .fix .hd{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:4px;}
+  .fix .pri{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;color:#fff;flex:none;}
+  .p0{background:#d85a30;} .p1{background:#c98a2e;} .p2{background:#5b8fa8;}
+  .fix .t{font-weight:600;font-size:14px;}
+  .fix .d{font-size:12.5px;color:var(--muted);line-height:1.75;}
+  .fix .d b{color:var(--text);}
+  .btnrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  .btn{font-family:inherit;font-size:13.5px;font-weight:500;padding:9px 16px;border-radius:10px;cursor:pointer;border:1px solid var(--border-strong);background:var(--card);color:var(--text);}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-p{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn-p:hover{background:#c94c08;color:#fff;}
+  pre.pack{white-space:pre-wrap;font-size:12.5px;line-height:1.85;background:var(--row-alt);border-radius:10px;padding:13px 15px;font-family:ui-monospace,Menlo,Consolas,monospace;max-height:440px;overflow:auto;}
+  .unk{font-size:12.5px;color:var(--muted);margin-top:6px;}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">← 返回工具箱</a>
+<div class="page">
+
+  <div class="hero">
+    <h1>🔍 加热品类退货差评归因器</h1>
+    <p class="sub">把退货理由和差评<b>原文贴进来</b>，自动归到加热类目的 8 大失效根因，
+      按「占比 × 改动难度」排出改动优先级，并给出<b>预期退货率下降</b>和对应的 QA 话术。
+      退货率每降 1 个点，利润器里的单件毛利直接涨回来。</p>
+  </div>
+
+  <div class="card">
+    <h2>1. 输入</h2>
+    <div class="fields">
+      <div class="field full">
+        <label>退货理由 / 差评原文（每行一条，中英文都行）</label>
+        <textarea id="raw" rows="8" placeholder="battery only lasts 20 minutes&#10;too small for my shoulder, strap doesn't stay&#10;not as hot as advertised&#10;smelled like chemicals when heated"></textarea>
+      </div>
+      <div class="field"><label>月退货单量 <span class="unit">单</span></label><input id="retN" type="number" value="120"></div>
+      <div class="field"><label>月销单量 <span class="unit">单</span></label><input id="ordN" type="number" value="1200"></div>
+    </div>
+    <div class="btnrow" style="margin-top:12px">
+      <button class="btn btn-p" onclick="run()">归因分析</button>
+      <button class="btn" onclick="demo()">填入示例数据</button>
+      <span class="tag" id="tip"></span>
+    </div>
+  </div>
+
+  <div class="card" id="out"></div>
+
+  <div class="card">
+    <h2>8 大根因是怎么定的</h2>
+    <div class="kv"><span>① 续航不足</span><b>电池衰减是加热类的退货第一原因，尤其在冬天低温下容量打折 —— 采购环节能解决 70% 的问题</b></div>
+    <div class="kv"><span>② 发热不符</span><b>「不如广告说的热」 —— 文案承诺过头比产品真的不热更常见，改 Listing 比改产品便宜一百倍</b></div>
+    <div class="kv"><span>③ 尺寸不合身</span><b>雪挡类目的老问题在护具上重演：尺寸表不清 + 弹性预期没管理</b></div>
+    <div class="kv"><span>④ 充电与线材</span><b>USB 口和线材是最便宜的零件，却是差评里最贵的一句话</b></div>
+    <p class="note">归因引擎在本地运行，规则覆盖中英德三语高频表述。占比是相对值 —— 总量小的原因也要看「改动难度」，便宜又有效的改动永远先做。</p>
+  </div>
+
+  <footer>亚马逊运营工具箱 · 加热品类退货差评归因器</footer>
+</div>
+
+<script src="../assets/tool.js"></script>
+<script src="../assets/heated_kb.js"></script>
+<script>
+(function(){
+  'use strict';
+  var H = window.HEATED;
+
+  /* 8 大根因：触发词（中英德）+ 改动方案 + 预期挽回率 */
+  var CAUSES = [
+    { nm:'续航不足', kw:['battery','lasts','charge','died','dies','hours of heat','recharge','akku','läuft nicht lange','电池','续航','充电后用不久'],
+      fix:'向供应商要求更换更大容量电芯（+500mAh 成本约 $0.4-0.7）；同步把 Listing 续航承诺下调 20%，按实测值写', rec:0.65,
+      qa:'Q: 真实续航多久？\nA: 中档连续约 X 小时（我们写的是实测值，不是实验室值）；低温环境会缩短 10-20%，建议随附备用充电宝。' },
+    { nm:'发热不符', kw:['not hot','not warm','barely','too hot','uneven','cold spot','temperature','nicht warm','zu heiß','不热','温度','不够热','烫'],
+      fix:'双动作：① 向工厂要发热片功率实测报告，确认宣传与实物一致；② 把 Listing 中 "gets extremely hot" 改为分级描述（低档舒缓 / 高档强劲）', rec:0.55,
+      qa:'Q: 会不会太烫？\nA: 三档设计：低档适合长时间佩戴，高档 30 秒速热但不建议直接贴皮肤。' },
+    { nm:'尺寸不合', kw:['too small','too big','too tight','too loose',"doesn't fit",'does not fit','slips','strap','size','größe','zu klein','zu eng','rutscht','尺寸','不合身','太紧','松'],
+      fix:'A+ 第一屏加车型式尺寸对照表（身高/围度 → 建议码数）；标题加 "Adjustable Fit for Most Adults"；退货高峰尺寸单独做变体', rec:0.7,
+      qa:'Q: 我该选哪个码？\nA: 按对照表量围度选，弹性面料有 5cm 余量；介于两码之间建议选大一号。' },
+    { nm:'充电线材', kw:['cable','charger','usb','port','stopped charging','wont charge','won\'t charge','cord','ladekabel','lädt nicht','充电口','线','充不进'],
+      fix:'换 Type-C 一体化接口供应商件（成本 +$0.15）；包装内加纸质「首次使用请充满 3 小时」提示卡', rec:0.6,
+      qa:'Q: 充不进电怎么办？\nA: 先长按开关 5 秒复位，再换一根线试；仍不行走售后换新，无需退回。' },
+    { nm:'做工异味', kw:['smell','odor','chemical','cheap material','broke','stopped working','fell apart','stitching','geruch','kaputt',' chemisch','异味','味道','坏了','开线','质量差'],
+      fix:'① 要求工厂出货前 48h 通风晾置并附检测报告；② 包装加活性炭包（$0.05）；差评集中款直接停售排查', rec:0.5,
+      qa:'Q: 有味道正常吗？\nA: 新品可能有轻微包装气味，拆封通风 24 小时即可消散；若持续刺鼻请直接联系我们换新。' },
+    { nm:'洗涤损坏', kw:['washed','wash','shrink','after wash','machine wash','gewaschen','waschmaschine','洗','缩水','洗坏'],
+      fix:'主图加洗标说明卡；把 "machine washable" 改为 "removable, washable cover"；洗涤说明置入五点第 4 条', rec:0.75,
+      qa:'Q: 可以机洗吗？\nA: 仅可拆下布套机洗（装洗衣袋），主机部分切勿沾水。' },
+    { nm:'期望落差', kw:['not as advertised','misleading','expected','picture looks','smaller than','different from','anders als','entspricht nicht','跟图片','想象','宣传不符','与描述'],
+      fix:'Listing 视觉问题：主图加实物比例参照物（手/水瓶）；视频里放真人佩戴 360°；删掉一切夸张形容词', rec:0.6,
+      qa:'Q: 实物和图片一致吗？\nA: 所有图片为实拍，视频里有佩戴展示；尺寸请以详情页对照表为准。' },
+    { nm:'误购错买', kw:['wrong item','ordered by mistake','not what i ordered','gift did not','thought it was','falsch bestellt','verwechselt','买错','拍错','以为'],
+      fix:'主图首屏与变体命名加产品边界（"Heating Wrap — NOT a support brace"）；变体名含部位与左右款', rec:0.45,
+      qa:'Q: 这是护膝还是发热护膝？\nA: 本款为发热款（含电池）；如需普通支撑款请看店铺内 XX 变体。' }
+  ];
+
+  var SEEN = 'heated_rc_seen_v1';
+
+  function parse(){
+    return (document.getElementById('raw').value || '')
+      .split('\n').map(function(s){ return s.trim(); })
+      .filter(function(s){ return s.length > 3; });
+  }
+
+  function classify(lines){
+    var counts = {}, hits = [], unk = [];
+    lines.forEach(function(line){
+      var t = H.lower(line);
+      var found = [];
+      CAUSES.forEach(function(c){
+        if (c.kw.some(function(k){ return t.indexOf(H.lower(k)) >= 0; })) found.push(c.nm);
+      });
+      if (found.length){
+        found.forEach(function(nm){ counts[nm] = (counts[nm] || 0) + 1; });
+        hits.push({ line:line, causes:found });
+      } else {
+        counts['未识别'] = (counts['未识别'] || 0) + 1;
+        unk.push(line);
+      }
+    });
+    return { counts:counts, hits:hits, unk:unk, total:lines.length };
+  }
+
+  function run(){
+    var lines = parse();
+    if (!lines.length){
+      document.getElementById('tip').textContent = '先贴几条退货理由或差评（或点「填入示例数据」）';
+      return;
+    }
+    document.getElementById('tip').textContent = '';
+    var r = classify(lines);
+    var retN = +document.getElementById('retN').value || 0;
+    var ordN = +document.getElementById('ordN').value || 1;
+    var rate = retN / ordN;
+
+    var h = '<h2>2. 归因结果（共 ' + r.total + ' 条，识别 ' + r.hits.length + ' 条）</h2>';
+
+    /* 占比条 */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:6px 0 12px">根因占比</h3>';
+    var entries = CAUSES.map(function(c){ return { c:c, n:r.counts[c.nm] || 0 }; })
+      .sort(function(a,b){ return b.n - a.n; });
+    var maxN = Math.max.apply(null, entries.map(function(e){ return e.n; }).concat([1]));
+    entries.forEach(function(e){
+      if (!e.n) return;
+      h += '<div class="cause"><span class="nm">' + e.c.nm + '</span>' +
+           '<span class="bar"><i style="width:' + Math.round(e.n / maxN * 100) + '%"></i></span>' +
+           '<span class="pc">' + Math.round(e.n / r.hits.length * 100) + '% · ' + e.n + '条</span></div>';
+    });
+    if (r.unk.length){
+      h += '<div class="unk">未识别 ' + r.unk.length + ' 条：' + r.unk.slice(0, 3).join('；') +
+           (r.unk.length > 3 ? '…' : '') + '　（规则外的表述，不影响其余判断）</div>';
+    }
+
+    /* 退货率推演 */
+    var addressable = 0;
+    entries.forEach(function(e){ if (e.n) addressable += e.c.rec * (e.n / r.hits.length); });
+    var drop = addressable * rate;
+    h += '<div class="stats">' +
+      '<div class="sb"><div class="k">当前退货率</div><div class="v">' + (rate * 100).toFixed(1) + '%</div><div class="m">' + retN + ' / ' + ordN + ' 单</div></div>' +
+      '<div class="sb"><div class="k">可归因占比</div><div class="v">' + Math.round(r.hits.length / r.total * 100) + '%</div><div class="m">' + r.hits.length + ' 条命中已知根因</div></div>' +
+      '<div class="sb"><div class="k">预期退货率下降</div><div class="v">−' + (drop * 100).toFixed(1) + '<small> pp</small></div><div class="m">按各根因挽回率加权</div></div>' +
+      '<div class="sb"><div class="k">月省退货</div><div class="v">' + Math.round(drop * ordN) + '<small> 单</small></div><div class="m">按当前月销估算</div></div>' +
+    '</div>';
+
+    /* 改动优先级：占比 × 难度 */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:16px 0 10px">改动优先级（占比大的 + 容易改的排前面）</h3>';
+    var ranked = entries.filter(function(e){ return e.n > 0; }).map(function(e){
+      var share = e.n / r.hits.length;
+      var easy = e.c.rec >= 0.6;
+      var pri = (share >= 0.2 && easy) || share >= 0.3 ? 'P0' : (share >= 0.12 ? 'P1' : 'P2');
+      return { e:e, share:share, pri:pri };
+    }).sort(function(a,b){
+      var w = { P0:0, P1:1, P2:2 };
+      return w[a.pri] - w[b.pri] || b.share - a.share;
+    });
+    ranked.forEach(function(x){
+      var e = x.e;
+      h += '<div class="fix"><div class="hd">' +
+           '<span class="pri ' + x.pri + '">' + x.pri + '</span>' +
+           '<span class="t">' + e.c.nm + '</span>' +
+           '<span class="tag">占比 ' + Math.round(x.share * 100) + '% · 预期挽回 ' + Math.round(e.c.rec * 100) + '%</span></div>' +
+           '<div class="d"><b>动作：</b>' + e.c.fix + '</div></div>';
+    });
+
+    /* 原文归属 */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:16px 0 10px">原文归属明细</h3>';
+    h += '<div class="scroll"><table><thead><tr><th>原文</th><th>归因</th></tr></thead><tbody>';
+    r.hits.slice(0, 15).forEach(function(x){
+      h += '<tr><td>' + x.line.slice(0, 100) + '</td><td>' + x.causes.join('、') + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+
+    /* QA 话术 */
+    h += '<h3 style="font-size:14px;font-weight:600;margin:16px 0 10px">QA 话术（按 P0 根因生成，X 换成实测值）</h3>';
+    h += '<pre class="pack" id="pack">' + ranked.slice(0, 3).map(function(x){ return x.e.c.qa; }).join('\n\n') + '</pre>';
+    h += '<div class="btnrow"><button class="btn" onclick="copyAll()">复制话术</button><span class="tag" id="copyTip"></span></div>';
+
+    document.getElementById('out').innerHTML = h;
+    document.getElementById('out').__pack = ranked.slice(0, 3).map(function(x){ return x.e.c.qa; }).join('\n\n');
+  }
+
+  function demo(){
+    document.getElementById('raw').value =
+      'battery only lasts about 20 minutes on medium\n' +
+      'not as hot as advertised, barely warm on high\n' +
+      'too small for my shoulder and the strap slips down\n' +
+      'smelled like chemicals for the first week\n' +
+      'stopped charging after three weeks, cable is fine\n' +
+      'smaller than it looks in the pictures\n' +
+      'washed it once and it stopped heating\n' +
+      'my mom can not sleep because of shoulder aches, this helps\n' +
+      ' Akku hält nur eine Stunde\n' +
+      'rutscht beim Autofahren ständig herunter';
+    run();
+  }
+  window.demo = demo;
+
+  window.copyAll = function(){
+    var ta = document.createElement('textarea');
+    ta.value = document.getElementById('out').__pack || '';
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); document.getElementById('copyTip').textContent = '已复制 ✓'; }
+    catch(e){ document.getElementById('copyTip').textContent = '复制失败'; }
+    document.body.removeChild(ta);
+    setTimeout(function(){ var t = document.getElementById('copyTip'); if (t) t.textContent = ''; }, 2000);
+  };
+
+  window.run = run;
+
+  /* 首次进入给示例结果 */
+  demo();
+})();
+</script>
+</body>
+</html>
