@@ -358,11 +358,12 @@
     function enc(s){ return encodeURIComponent(s); }
     function slug(s){ return s.replace(/[^a-z0-9äöüß]/gi, '').toLowerCase(); }
     var rows = [
-      { nm:'TikTok 搜索', hint:'必须登录！未登录点搜索会被踹回推荐页', f:function(q){ return 'https://www.tiktok.com/search?q=' + enc(q); } },
+      { nm:'YouTube 搜索', hint:'免登录，已实测可用，标题最完整（主力通道）', f:function(q){ return 'https://www.youtube.com/results?search_query=' + enc(q); } },
       { nm:'Google 搜 TK', hint:'免登录，Google 结果里就是 TK 视频标题', f:function(q){ return 'https://www.google.com/search?q=' + enc('site:tiktok.com ' + q) + '&num=30'; } },
-      { nm:'YouTube 搜索', hint:'免登录，标题写得最完整', f:function(q){ return 'https://www.youtube.com/results?search_query=' + enc(q); } },
-      { nm:'Instagram 话题', hint:'需登录，看你账号所在地区', f:function(q){ return 'https://www.instagram.com/explore/tags/' + slug(q) + '/'; } },
-      { nm:'Reddit 搜索', hint:'症状与人群的原生语言', f:function(q){ return 'https://www.reddit.com/search/?q=' + enc(q) + '&sort=top&t=year'; } }
+      { nm:'TikTok 话题页', hint:'要登录但不靠搜索框 —— 被踹回推荐页时用这个', f:function(q){ return 'https://www.tiktok.com/tag/' + slug(q); } },
+      { nm:'Reddit 搜索', hint:'免登录，症状与人群的原生语言', f:function(q){ return 'https://www.reddit.com/search/?q=' + enc(q) + '&sort=top&t=year'; } },
+      { nm:'TikTok 搜索', hint:'要登录且页面得有搜索框，容易被踹回推荐页', f:function(q){ return 'https://www.tiktok.com/search?q=' + enc(q); } },
+      { nm:'Instagram 话题', hint:'需登录，看你账号所在地区', f:function(q){ return 'https://www.instagram.com/explore/tags/' + slug(q) + '/'; } }
     ];
     var h = '<h3 style="font-size:14px;font-weight:600;margin:18px 0 6px">一键直达（点开即搜好的结果页，滚两屏再点书签栏的书签）</h3>';
     h += '<p class="desc" style="margin:0 0 8px">下面每个按钮都会开一个新标签页，关键词已按<b>' + H.SITES[d.key].nm + '</b>填好。在这些页面上点一次书签栏里的「抓取本页文案」，回来点「从剪贴板导入」即可。</p>';
