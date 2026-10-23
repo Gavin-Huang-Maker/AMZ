@@ -84,11 +84,32 @@
         <select id="ngram"><option value="1" selected>单词 + 词组（推荐）</option><option value="0">只要单词</option></select>
       </div>
     </div>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn" onclick="fromClip()">从剪贴板导入</button>
+      <span class="tag">配合下面的书签小工具用：在 TikTok / IG 页面点一下书签，回来点这里即可</span>
+    </div>
     <p class="note" id="status">尚未取数 —— 直接点上面按钮，或粘贴内容后点「分析」即可。</p>
   </div>
 
   <div class="tabs" id="tabs" hidden></div>
   <div id="panel"></div>
+
+  <div class="card">
+    <h2>2. 把 TikTok / Instagram 的内容拿来（三步，一分钟内）</h2>
+    <p class="desc">这两个平台的登录墙 + 反爬 + 跨域限制，任何网页都抓不到 —— 但<b>跑在你自己浏览器里的脚本可以</b>，因为你本来就登录着。这就是下面这个书签的原理。</p>
+    <div class="steps">
+      <div class="s"><span class="n">1</span><div class="t">把书签拖到书签栏</div><div class="d">
+        <a id="bm" class="btn" style="display:inline-block;text-decoration:none" href="#">📋 抓取本页文案（拖我到书签栏）</a>
+        <div style="margin-top:8px;font-size:11.5px;color:var(--hint)">用鼠标把这个按钮<b>拖到浏览器的书签栏</b>（Ctrl+Shift+B 可显示书签栏）。Chrome / Edge 都支持。</div>
+      </div></div>
+      <div class="s"><span class="n">2</span><div class="t">在平台页面点它</div><div class="d">打开 TikTok 搜索页或话题页、IG 话题页、YouTube 搜索页、Reddit 搜索页 —— <b>先往下滚两三屏</b>让内容加载出来，再点书签栏里那个书签，会提示「已复制 N 条」。</div></div>
+      <div class="s"><span class="n">3</span><div class="t">回来点「从剪贴板导入」</div><div class="d">就是上面粘贴区旁边的那个按钮，点完词榜立刻重算，标签、词频、词包全部按你抓来的真内容重出。</div></div>
+    </div>
+    <div class="callout co-warn" style="margin-top:12px">
+      <b>只抓到几条怎么办：</b>这些页面是滚动加载的，滚得越多抓得越多。滚完再点一次书签即可，代码是幂等的，重复内容会自动去重。<br>
+      <b>什么都没抓到：</b>页面结构变了（平台会改版）时也偶尔失效 —— 这时直接手动框选页面上的文案复制，粘贴到上面的框里，效果完全一样。
+    </div>
+  </div>
 
   <div class="card">
     <h2>三条通道分别负责什么</h2>
@@ -150,7 +171,7 @@
     PASTED = (document.getElementById('paste').value || '')
       .split('\n').map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 8; });
 
-    var key = KEYS[CUR] ? CUR : 'US';
+    var key = KEYS.indexOf(CUR) >= 0 ? CUR : 'US';
     var seeds = H.SEEDS[key].slice(0, 8);
     var lang = H.SITES[key].lang;
 
@@ -202,11 +223,12 @@
       if (SOURCES.kb) parts.push('内置词库 ' + H.CORPUS[lang].length + ' 条');
       document.getElementById('status').innerHTML =
         (parts.length ? '本次分析基于：' + parts.join(' · ') : '没有任何语料') +
-        '。共 ' + Object.keys(DATA.words).length + ' 个词待用。';
+        '。共 ' + DATA.list.length + ' 个词待用。';
+    }).catch(function(e){
+      document.getElementById('status').innerHTML = '<span style="color:var(--warn)">分析出错：' + (e && e.message ? e.message : e) + '</span>';
     }).then(function(){
       btn.disabled = false;
       btn.textContent = '重新抓取';
-      document.getElementById('loadBtn').onclick = null;
     });
   }
   window.load = run;
@@ -234,7 +256,6 @@
       var grams = [];
       for (var i = 0; i < toks.length - 1; i++) grams.push(toks[i] + ' ' + toks[i+1]);
       toks.concat(grams).forEach(function(w){
-        if (!H.relevant(w) && srcCount.total !== 0) { /* 保留高频词，不在此筛除 */ }
         if (!words[w]) words[w] = { w:w, n:0, tags:{}, tagN:{}, srcs:{} };
         words[w].n++;
         words[w].srcs[o.src] = (words[w].srcs[o.src] || 0) + 1;
@@ -263,10 +284,10 @@
 
     /* 昨日对比 */
     var cache = lsGet('heated_radar_v1');
-    var prev = cache[CUR] || { date:'', ws:[] };
+    var prev = cache[key] || { date:'', ws:[] };
     var prevSet = {}; prev.ws.forEach(function(w){ prevSet[w] = 1; });
     var nowWords = list.slice(0, 60).map(function(o){ return o.w; });
-    cache[CUR] = { date: today(), ws: nowWords, n: list.length };
+    cache[key] = { date: today(), ws: nowWords, n: list.length };
     lsSet('heated_radar_v1', cache);
 
     DATA = {
@@ -311,6 +332,38 @@
     return h;
   }
 
+  /* 一键直达：按当前站点生成平台搜索链接，省掉手动敲关键词 */
+  function goBar(d){
+    var seeds = (H.SEEDS[d.key] || []).slice(0, 3);
+    function enc(s){ return encodeURIComponent(s); }
+    function slug(s){ return s.replace(/[^a-z0-9äöüß]/gi, '').toLowerCase(); }
+    var rows = [
+      { nm:'TikTok 搜索', hint:'登录后内容最全、最贴近当下', f:function(q){ return 'https://www.tiktok.com/search?q=' + enc(q); } },
+      { nm:'YouTube 搜索', hint:'公开免登录，标题写得最完整', f:function(q){ return 'https://www.youtube.com/results?search_query=' + enc(q); } },
+      { nm:'Instagram 话题', hint:'需登录，看你账号所在地区', f:function(q){ return 'https://www.instagram.com/explore/tags/' + slug(q) + '/'; } },
+      { nm:'Reddit 搜索', hint:'症状与人群的原生语言', f:function(q){ return 'https://www.reddit.com/search/?q=' + enc(q) + '&sort=top&t=year'; } }
+    ];
+    var h = '<h3 style="font-size:14px;font-weight:600;margin:18px 0 6px">一键直达（点开即搜好的结果页，滚两屏再点书签栏的书签）</h3>';
+    h += '<p class="desc" style="margin:0 0 8px">下面每个按钮都会开一个新标签页，关键词已按<b>' + H.SITES[d.key].nm + '</b>填好。在这些页面上点一次书签栏里的「抓取本页文案」，回来点「从剪贴板导入」即可。</p>';
+    h += '<div class="scroll"><table><thead><tr><th>平台</th>';
+    seeds.forEach(function(q){ h += '<th>' + q + '</th>'; });
+    h += '</tr></thead><tbody>';
+    rows.forEach(function(r){
+      h += '<tr><td><b>' + r.nm + '</b><div style="font-size:11px;color:var(--hint);margin-top:2px">' + r.hint + '</div></td>';
+      seeds.forEach(function(q, i){
+        h += '<td><a class="btn" style="display:inline-block;text-decoration:none;padding:6px 11px;font-size:12px" target="_blank" rel="noopener" href="' + r.f(q) + '">打开 ' + (i + 1) + ' ↗</a></td>';
+      });
+      h += '</tr>';
+    });
+    h += '</tbody></table></div>';
+    h += '<div class="callout co-ok" style="margin-top:10px"><b>还有一个免登录的官方通道：</b>' +
+         '<a href="https://ads.tiktok.com/business/creativecenter" target="_blank" rel="noopener">TikTok 官方创意中心 ↗</a>' +
+         ' —— TikTok 给广告主公开的热榜，<b>不用登录</b>就能看话题榜和热门视频标题，是最稳的一条线。进去后在页面右上角把国家切到 ' +
+         (d.key === 'DE' ? '德国' : d.key === 'UK' ? '英国' : d.key === 'CA' ? '加拿大' : '美国') +
+         '（对应 ' + d.key + '）。注意它公开只放出榜单前几名，想要深挖还是得靠上面的搜索页 + 书签。</div>';
+    return h;
+  }
+
   function render(){
     if (!DATA) return;
     var d = DATA, S = H.SITES[d.key];
@@ -330,6 +383,8 @@
         (d.prevDate ? '对比 ' + d.prevDate + '的记录' : '首次运行，明天起可对比') + '</div></div>' +
       '<div class="sb"><div class="k">命中的标签</div><div class="v">' + Object.keys(d.tagCount).length + '</div><div class="m">场景 / 人群 / 部位 / 痛点 / 诉求</div></div>' +
     '</div>';
+
+    h += goBar(d);
 
     /* 标签分布 */
     h += '<h3 style="font-size:14px;font-weight:600;margin:6px 0 4px">标签分布（按命中条数排序）</h3>';
@@ -459,6 +514,29 @@
     var tags = Object.keys(DATA.tagCount).slice(0, 8);
     lsSet('heated_matrix_input', { site:DATA.key, words:ws, tags:tags, date:today() });
     location.href = '../heated-message-matrix/';
+  };
+
+  /* 书签小工具：在你已登录的浏览器里抓当前页面的文案 */
+  var BM = 'javascript:(function(){var out=[],seen={};function add(t){t=(t||"").replace(/\s+/g," ").trim();if(t.length>12&&!seen[t]&&out.length<60){seen[t]=1;out.push(t);}}document.querySelectorAll("a[href*=\"/video/\"],a[href*=\"/reel/\"],a[href*=\"/reels/\"],a[href*=\"/p/\"]").forEach(function(a){add(a.innerText);});if(out.length<5){document.querySelectorAll("span[dir=\"auto\"],div[class*=\"Desc\"],h1,h2,article,[data-e2e]").forEach(function(e){if(e.children.length<4){add(e.innerText);}});}if(!out.length){alert("没抓到文案，先往下滚两三屏再点一次");return;}var ta=document.createElement("textarea");ta.value=out.join("\\n");document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);alert("已复制 "+out.length+" 条文案，回到词雷达点「从剪贴板导入」");})();';
+  var bm = document.getElementById('bm');
+  if (bm) bm.setAttribute('href', BM);
+
+  window.fromClip = function(){
+    var ta = document.getElementById('paste'), tip = document.getElementById('status');
+    function put(t){
+      if (!t || !t.trim()){ tip.textContent = '剪贴板里没有文字 —— 先到平台页面点一下书签栏里的「抓取本页文案」。'; return; }
+      ta.value = (ta.value && ta.value.trim() ? ta.value.replace(/\s+$/,'') + '\n' : '') + t.trim();
+      ta.dispatchEvent(new Event('input'));
+      var n = ta.value.split('\n').filter(function(x){ return x.trim().length > 3; }).length;
+      tip.innerHTML = '已从剪贴板导入 ' + n + ' 行，词榜已重算。';
+    }
+    if (navigator.clipboard && navigator.clipboard.readText){
+      navigator.clipboard.readText().then(put).catch(function(){
+        tip.innerHTML = '浏览器不给读剪贴板（需要授权）。直接按 <b>Ctrl+V</b> 粘到上面的框里，效果一样。';
+      });
+    } else {
+      tip.innerHTML = '这个浏览器不支持读剪贴板。直接按 <b>Ctrl+V</b> 粘到上面的框里。';
+    }
   };
 
   /* 粘贴后立即重算（保证这条通道永远可用） */

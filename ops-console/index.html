@@ -86,6 +86,13 @@
         <label>FBA 可售天数 <span class="unit">（完整日报的库存提醒用）</span></label>
         <input id="stock" type="number" value="30" min="0">
       </div>
+      <div class="field">
+        <label>是否附加热品类今日新增词</label>
+        <select id="words">
+          <option value="1" selected>附（美国站 + 德国站，与昨日词表对比）</option>
+          <option value="0">不附，只要雪挡部分</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -122,8 +129,8 @@
       <table>
         <thead><tr><th>名称</th><th>时间</th><th>内容</th><th>状态</th></tr></thead>
         <tbody>
-          <tr><td><b>雪季每日作战简报</b></td><td>每天 09:30</td><td>阶段判定 + 需求指数 + 首雪倒计时 + 今日 P0/P1/P2 + 结霜提醒</td><td><span class="badge b-ok">运行中</span></td></tr>
-          <tr><td><b>雪挡完整日报（九合一）</b></td><td>自选</td><td>雪档简报 / 降雪预警 / 降霜 / 广告打法 / 库存 / 活动报名 / Listing 自查 / 雪后复盘 / 市场 —— 一份报告</td><td><span class="badge b-warn">待配置</span></td></tr>
+          <tr><td><b>雪挡完整日报（九合一）</b></td><td>自选</td><td>雪档简报 / 降雪预警 / 降霜 / 广告打法 / 库存 / 活动报名 / Listing 自查 / 雪后复盘 / 市场 / 加热新增词 —— 一份报告</td><td><span class="badge b-warn">待配置</span></td></tr>
+          <tr><td><b>每日作战简报（雪挡 + 加热词榜）</b></td><td>每天 09:30</td><td>雪档四站点简报（阶段/指数/倒计时/预算/动作）+ 加热护具今日新增词（美国站、德国站，与昨日词表对比）</td><td><span class="badge b-ok">运行中</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -574,6 +581,17 @@
     L.push('未来 14 天各站峰值指数：' + KEYS.map(function(k){ return SITES[k].nm.replace('站','') + ' ' + WX[k].fmax14; }).join(' · '));
     L.push('→ ' + WX[lead].nm + '最先进入雪季（峰值 ' + WX[lead].fmax14 + '），广告火力优先对准它；');
     L.push('其余站点趁低价养词根权重，等各自的雪来再切高倍预算。');
+    var wordsOn = document.getElementById('words') && document.getElementById('words').value === '1';
+    if (wordsOn){
+      L.push('');
+      L.push('━━ 十、加热 · 今日新增词 ━━');
+      L.push('（执行时由 AI 抓取真实讨论后与昨日词表对比，脚本 tools/heated_words.js）');
+      L.push('· 美国站新增：__');
+      L.push('· 德国站新增：__');
+      L.push('· 命中标签 TOP3：__');
+      L.push('· 建议动作：__');
+      L.push('（抓不到在线语料时用内置词库兜底并标注来源；无新增就写「今日无新增词」，不要编）');
+    }
     L.push('');
     L.push('—— 由亚马逊运营工具箱自动生成');
     return L.join('\n');
@@ -609,6 +627,9 @@
     lines.push('');
     lines.push('【执行要求】');
     lines.push(t.cmd);
+    if (document.getElementById('words').value === '1'){
+      lines.push('消息末尾要加一节「加热 · 今日新增词」：先用 WebSearch 搜 Reddit 等平台的加热护具真实讨论（如 site:reddit.com heated shoulder brace、Heizkissen Schulter Erfahrung），把真实原句写入 .workbuddy/heated_inbox_US.txt 与 .workbuddy/heated_inbox_DE.txt（每次覆盖），然后运行 node tools/heated_words.js --site=US --md 与 node tools/heated_words.js --site=DE --md，取「今日新增词（最多 6 个）+ 命中标签 TOP3 + 一条建议动作」写进消息。抓不到在线语料就用内置词库兜底并在消息里标注来源，绝不编造新增词。');
+    }
     lines.push('消息用 markdown 发送，控制在 ' + limit + ' 字以内；不要写客套话，直接给判断和动作。');
     lines.push('');
     lines.push('【消息样式参考】');
