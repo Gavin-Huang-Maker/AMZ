@@ -179,6 +179,10 @@
 '  border-color:rgba(255,255,255,.10) !important}',
 'html.amz-fx #gate .logo,html.amz-fx #gate button{',
 '  background:linear-gradient(125deg,#8b83ff,#4cc9ff) !important;color:#fff !important}',
+/* 若橙色横幅画在伪元素上，inline style 无法覆盖，用预置规则接管 */
+'html.amz-fx .af-warm-pseudo::before,html.amz-fx .af-warm-pseudo::after{',
+'  background-color:rgba(10,14,26,.72) !important;',
+'  background-image:linear-gradient(125deg,rgba(139,131,255,.24),rgba(76,201,255,.13) 55%,rgba(67,230,176,.09)) !important}',
 
 /* ---- 动态背景 ---- */
 '#amz-fx-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;',
@@ -325,6 +329,28 @@
   }
   function lum(c) { return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255; }
   function neutral(c) { return Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 48; }
+  /* 暖橙 / 高饱和亮色识别：按 RGB 数值判断，不依赖写死的色值名单。
+     覆盖 #ff6a00、#f97316、#e8590c、rgba(255,106,0,..) 等任意橙红系。 */
+  function isWarm(c) {
+    if (!c || c.a < .3) return false;
+    return c.r > 185 && c.b < 145 && (c.r - c.b) > 85 &&
+           (c.r - c.g) > 15 && (c.g - c.b) > -25;
+  }
+  function warmInImage(s) {
+    s = String(s || '');
+    var re = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/gi, m;
+    while ((m = re.exec(s))) {
+      if (isWarm({ r:+m[1], g:+m[2], b:+m[3], a:1 })) return true;
+    }
+    re = /#([0-9a-f]{6}|[0-9a-f]{3})\b/gi;
+    while ((m = re.exec(s))) {
+      var h = m[1];
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      var n = parseInt(h, 16);
+      if (isWarm({ r:(n >> 16) & 255, g:(n >> 8) & 255, b:n & 255, a:1 })) return true;
+    }
+    return false;
+  }
   function slugFromHref(href) {
     if (!href) return null;
     var h = String(href).split(/[?#]/)[0].replace(/\/$/, '');
@@ -413,20 +439,41 @@
   /* ------------------------------------------------------------------ *
    * 2. 运行时色彩规范化（应对未知 / 硬编码的浅色样式）
    * ------------------------------------------------------------------ */
+  var HERO_GRAD = 'linear-gradient(125deg,rgba(139,131,255,.24),rgba(76,201,255,.13) 55%,rgba(67,230,176,.09))';
+  var BTN_GRAD  = 'linear-gradient(125deg,rgba(139,131,255,.42),rgba(76,201,255,.30))';
   function normalize() {
     if (SKIP_NORMALIZE || !doc.body) return;
     var nodes = doc.body.querySelectorAll('*');
     var skipRoot = '#amz-fx-bg,#amz-fx-launch,#amz-fx-palette,#amz-fx-nav,#amz-fx-toast,#amz-fx-guide';
-    for (var i = 0; i < nodes.length; i++) {
-      var node = nodes[i];
-      if (node.closest && node.closest(skipRoot)) continue;
-      if (node.hasAttribute && node.hasAttribute('data-amz-fx-keep')) continue;
-      if (/^(SVG|CANVAS|VIDEO|IFRAME|IMG|STYLE|SCRIPT|BR|HR)$/.test(node.tagName)) continue;
+    function apply(node) {
+      if (node.closest && node.closest(skipRoot)) return;
+      if (node.hasAttribute && node.hasAttribute('data-amz-fx-keep')) return;
+      if (/^(SVG|CANVAS|VIDEO|IFRAME|IMG|STYLE|SCRIPT|BR|HR)$/.test(node.tagName)) return;
       var cs, r;
-      try { cs = getComputedStyle(node); r = node.getBoundingClientRect(); } catch (e) { continue; }
+      try { cs = getComputedStyle(node); r = node.getBoundingClientRect(); } catch (e) { return; }
       var area = r.width * r.height;
       var c = parseColor(cs.backgroundColor);
-      if (c && c.a > .55 && lum(c) > .80) {
+      var img = cs.backgroundImage;
+      var warmBg = isWarm(c);
+      var warmImg = img && img !== 'none' && warmInImage(img);
+
+      /* 暖橙色块：顶部横幅 / 橙色按钮统一接管。
+         必须同时改 background-color 与 background-image，否则半透明渐变
+         下面仍会透出原来的橙色底色。 */
+      if (area > 700 && (warmBg || warmImg)) {
+        var big = area > 12000;
+        node.style.setProperty('background-color',
+          big ? 'rgba(10,14,26,.70)' : 'rgba(18,23,38,.86)', 'important');
+        node.style.setProperty('background-image', big ? HERO_GRAD : BTN_GRAD, 'important');
+        node.style.setProperty('border-color', 'rgba(255,255,255,.12)', 'important');
+        if (big) {
+          node.style.setProperty('backdrop-filter', 'blur(20px)', 'important');
+          node.style.setProperty('-webkit-backdrop-filter', 'blur(20px)', 'important');
+          node.style.setProperty('box-shadow', 'inset 0 1px 0 rgba(255,255,255,.06)', 'important');
+        } else {
+          node.style.setProperty('color', '#f4f7ff', 'important');
+        }
+      } else if (c && c.a > .55 && lum(c) > .80) {
         if (area > 4200) {
           node.style.setProperty('background-color', 'rgba(18,23,38,.72)', 'important');
           node.style.setProperty('backdrop-filter', 'blur(18px)', 'important');
@@ -438,10 +485,19 @@
           node.style.setProperty('background-color', 'rgba(255,255,255,.06)', 'important');
         }
       }
-      if (cs.backgroundImage && cs.backgroundImage !== 'none' && area > 700 &&
-          /232,\s*89|255,\s*122|255,\s*112|#e8590c|#ff7a33|#f97316/i.test(cs.backgroundImage)) {
-        node.style.setProperty('background-image',
-          'linear-gradient(125deg,rgba(139,131,255,.22),rgba(76,201,255,.12) 55%,rgba(67,230,176,.10))', 'important');
+      /* 伪元素兜底：橙色若画在 ::before/::after 上，inline style 覆盖不到，
+         改为打标记交给预置 CSS 规则。只查大面积元素，避免误伤装饰小圆点。 */
+      if (area > 12000) {
+        try {
+          var pb = getComputedStyle(node, '::before');
+          var pa = getComputedStyle(node, '::after');
+          if ((pb && pb.backgroundImage !== 'none' && warmInImage(pb.backgroundImage)) ||
+              (pa && pa.backgroundImage !== 'none' && warmInImage(pa.backgroundImage)) ||
+              (pb && isWarm(parseColor(pb.backgroundColor))) ||
+              (pa && isWarm(parseColor(pa.backgroundColor)))) {
+            node.classList.add('af-warm-pseudo');
+          }
+        } catch (e) { /* 伪元素不可读时忽略 */ }
       }
       var f = parseColor(cs.color);
       if (f && f.a > .5 && lum(f) < .42 && neutral(f)) {
@@ -453,6 +509,7 @@
         node.style.setProperty('border-color', 'rgba(255,255,255,.12)', 'important');
       }
     }
+    for (var i = 0; i < nodes.length; i++) apply(nodes[i]);
   }
 
   /* ------------------------------------------------------------------ *
