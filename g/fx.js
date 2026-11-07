@@ -510,6 +510,25 @@
       }
     }
     for (var i = 0; i < nodes.length; i++) apply(nodes[i]);
+
+    /* html / body 自身不在 querySelectorAll('*') 里，橙色若画在它们的
+       ::before / ::after 上就永远扫不到。这里只做伪元素标记，
+       绝不改根元素的背景或加 backdrop-filter（那会把整页糊掉）。 */
+    function markRootPseudo(root) {
+      if (!root) return;
+      try {
+        var pb = getComputedStyle(root, '::before');
+        var pa = getComputedStyle(root, '::after');
+        if ((pb && pb.backgroundImage !== 'none' && warmInImage(pb.backgroundImage)) ||
+            (pa && pa.backgroundImage !== 'none' && warmInImage(pa.backgroundImage)) ||
+            (pb && isWarm(parseColor(pb.backgroundColor))) ||
+            (pa && isWarm(parseColor(pa.backgroundColor)))) {
+          root.classList.add('af-warm-pseudo');
+        }
+      } catch (e) { /* 伪元素不可读时忽略 */ }
+    }
+    markRootPseudo(doc.documentElement);
+    markRootPseudo(doc.body);
   }
 
   /* ------------------------------------------------------------------ *
