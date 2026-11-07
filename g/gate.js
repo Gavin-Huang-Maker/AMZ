@@ -31,7 +31,7 @@
   var busy = false;
 
   /* ================= 外观增强层（新增） ================= */
-  var FX_SRC = BASE + 'g/fx.js?v=3';
+  var FX_SRC = BASE + 'g/fx.js?v=4';
 
   var CRITICAL =
     '<style id="amz-fx-critical">' +
