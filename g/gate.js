@@ -1,9 +1,13 @@
 /*
- * AMZ 工具箱 · 本地解密加载器
+ * AMZ 工具箱 · 本地解密加载器（外观增强版）
  * ---------------------------------------------------------------
+ * 解密 / 密钥 / 密码流程与官方原版完全一致，未作任何改动。
+ * 仅新增：在「门禁页」与「解密后的页面」各挂载一次 g/fx.js，
+ *         并插入一段防白闪的关键样式与加载遮罩。
+ *
  * 这里没有任何秘密：密钥由用户输入的密码 + 公开 salt 在浏览器内
  * 用 PBKDF2 现算出来，只存在于本次会话的内存/本机存储里。
- * 没有密码，dist/p/ 里的密文就是一堆随机字节。
+ * 没有密码，p/ 里的密文就是一堆随机字节。
  */
 (function () {
   'use strict';
@@ -26,6 +30,57 @@
   var meta = null;
   var busy = false;
 
+  /* ================= 外观增强层（新增） ================= */
+  var FX_SRC = BASE + 'g/fx.js?v=2';
+
+  var CRITICAL =
+    '<style id="amz-fx-critical">' +
+    'html{background:#070a12!important;color-scheme:dark}' +
+    '#amz-fx-veil{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;' +
+    'background:radial-gradient(120% 90% at 50% -10%,#141c32 0%,#090d18 55%,#060810 100%);' +
+    'transition:opacity .45s ease;color:#8490a8;' +
+    'font:13px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}' +
+    '#amz-fx-veil.af-gone{opacity:0;pointer-events:none}' +
+    '.af-ring{width:34px;height:34px;margin:0 auto 16px;border-radius:50%;' +
+    'border:2px solid rgba(255,255,255,.10);border-top-color:#8b83ff;animation:afspin .8s linear infinite}' +
+    '@keyframes afspin{to{transform:rotate(360deg)}}' +
+    '.af-veil-t{letter-spacing:.08em;font-size:12px}' +
+    '#boot{background:rgba(7,10,18,.72)!important;backdrop-filter:blur(8px)}' +
+    '</style>';
+
+  var VEIL =
+    '<div id="amz-fx-veil"><div style="text-align:center">' +
+    '<div class="af-ring"></div><div class="af-veil-t">正在载入工作区</div>' +
+    '</div></div>';
+
+  function dismissVeil() {
+    var v = document.getElementById('amz-fx-veil');
+    if (!v || v.className === 'af-gone') return;
+    v.className = 'af-gone';
+    setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); }, 520);
+  }
+
+  /* fx.js 缺失 / 加载失败：撤掉遮罩与关键样式，页面完整回退到原版 */
+  function fallback() {
+    var v = document.getElementById('amz-fx-veil');
+    if (v && v.parentNode) v.parentNode.removeChild(v);
+    var c = document.getElementById('amz-fx-critical');
+    if (c && c.parentNode) c.parentNode.removeChild(c);
+  }
+
+  function loadFx() {
+    try {
+      var s = document.createElement('script');
+      s.src = FX_SRC + '&t=' + Date.now();
+      s.async = true;
+      s.onload = dismissVeil;
+      s.onerror = fallback;
+      document.head.appendChild(s);
+      setTimeout(dismissVeil, 1600);
+    } catch (e) { fallback(); }
+  }
+  /* ==================================================== */
+
   /* ---------- 编码工具 ---------- */
   function b64ToBuf(s) {
     var bin = atob(s);
@@ -42,20 +97,23 @@
 
   /* ---------- 提示 ---------- */
   function say(text, kind) {
+    if (!$msg) return;
     $msg.textContent = text || '';
     $msg.className = 'msg' + (kind ? ' ' + kind : '');
   }
   function showForm(text) {
-    $boot.classList.add('hide');
-    $gate.style.display = '';
+    if ($boot) $boot.classList.add('hide');
+    if ($gate) $gate.style.display = '';
     if (text) say(text, 'err');
-    setTimeout(function () { $pw.focus(); }, 60);
+    setTimeout(function () { if ($pw) $pw.focus(); }, 60);
   }
   function setBusy(on, label) {
     busy = on;
-    $go.disabled = on;
-    $go.textContent = on ? (label || '正在解密…') : '进入工具箱';
-    $pw.disabled = on;
+    if ($go) {
+      $go.disabled = on;
+      $go.textContent = on ? (label || '正在解密…') : '进入工具箱';
+    }
+    if ($pw) $pw.disabled = on;
   }
 
   /* ---------- 存储 ---------- */
@@ -128,9 +186,20 @@
   function render(html) {
     // document.open() 保留当前 URL，写回后页面内相对路径、脚本都照常工作
     setTimeout(function () {
+      // 防白闪：把关键深色样式与加载遮罩写进新文档，解析第一帧即为深色
+      if (/<head[^>]*>/i.test(html)) {
+        html = html.replace(/<head[^>]*>/i, function (m) { return m + CRITICAL; });
+      } else {
+        html = CRITICAL + html;
+      }
+      if (/<body[^>]*>/i.test(html)) {
+        html = html.replace(/<body[^>]*>/i, function (m) { return m + VEIL; });
+      }
       document.open();
       document.write(html);
       document.close();
+      // document.open() 会清空上一个文档的所有脚本 → 重新挂载增强层
+      loadFx();
     }, 0);
   }
 
@@ -180,8 +249,8 @@
   /* ---------- 登录 ---------- */
   function submit() {
     if (busy) return;
-    var pw = $pw.value;
-    if (!pw) { say('请输入密码。', 'err'); $pw.focus(); return; }
+    var pw = $pw ? $pw.value : '';
+    if (!pw) { say('请输入密码。', 'err'); if ($pw) $pw.focus(); return; }
 
     setBusy(true, '正在解密…');
     say('');
@@ -213,15 +282,15 @@
             : '密码不正确。',
           'err'
         );
-        $pw.value = '';
-        $pw.focus();
+        if ($pw) { $pw.value = ''; $pw.focus(); }
       });
   }
 
-  $go.addEventListener('click', submit);
-  $pw.addEventListener('keydown', function (e) {
+  if ($go) $go.addEventListener('click', submit);
+  if ($pw) $pw.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') submit();
   });
 
+  loadFx();   // 门禁页也使用同一套视觉
   boot();
 })();
