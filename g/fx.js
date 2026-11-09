@@ -578,7 +578,12 @@
       var L = f.len, wag = Math.sin(f.ph * 2) * L * .10;
       ctx.save();
       ctx.translate(f.x, f.y);
-      ctx.rotate(f.a);
+      /* 朝向：向左时水平镜像（不是旋转 180°，否则鱼会肚皮朝天），再加一点俯仰 */
+      var flip = (f.vx < 0) ? -1 : 1;
+      var pitch = Math.atan2(f.vy, Math.abs(f.vx) + .001) * .5;
+      if (pitch > .5) pitch = .5; else if (pitch < -.5) pitch = -.5;
+      ctx.scale(flip, 1);
+      ctx.rotate(pitch);
       ctx.globalAlpha = .62;
       /* 双叶尾 */
       ctx.fillStyle = 'rgba(255,155,135,.55)';
@@ -588,18 +593,29 @@
       ctx.quadraticCurveTo(-L * .64, 0, -L * .84, L * .32 + wag);
       ctx.quadraticCurveTo(-L * .68, L * .34 + wag, -L * .38, 0);
       ctx.closePath(); ctx.fill();
-      /* 圆润身体 */
+      /* 背鳍 */
+      ctx.fillStyle = 'rgba(255,150,130,.42)';
+      ctx.beginPath();
+      ctx.moveTo(L * .18, -L * .20);
+      ctx.quadraticCurveTo(0, -L * .46, -L * .20, -L * .20);
+      ctx.quadraticCurveTo(-L * .02, -L * .26, L * .18, -L * .20);
+      ctx.closePath(); ctx.fill();
+      /* 圆润身体：背深腹白 */
       var g = ctx.createLinearGradient(0, -L * .28, 0, L * .28);
-      g.addColorStop(0, 'rgba(255,250,242,.92)');
-      g.addColorStop(1, 'rgba(255,202,186,.80)');
+      g.addColorStop(0, 'rgba(255,205,188,.85)');
+      g.addColorStop(.55, 'rgba(255,241,233,.92)');
+      g.addColorStop(1, 'rgba(255,252,247,.96)');
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.ellipse(0, 0, L * .46, L * .27, 0, 0, Math.PI * 2); ctx.fill();
       /* 红斑 */
       ctx.fillStyle = 'rgba(255,105,88,.72)';
-      ctx.beginPath(); ctx.ellipse(L * .09, -L * .06, L * .14, L * .10, -.3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(L * .09, -L * .05, L * .15, L * .11, -.3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-L * .16, L * .04, L * .09, L * .07, .4, 0, Math.PI * 2); ctx.fill();
       /* 眼 */
       ctx.fillStyle = 'rgba(42,32,48,.85)';
       ctx.beginPath(); ctx.arc(L * .30, -L * .06, Math.max(1, L * .045), 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.beginPath(); ctx.arc(L * .315, -L * .075, Math.max(.6, L * .016), 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
     function stepMeteors() {
@@ -784,9 +800,10 @@
       x:rnd(.04,.96), y:rnd(0,1), s:rnd(.8,1.7), v:rnd(.010,.024), ph:rnd(0,TAU) }; });
 
     var LEAVES = [
-      { x:.08,y:.84,r:.048,ph:0 }, { x:.19,y:.93,r:.040,ph:1.4 },
-      { x:.90,y:.86,r:.054,ph:2.7 }, { x:.77,y:.95,r:.038,ph:4.1 },
-      { x:.50,y:.97,r:.034,ph:5.2 }
+      { x:.07,y:.79,r:.078,ph:0 },   { x:.17,y:.92,r:.060,ph:1.4 },
+      { x:.30,y:.86,r:.050,ph:2.2 }, { x:.52,y:.93,r:.070,ph:5.2 },
+      { x:.67,y:.87,r:.052,ph:3.3 }, { x:.91,y:.81,r:.085,ph:2.7 },
+      { x:.81,y:.96,r:.058,ph:4.1 }, { x:.42,y:.98,r:.048,ph:.8 }
     ];
     var RIDGES = [
       { pts:[[-.05,.88],[.05,.70],[.13,.77],[.23,.55],[.31,.71],[.41,.48],
@@ -1069,34 +1086,54 @@
       var x = o.x * W, y = (o.y + Math.sin(t * .5 + o.ph) * .008) * H;
       var r = o.r * Math.min(W, 1200);
       ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * .35 + o.ph) * .05);
+      /* 水面投影 */
+      ctx.fillStyle = 'rgba(6,14,22,.30)';
+      ctx.beginPath(); ctx.ellipse(r * .06, r * .16, r * .96, r * .74, 0, 0, TAU); ctx.fill();
+      /* 叶面（压扁模拟俯视透视）+ 经典 V 形缺口 */
+      ctx.scale(1, .84);
       var g = ctx.createRadialGradient(-r * .2, -r * .3, r * .1, 0, 0, r);
-      g.addColorStop(0, 'rgba(92,178,150,.34)');
-      g.addColorStop(1, 'rgba(24,86,88,.13)');
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, r, .10, 6.18); ctx.closePath();
+      g.addColorStop(0, 'rgba(96,196,160,.62)');
+      g.addColorStop(.6, 'rgba(40,118,104,.44)');
+      g.addColorStop(1, 'rgba(18,74,78,.30)');
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, r, .16, 6.12); ctx.closePath();
       ctx.fillStyle = g; ctx.fill();
-      ctx.strokeStyle = 'rgba(150,230,200,.24)'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.strokeStyle = 'rgba(160,230,205,.14)'; ctx.lineWidth = .8;
-      for (var k = 0; k < 9; k++) {
-        var a = .3 + k * (5.7 / 8);
+      ctx.strokeStyle = 'rgba(150,230,200,.45)'; ctx.lineWidth = 1.2; ctx.stroke();
+      /* 放射叶脉 */
+      ctx.strokeStyle = 'rgba(168,235,205,.30)'; ctx.lineWidth = 1;
+      for (var k = 0; k < 11; k++) {
+        var a = .3 + k * (5.6 / 10);
         ctx.beginPath(); ctx.moveTo(0, 0);
         ctx.lineTo(Math.cos(a) * r * .86, Math.sin(a) * r * .86); ctx.stroke();
       }
-      ctx.beginPath(); ctx.arc(-r * .28, -r * .3, Math.max(2, r * .11), 0, TAU);
-      ctx.fillStyle = 'rgba(200,245,255,.35)'; ctx.fill();
+      /* 中心 + 水珠高光 */
+      ctx.beginPath(); ctx.arc(0, 0, Math.max(2.4, r * .07), 0, TAU);
+      ctx.fillStyle = 'rgba(210,246,235,.55)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(-r * .28, -r * .3, Math.max(2.6, r * .12), 0, TAU);
+      ctx.fillStyle = 'rgba(215,248,255,.55)'; ctx.fill();
       ctx.restore();
     }
-    function drawLily(x, y, s) {
-      ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
-      for (var k = 0; k < 7; k++) {
-        ctx.save(); ctx.rotate(k * TAU / 7);
+    function drawLily(x, y, s, t) {
+      ctx.save();
+      if (t !== undefined) y += Math.sin(t * .7 + x * .01) * 3;
+      ctx.translate(x, y); ctx.scale(s, s);
+      for (var k = 0; k < 8; k++) {
+        ctx.save(); ctx.rotate(k * TAU / 8);
         ctx.beginPath(); ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(-6, -12, 0, -20);
-        ctx.quadraticCurveTo(6, -12, 0, 0);
-        ctx.fillStyle = k % 2 ? 'rgba(255,190,214,.72)' : 'rgba(255,224,235,.80)';
-        ctx.fill(); ctx.restore();
+        ctx.quadraticCurveTo(-6.5, -13, 0, -22);
+        ctx.quadraticCurveTo(6.5, -13, 0, 0);
+        ctx.fillStyle = k % 2 ? 'rgba(255,178,206,.80)' : 'rgba(255,226,237,.88)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = .7; ctx.stroke();
+        ctx.restore();
       }
-      ctx.beginPath(); ctx.arc(0, 0, 3.4, 0, TAU);
-      ctx.fillStyle = 'rgba(255,226,150,.9)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, 3.6, 0, TAU);
+      ctx.fillStyle = 'rgba(255,226,150,.95)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,205,110,.8)'; ctx.lineWidth = .8;
+      for (var m = 0; m < 6; m++) {
+        var ma = m * TAU / 6;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(ma) * 5.2, Math.sin(ma) * 5.2); ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -1159,15 +1196,19 @@
       }
       bodyPath();
       var bg = ctx.createLinearGradient(0, -29, 0, 29);
-      bg.addColorStop(0, P.body); bg.addColorStop(.52, P.body2); bg.addColorStop(1, P.body3);
+      /* 真实光影：背部略深、腹部渐白 */
+      bg.addColorStop(0, P.body2);
+      bg.addColorStop(.45, P.body);
+      bg.addColorStop(.85, 'rgba(255,253,250,.96)');
+      bg.addColorStop(1, P.body3);
       ctx.fillStyle = bg;
       ctx.shadowColor = C(P.glow, .55); ctx.shadowBlur = 20;
       ctx.fill(); ctx.shadowBlur = 0;
       ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.2; ctx.stroke();
 
-      /* 柔边红斑（裁进身体） */
+      /* 柔边红斑（裁进身体）：大块头斑 + 中段斑 + 尾斑，更接近真实锦鲤 */
       ctx.save(); bodyPath(); ctx.clip();
-      var spots = [[22,-7,22,16],[-14,9,20,15],[40,5,10,9],[-32,-8,11,8]];
+      var spots = [[26,-6,24,17],[-12,7,22,16],[-34,-7,12,8]];
       for (var s = 0; s < spots.length; s++) {
         var q = spots[s], R = Math.max(q[2], q[3]);
         ctx.save();
@@ -1180,6 +1221,11 @@
         ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
         ctx.restore();
       }
+      /* 侧线鳞光 */
+      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1;
+      for (var sc2 = -18; sc2 <= 30; sc2 += 12) {
+        ctx.beginPath(); ctx.arc(sc2, 2, 15, -.9, .9); ctx.stroke();
+      }
       ctx.fillStyle = 'rgba(255,255,255,.28)';
       ctx.beginPath(); ctx.ellipse(6, -16, 34, 7, -.06, 0, TAU); ctx.fill();
       ctx.restore();
@@ -1187,20 +1233,18 @@
       /* 鳃线 + 腮红 */
       ctx.strokeStyle = 'rgba(90,70,80,.14)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(28, -2, 14, -1.1, 1.1); ctx.stroke();
-      var bl = ctx.createRadialGradient(26, 8, 1, 26, 8, 11);
-      bl.addColorStop(0, 'rgba(255,120,130,.42)');
+      var bl = ctx.createRadialGradient(26, 9, 1, 26, 9, 8);
+      bl.addColorStop(0, 'rgba(255,120,130,.20)');
       bl.addColorStop(1, 'rgba(255,120,130,0)');
       ctx.fillStyle = bl;
-      ctx.beginPath(); ctx.arc(26, 8, 11, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(26, 9, 8, 0, TAU); ctx.fill();
 
-      /* 大眼睛 + 高光 */
-      ctx.fillStyle = 'rgba(255,255,255,.85)';
-      ctx.beginPath(); ctx.arc(33, -8, 6.2, 0, TAU); ctx.fill();
+      /* 眼睛（写实比例）+ 高光 */
       ctx.fillStyle = '#33283a';
-      ctx.beginPath(); ctx.arc(34, -8, 4.6, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(34, -8, 3.1, 0, TAU); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,.95)';
-      ctx.beginPath(); ctx.arc(35.6, -9.8, 1.8, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(32.4, -6.2, .8, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(35.2, -9.4, 1.1, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(32.8, -6.8, .55, 0, TAU); ctx.fill();
 
       /* 微笑小嘴 + 两根胡须 */
       ctx.strokeStyle = 'rgba(120,70,80,.55)'; ctx.lineWidth = 1.3; ctx.lineCap = 'round';
@@ -1229,8 +1273,10 @@
       drawMotes(t, '170,215,255');
       drawPetals(t, '255,190,210', '255,225,235');
       for (var i = 0; i < LEAVES.length; i++) drawLeaf(LEAVES[i], t);
-      drawLily(W * .12, H * .865, .62);
-      drawLily(W * .89, H * .885, .76);
+      drawLily(W * .12, H * .865, .78, t);
+      drawLily(W * .89, H * .885, .92, t);
+      drawLily(W * .33, H * .915, .55, t);
+      drawLily(W * .74, H * .945, .48, t);
       drawBubbles(t);
       drawKoiSchool(t);
     };
