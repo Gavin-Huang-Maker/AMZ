@@ -584,7 +584,7 @@
       if (pitch > .5) pitch = .5; else if (pitch < -.5) pitch = -.5;
       ctx.scale(flip, 1);
       ctx.rotate(pitch);
-      ctx.globalAlpha = .62;
+      ctx.globalAlpha = .86;   /* 背景锦鲤透明度：越高越抢眼（原 .62 偏虚） */
       /* 双叶尾 */
       ctx.fillStyle = 'rgba(255,155,135,.55)';
       ctx.beginPath();
