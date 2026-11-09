@@ -48,7 +48,7 @@
     '#boot{background:rgba(7,10,18,.72)!important;backdrop-filter:blur(8px)}' +
     /* 亮度调节面板（展示用：可拉高拉低整页亮度，跨所有页面生效） */
     '#brightness-panel{position:fixed;top:50%;right:14px;transform:translateY(-50%);z-index:2147483500;' +
-    'width:184px;background:rgba(18,20,26,.92);color:#e8eaed;border:1px solid rgba(255,255,255,.16);' +
+    'width:184px;max-height:88vh;overflow-y:auto;background:rgba(18,20,26,.92);color:#e8eaed;border:1px solid rgba(255,255,255,.16);' +
     'border-radius:14px;padding:12px 14px;box-shadow:0 10px 34px rgba(0,0,0,.5);backdrop-filter:blur(8px);' +
     'font-family:inherit;-webkit-user-select:none;user-select:none}' +
     '#brightness-panel .bp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}' +
@@ -64,11 +64,25 @@
     '#brightness-panel .bp-presets button{flex:1;cursor:pointer;font-size:12px;padding:6px 0;border-radius:8px;' +
     'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#e8eaed}' +
     '#brightness-panel .bp-presets button:hover{background:rgba(255,255,255,.18)}' +
+    '#brightness-panel .bp-sec{margin-top:12px;padding-top:9px;border-top:1px solid rgba(255,255,255,.12);' +
+    'font-size:11.5px;color:#a2a8b3;font-weight:600;letter-spacing:.5px}' +
+    '#brightness-panel .bp-sec:first-child{margin-top:0;padding-top:0;border-top:none}' +
     '#brightness-panel.collapsed{width:auto;padding:8px}' +
     '#brightness-panel.collapsed .bp-head{margin-bottom:0}' +
     '#brightness-panel.collapsed .bp-title{display:none}' +
     '#brightness-panel.collapsed .bp-body{display:none}' +
     '@media (max-width:680px){#brightness-panel{top:auto;bottom:12px;right:50%;transform:translateX(50%)}}' +
+    /* 底色配色（标准深色之外的三种）：白底走滤镜，纯黑/暖褐用变量覆盖，
+       并接管 fx.js 的 #amz-fx-bg 装饰背景层（蓝紫渐变/光球） */
+    'html.amz-c-black{--app-bg:#000!important;--card:#0a0a0b!important}' +
+    'html.amz-c-black,html.amz-c-black body{background:#000!important}' +
+    'html.amz-c-black #amz-fx-bg{background:#000!important}' +
+    'html.amz-c-black #amz-fx-bg .af-aurora{display:none}' +
+    'html.amz-c-warm{--app-bg:#211910!important;--card:#2b2214!important;--text:#ecdcb8!important;' +
+    '--muted:#c4b28a!important;--hint:#ab9a76!important}' +
+    'html.amz-c-warm,html.amz-c-warm body{background:#211910!important}' +
+    'html.amz-c-warm #amz-fx-bg{background:linear-gradient(180deg,#2b2114 0%,#211910 48%,#150f08 100%)!important}' +
+    'html.amz-c-warm #amz-fx-bg .af-aurora{display:none}' +
     '</style>';
 
   var VEIL =
@@ -78,14 +92,30 @@
 
   var PANEL =
     '<div id="brightness-panel">' +
-    '<div class="bp-head"><span class="bp-title">☀ 亮度</span>' +
+    '<div class="bp-head"><span class="bp-title">⚙ 显示设置</span>' +
     '<button id="brightness-toggle" class="bp-toggle" title="收起/展开">×</button></div>' +
     '<div class="bp-body">' +
+    '<div class="bp-sec">☀ 亮度</div>' +
     '<input id="brightness-slider" type="range" min="50" max="250" step="5" value="100">' +
     '<div class="bp-val">当前 <b id="brightness-val">100%</b></div>' +
     '<div class="bp-presets">' +
     '<button data-b="70">暗</button><button data-b="100">标准</button><button data-b="160">亮</button>' +
-    '</div></div></div>';
+    '</div>' +
+    '<div class="bp-sec">字 体 大 小</div>' +
+    '<input id="font-slider" type="range" min="100" max="200" step="5" value="100">' +
+    '<div class="bp-val">当前 <b id="font-val">100%</b></div>' +
+    '<div class="bp-presets">' +
+    '<button data-f="100">标准</button><button data-f="120">大</button><button data-f="140">特大</button><button data-f="170">巨无霸</button>' +
+    '</div>' +
+    '<div class="bp-sec">底 色 配 色</div>' +
+    '<div class="bp-presets">' +
+    '<button data-c="">标准</button><button data-c="black">纯黑</button><button data-c="light">白底</button><button data-c="warm">暖褐</button>' +
+    '</div>' +
+    '<div class="bp-sec">字 体 颜 色</div>' +
+    '<div class="bp-presets">' +
+    '<button data-t="">默认</button><button data-t="#ffffff">纯白</button><button data-t="#ffe14d">亮黄</button><button data-t="#8fe3ff">浅青</button>' +
+    '</div>' +
+    '</div></div>';
 
   function dismissVeil() {
     var v = document.getElementById('amz-fx-veil');
@@ -114,8 +144,19 @@
     } catch (e) { fallback(); }
   }
 
-  /* 亮度调节（展示用）：把 filter 挂在 <html> 上，跨所有页面生效；面板自身用反向
-     filter 抵消，始终保持在标准亮度，避免被一起拉暗/拉亮。 */
+  /* 显示设置（展示用）：亮度 / 字体大小 / 底色配色 / 字体颜色，跨所有页面生效。
+     亮度与配色（白底=反色滤镜）合并挂在 <html> 的 filter 上；面板自身用反向
+     filter 抵消，始终保持在标准状态，避免被一起改变。 */
+  var AMZ_VIEW = { b: 100, c: '' };
+
+  function amzApplyFilter() {
+    var b = (AMZ_VIEW.b / 100).toFixed(3);
+    var f = AMZ_VIEW.c === 'light' ? 'invert(0.92) hue-rotate(180deg) ' : '';
+    document.documentElement.style.filter = f + 'brightness(' + b + ')';
+    var panel = document.getElementById('brightness-panel');
+    if (panel) panel.style.filter = f + 'brightness(' + (100 / AMZ_VIEW.b).toFixed(3) + ')';
+  }
+
   function initBrightness() {
     var KEY = 'amz-brightness';
     var panel = document.getElementById('brightness-panel');
@@ -125,10 +166,9 @@
     var toggle = document.getElementById('brightness-toggle');
     function apply(v) {
       v = Math.max(50, Math.min(250, v));
-      var b = (v / 100).toFixed(3);
-      document.documentElement.style.filter = 'brightness(' + b + ')';
-      panel.style.filter = 'brightness(' + (1 / (v / 100)).toFixed(3) + ')';
+      AMZ_VIEW.b = v;
       if (valEl) valEl.textContent = v + '%';
+      amzApplyFilter();
     }
     var saved = parseFloat(localStorage.getItem(KEY));
     if (isNaN(saved)) saved = 100;
@@ -149,9 +189,133 @@
     }
     if (toggle) toggle.addEventListener('click', function () {
       var c = panel.classList.toggle('collapsed');
-      toggle.textContent = c ? '☀' : '×';
-      toggle.title = c ? '展开亮度面板' : '收起亮度面板';
+      toggle.textContent = c ? '⚙' : '×';
+      toggle.title = c ? '展开显示设置面板' : '收起显示设置面板';
     });
+  }
+
+  /* 字体大小：直接改写页面样式表里的 font-size（以及 px 单位的 line-height），
+     文字按倍率放大，盒子（卡片/按钮/表格单元格）随内容自动撑大——
+     不是整页 zoom，布局不变宽，只是字与行距变大。 */
+  function initFontSize() {
+    var KEY = 'amz-fontscale';
+    var slider = document.getElementById('font-slider');
+    var valEl = document.getElementById('font-val');
+    var panel = document.getElementById('brightness-panel');
+    if (!panel) return;
+    var factor = 1;
+    var orig = typeof WeakMap === 'function' ? new WeakMap() : null;
+    if (!orig) return;
+
+    function scaled(prop, checkPx) {
+      /* 逐条改写 CSSOM 规则；原始值记进 WeakMap，重复应用不会叠乘 */
+      var sheets = document.styleSheets;
+      for (var s = 0; s < sheets.length; s++) {
+        var rules;
+        try { rules = sheets[s].cssRules; } catch (e) { continue; }
+        if (!rules) continue;
+        (function walk(list) {
+          for (var i = 0; i < list.length; i++) {
+            var r = list[i];
+            if (!r) continue;
+            if (r.style) {
+              var cur = r.style.getPropertyValue(prop);
+              if (!orig.has(r)) orig.set(r, cur ? cur + '|' + r.style.getPropertyPriority(prop) : null);
+              var saved0 = orig.get(r);
+              if (saved0) {
+                var parts = saved0.split('|');
+                var val = parts[0], pri = parts[1] || '';
+                var mt = val.match(/^([\d.]+)(px|pt|rem|em|%)$/);
+                if (mt && !(checkPx && mt[2] !== 'px')) { /* line-height 只缩放 px 固定值 */
+                  var nv = (parseFloat(mt[1]) * factor).toFixed(2) + mt[2];
+                  try { r.style.setProperty(prop, nv, pri); } catch (e) {}
+                }
+              }
+            }
+            /* CSS 嵌套：递归子规则（普通规则该属性为空列表，无副作用） */
+            if (r.cssRules && r.cssRules.length) walk(r.cssRules);
+          }
+        })(rules);
+      }
+    }
+
+    function apply(v) {
+      factor = Math.max(100, Math.min(200, v)) / 100;
+      scaled('font-size', false);
+      scaled('line-height', true);
+      if (valEl) valEl.textContent = v + '%';
+    }
+    var saved = parseFloat(localStorage.getItem(KEY));
+    if (isNaN(saved)) saved = 100;
+    if (slider) slider.value = saved;
+    apply(saved);
+    if (slider) slider.addEventListener('input', function () {
+      var v = +this.value; apply(v);
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+    });
+    var presets = panel.querySelectorAll('[data-f]');
+    for (var i = 0; i < presets.length; i++) {
+      presets[i].addEventListener('click', function () {
+        var v = +this.getAttribute('data-f');
+        if (slider) slider.value = v;
+        apply(v);
+        try { localStorage.setItem(KEY, v); } catch (e) {}
+      });
+    }
+  }
+
+  /* 底色配色：标准(默认深色) / 纯黑 / 白底(反色滤镜，整页翻成浅色) / 暖褐 */
+  function initBgScheme() {
+    var KEY = 'amz-color';
+    var panel = document.getElementById('brightness-panel');
+    if (!panel) return;
+    function apply(v) {
+      AMZ_VIEW.c = v;
+      var h = document.documentElement;
+      h.classList.remove('amz-c-black', 'amz-c-light', 'amz-c-warm');
+      if (v) h.classList.add('amz-c-' + v);
+      amzApplyFilter();
+    }
+    var saved = localStorage.getItem(KEY) || '';
+    apply(saved);
+    var presets = panel.querySelectorAll('[data-c]');
+    for (var i = 0; i < presets.length; i++) {
+      presets[i].addEventListener('click', function () {
+        var v = this.getAttribute('data-c');
+        apply(v);
+        try { localStorage.setItem(KEY, v); } catch (e) {}
+      });
+    }
+  }
+
+  /* 字体颜色：整体覆盖正文文字颜色（面板自身除外） */
+  function initTextColor() {
+    var KEY = 'amz-textcolor';
+    var panel = document.getElementById('brightness-panel');
+    if (!panel) return;
+    var tag = document.getElementById('amz-tc-style');
+    if (!tag) {
+      tag = document.createElement('style');
+      tag.id = 'amz-tc-style';
+      document.head.appendChild(tag);
+    }
+    function apply(v) {
+      tag.textContent = v
+        ? 'html[data-amz-tc="1"] body *:not(#brightness-panel):not(#brightness-panel *){color:' + v + '!important}'
+        : '';
+      if (v) document.documentElement.setAttribute('data-amz-tc', '1');
+      else document.documentElement.removeAttribute('data-amz-tc');
+    }
+    var saved = localStorage.getItem(KEY) || '';
+    apply(saved);
+    var presets = panel.querySelectorAll('[data-t]');
+    for (var i = 0; i < presets.length; i++) {
+      presets[i].addEventListener('click', function () {
+        var v = this.getAttribute('data-t');
+        apply(v);
+        try { localStorage.setItem(KEY, v); } catch (e) {}
+      });
+    }
   }
   /* ==================================================== */
 
@@ -277,6 +441,9 @@
       // document.open() 会清空上一个文档的所有脚本 → 重新挂载增强层
       loadFx();
       initBrightness();
+      initFontSize();
+      initBgScheme();
+      initTextColor();
     }, 0);
   }
 
