@@ -317,6 +317,27 @@
       });
     }
   }
+  /* 滚轮守卫：Chrome 的 range 滑块在鼠标悬停时会被滚轮直接改值
+     （不需要点击/拖动），用户滚动页面路过面板就会误改亮度/字号。
+     这里拦截滑块上的滚轮：滑块保持不动，滚轮改为滚动面板或整页。 */
+  function initSliderWheelGuard() {
+    var panel = document.getElementById('brightness-panel');
+    if (!panel) return;
+    var inputs = panel.querySelectorAll('input[type=range]');
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].addEventListener('wheel', function (e) {
+        if (e.ctrlKey) return; /* 保留 Ctrl+滚轮 浏览器缩放 */
+        e.preventDefault();
+        e.stopPropagation();
+        var d = e.deltaY;
+        if (panel.scrollHeight > panel.clientHeight + 2) {
+          panel.scrollTop += d;
+        } else {
+          window.scrollBy(0, d);
+        }
+      }, { passive: false });
+    }
+  }
   /* ==================================================== */
 
   /* ---------- 编码工具 ---------- */
@@ -444,6 +465,7 @@
       initFontSize();
       initBgScheme();
       initTextColor();
+      initSliderWheelGuard();
     }, 0);
   }
 
