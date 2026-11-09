@@ -39,6 +39,14 @@
   });
   root.classList.add('amz-fx');
 
+  /* 背景锦鲤浓度：显示设置面板写入 window.__amzKoiAlpha；这里按本地存储兜底初始化 */
+  if (typeof window.__amzKoiAlpha !== 'number') {
+    try {
+      var _ka = parseFloat(localStorage.getItem('amz-koi-alpha'));
+      window.__amzKoiAlpha = isNaN(_ka) ? .86 : Math.max(0, Math.min(100, _ka)) / 100;
+    } catch (e) { window.__amzKoiAlpha = .86; }
+  }
+
   /* 幂等：撤掉上一次实例挂的全局监听与观察器，避免重复加载时事件叠加。
      document.open() 会清空监听器，此时 remove 是空操作，随后照常重新绑定。 */
   try {
@@ -584,7 +592,7 @@
       if (pitch > .5) pitch = .5; else if (pitch < -.5) pitch = -.5;
       ctx.scale(flip, 1);
       ctx.rotate(pitch);
-      ctx.globalAlpha = .86;   /* 背景锦鲤透明度：越高越抢眼（原 .62 偏虚） */
+      ctx.globalAlpha = (typeof window.__amzKoiAlpha === 'number') ? window.__amzKoiAlpha : .86;   /* 浓度可由显示设置面板实时调整 */
       /* 双叶尾 */
       ctx.fillStyle = 'rgba(255,155,135,.55)';
       ctx.beginPath();

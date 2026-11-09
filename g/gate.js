@@ -115,6 +115,12 @@
     '<div class="bp-presets">' +
     '<button data-t="">默认</button><button data-t="#ffffff">纯白</button><button data-t="#ffe14d">亮黄</button><button data-t="#8fe3ff">浅青</button>' +
     '</div>' +
+    '<div class="bp-sec">背 景 锦 鲤</div>' +
+    '<input id="koi-slider" type="range" min="0" max="100" step="1" value="86">' +
+    '<div class="bp-val">浓度 <b id="koi-val">86%</b></div>' +
+    '<div class="bp-presets">' +
+    '<button data-k="0">隐藏</button><button data-k="45">淡</button><button data-k="86">标准</button><button data-k="100">浓</button>' +
+    '</div>' +
     '</div></div>';
 
   function dismissVeil() {
@@ -338,6 +344,35 @@
       }, { passive: false });
     }
   }
+  /* 背景锦鲤浓度：写 window.__amzKoiAlpha（0–1），fx.js 每帧读取，实时生效 */
+  function initKoiAlpha() {
+    var KEY = 'amz-koi-alpha';
+    var panel = document.getElementById('brightness-panel');
+    if (!panel) return;
+    var slider = document.getElementById('koi-slider');
+    var valEl = document.getElementById('koi-val');
+    function apply(v) {
+      v = Math.max(0, Math.min(100, v));
+      window.__amzKoiAlpha = v / 100;
+      if (valEl) valEl.textContent = v + '%';
+      if (slider) slider.value = v;
+    }
+    var saved = parseFloat(localStorage.getItem(KEY));
+    if (isNaN(saved)) saved = 86;
+    apply(saved);
+    if (slider) slider.addEventListener('input', function () {
+      apply(+this.value);
+      try { localStorage.setItem(KEY, +this.value); } catch (e) {}
+    });
+    var presets = panel.querySelectorAll('[data-k]');
+    for (var i = 0; i < presets.length; i++) {
+      presets[i].addEventListener('click', function () {
+        var v = +this.getAttribute('data-k');
+        apply(v);
+        try { localStorage.setItem(KEY, v); } catch (e) {}
+      });
+    }
+  }
   /* ==================================================== */
 
   /* ---------- 编码工具 ---------- */
@@ -466,6 +501,7 @@
       initBgScheme();
       initTextColor();
       initSliderWheelGuard();
+      initKoiAlpha();
     }, 0);
   }
 
