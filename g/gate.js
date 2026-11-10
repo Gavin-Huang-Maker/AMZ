@@ -1,9 +1,9 @@
 /*
  * AMZ 工具箱 · 本地解密加载器（外观增强版）
  * ---------------------------------------------------------------
- * 解密 / 密钥 / 密码流程与官方原版完全一致，未作任何改动。
- * 仅新增：在「门禁页」与「解密后的页面」各挂载一次 g/fx.js，
- *         并插入一段防白闪的关键样式与加载遮罩。
+ * 在原版流程基础上新增：备用密码本（p/keys.json），让多个密码都能
+ * 解开同一份密文；以及在「门禁页」与「解密后的页面」各挂载一次 g/fx.js，
+ * 并插入一段防白闪的关键样式与加载遮罩。
  *
  * 这里没有任何秘密：密钥由用户输入的密码 + 公开 salt 在浏览器内
  * 用 PBKDF2 现算出来，只存在于本次会话的内存/本机存储里。
@@ -505,6 +505,58 @@
     }, 0);
   }
 
+  /* ---------- 多密码：先试主密码，再试备用密码本 ----------
+     备用密码本里的每个条目，都是用该密码派生出的密钥包裹的「主密钥」。
+     解包成功后必须缓存/使用主密钥本身，否则后续翻页解不开。 */
+  function resolvePassword(pw) {
+    return deriveKey(pw).then(function (key) {
+      return getEnc('v')
+        .then(function (buf) { return decryptBuf(buf, key); })
+        .then(function () {
+          return crypto.subtle.exportKey('raw', key).then(function (raw) {
+            return { key: key, kb64: bufToB64(raw) };
+          });
+        })
+        .catch(function (err) {
+          if (err && err.message === 'E_FETCH') throw err;
+          return tryBook(key, err);
+        });
+    });
+  }
+
+  function tryBook(key, originalErr) {
+    return fetch(BASE + 'p/keys.json', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw originalErr;
+        return r.json();
+      })
+      .then(function (book) {
+        var items = book && book.items;
+        if (!items || !items.length) throw originalErr;
+        var i = 0;
+        function next() {
+          if (i >= items.length) throw originalErr;
+          var it = items[i++];
+          return crypto.subtle
+            .decrypt({ name: 'AES-GCM', iv: b64ToBuf(it.iv) }, key, b64ToBuf(it.ct))
+            .then(function (raw) {
+              return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+            })
+            .then(function (master) {
+              return getEnc('v')
+                .then(function (buf) { return decryptBuf(buf, master); })
+                .then(function () {
+                  return crypto.subtle.exportKey('raw', master).then(function (raw) {
+                    return { key: master, kb64: bufToB64(raw) };
+                  });
+                });
+            })
+            .catch(function () { return next(); });
+        }
+        return next();
+      });
+  }
+
   /* ---------- 主流程 ---------- */
   function unlock(key, kb64) {
     return getEnc('v')
@@ -558,16 +610,7 @@
     say('');
 
     var t0 = Date.now();
-    deriveKey(pw)
-      .then(function (key) {
-        return getEnc('v')
-          .then(function (buf) { return decryptBuf(buf, key); })
-          .then(function () {
-            return crypto.subtle.exportKey('raw', key).then(function (raw) {
-              return { key: key, kb64: bufToB64(raw) };
-            });
-          });
-      })
+    resolvePassword(pw)
       .then(function (r) {
         // 密码正确：给出一点反馈，避免 600k 次迭代像卡死
         if (Date.now() - t0 < 250) {
