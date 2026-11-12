@@ -35,7 +35,7 @@
 
   var CRITICAL =
     '<style id="amz-fx-critical">' +
-    'html{background:#070a12!important;color-scheme:dark}' +
+    'html:not(.amz-light){background:#070a12!important;color-scheme:dark}' +
     '#amz-fx-veil{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;' +
     'background:radial-gradient(120% 90% at 50% -10%,#141c32 0%,#090d18 55%,#060810 100%);' +
     'transition:opacity .45s ease;color:#8490a8;' +
@@ -85,6 +85,89 @@
     'html.amz-c-warm #amz-fx-bg .af-aurora{display:none}' +
     '</style>';
 
+  /* ---------- 明亮手绘涂鸦主题（一处注入，全站生效） ----------
+     选择器统一用 html.amz-light（必要时叠 .amz-fx）以提高优先级，
+     压过 fx.js 的深色 !important 规则；fan 明亮模式由 body 上的
+     data-amz-skip-normalize 让 fx.js 停止把浅色块重刷成深色。 */
+  var DOODLE = '<style id="amz-doodle">' + [
+    'html.amz-light,html.amz-fx.amz-light{--dk:#2a2838;--paper:#fbf7ee;--card:#fffdf7;--card2:#fff3d6;--ink:#262438;--ink2:#6b6478;--ink3:#9a93a4;--sun:#ef6c2b;--yellow:#ffcf3f;--blue:#49b6e8;--pink:#ff87a8;--green:#43c189;--purple:#9b8bf5;--app-bg:#fbf7ee!important;--bg:#fbf7ee!important;--card:#fffdf7!important;--text:#262438!important;--muted:#6b6478!important;--hint:#8b8494!important;--border:#2a2838!important;--border-strong:#5a5566!important;--accent:#ef6c2b!important;--accent-soft:#fff3d6!important;--accent-2:#d9541f!important;--row-alt:#fff9ec!important;--ok:#237a4d!important;--warn:#9a6410!important;--bad:#a83a2c!important;--oksoft:#e4f7ec!important;--warnsoft:#fff0cf!important;--badsoft:#ffe3df!important;--soft:#fff3d6!important;--ring:rgba(239,108,43,.25)!important;--danger:#a83a2c!important;color-scheme:light!important;background:var(--paper)!important}',
+    'html.amz-light body{background:transparent!important;color:var(--ink)!important}',
+    'html.amz-light.amz-fx body{color:var(--ink)!important}',
+    'html.amz-light #amz-fx-bg{background:radial-gradient(circle at 1px 1px,rgba(42,40,56,.06) 1px,transparent 0) 0 0/22px 22px,linear-gradient(180deg,#fdfaf2 0%,#f7f2e6 55%,#f1ebdb 100%)!important}',
+    'html.amz-light #amz-fx-bg .af-aurora{opacity:.12!important}',
+    'html.amz-light #amz-fx-bg .af-aurora.a1{background:#ffcf3f}',
+    'html.amz-light #amz-fx-bg .af-aurora.a2{background:#49b6e8}',
+    'html.amz-light #amz-fx-bg .af-aurora.a3{background:#ff87a8}',
+    'html.amz-light #amz-fx-bg .af-grid{opacity:.3!important;background-image:linear-gradient(rgba(42,40,56,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(42,40,56,.05) 1px,transparent 1px)}',
+    'html.amz-light #amz-fx-bg .af-spot{opacity:.2!important;mix-blend-mode:multiply}',
+    'html.amz-light #amz-fx-bg .af-noise{opacity:.025!important}',
+    'html.amz-light #amz-fx-bg canvas{opacity:.6!important}',
+    'html.amz-light.amz-fx body,html.amz-light.amz-fx p,html.amz-light.amz-fx li,html.amz-light.amz-fx dd,html.amz-light.amz-fx dt,html.amz-light.amz-fx td,html.amz-light.amz-fx th,html.amz-light.amz-fx label,html.amz-light.amz-fx summary,html.amz-light.amz-fx h2,html.amz-light.amz-fx h3,html.amz-light.amz-fx h4,html.amz-light.amz-fx strong,html.amz-light.amz-fx b,html.amz-light.amz-fx .lead{color:var(--ink)!important}',
+    'html.amz-light.amz-fx h1{color:var(--dk)!important;-webkit-text-fill-color:var(--dk)!important;text-shadow:none!important}',
+    'html.amz-light.amz-fx .lead{color:var(--ink2)!important;-webkit-text-fill-color:var(--ink2)!important}',
+    'html.amz-light #amz-fx-nav{background:#fffdf7!important;border:2px solid var(--dk)!important;box-shadow:3px 3px 0 rgba(42,40,56,.18)!important;border-radius:999px!important;backdrop-filter:none!important}',
+    'html.amz-light #amz-fx-nav a,html.amz-light #amz-fx-nav button,html.amz-light #amz-fx-nav .af-cur,html.amz-light #amz-fx-nav .af-k{color:var(--ink)!important}',
+    'html.amz-light #amz-fx-nav .af-back{background:#fff3d6!important;border:1.5px solid var(--dk)!important}',
+    'html.amz-light #amz-fx-nav .af-sep{background:rgba(42,40,56,.25)!important}',
+    'html.amz-light #amz-fx-scenes{background:#fffdf7!important;border:2px solid var(--dk)!important;box-shadow:4px 5px 0 rgba(42,40,56,.18)!important;backdrop-filter:none!important}',
+    'html.amz-light #amz-fx-scenes .af-sc-label{color:var(--ink2)!important}',
+    'html.amz-light #amz-fx-scenes button{color:var(--ink2)!important;border:1.5px solid transparent!important}',
+    'html.amz-light #amz-fx-scenes button:hover{color:var(--ink)!important;background:#fff3d6!important}',
+    'html.amz-light #amz-fx-scenes button.on{color:#fff!important;background:var(--sun)!important;border-color:var(--dk)!important;box-shadow:2px 2px 0 var(--dk)!important}',
+    'html.amz-light #amz-fx-guide{background:#fffdf7!important;border:2px solid var(--dk)!important;box-shadow:4px 5px 0 rgba(42,40,56,.18)!important;color:var(--ink)!important;backdrop-filter:none!important}',
+    'html.amz-light #amz-fx-toast{background:#fffdf7!important;border:2px solid var(--dk)!important;box-shadow:4px 5px 0 rgba(42,40,56,.18)!important;color:var(--ink)!important}',
+    'html.amz-light.amz-fx small,html.amz-light.amz-fx .desc,html.amz-light.amz-fx .muted,html.amz-light.amz-fx .hint,html.amz-light.amz-fx .sub,html.amz-light.amz-fx .tag,html.amz-light.amz-fx .k,html.amz-light.amz-fx .formula{color:var(--ink2)!important}',
+    'html.amz-light.amz-fx ::selection{background:rgba(255,207,63,.6);color:var(--ink)}',
+    'html.amz-light .card,html.amz-light a.card,html.amz-light .mcpbox,html.amz-light .flow,html.amz-light .note,html.amz-light .step,html.amz-light .kv .box,html.amz-light .risk,html.amz-light .formula,html.amz-light .callout,html.amz-light .stats div{position:relative;background:var(--card)!important;border:2px solid var(--dk)!important;border-radius:18px 26px 20px 24px/24px 20px 26px 18px!important;box-shadow:4px 5px 0 rgba(42,40,56,.15)!important;color:var(--ink)!important}',
+    'html.amz-light .grid a.card:nth-child(3n+1){border-color:var(--sun)!important}',
+    'html.amz-light .grid a.card:nth-child(3n+2){border-color:var(--blue)!important}',
+    'html.amz-light .grid a.card:nth-child(3n){border-color:var(--green)!important}',
+    'html.amz-light.amz-fx .amz-fx-card:hover{border-color:var(--sun)!important;box-shadow:7px 9px 0 rgba(42,40,56,.22)!important}',
+    'html.amz-light input,html.amz-light textarea,html.amz-light select{background:#fffdf7!important;color:var(--ink)!important;border:2px solid var(--dk)!important;border-radius:10px 14px 11px 13px/13px 11px 14px 10px!important;box-shadow:2px 2px 0 rgba(42,40,56,.1)!important}',
+    'html.amz-light.amz-fx input:focus,html.amz-light.amz-fx textarea:focus,html.amz-light.amz-fx select:focus,html.amz-light input:focus,html.amz-light textarea:focus,html.amz-light select:focus{border-color:var(--sun)!important;box-shadow:2px 2px 0 var(--sun)!important}',
+    'html.amz-light.amz-fx button,html.amz-light.amz-fx .btn{font-weight:700}',
+    'html.amz-light button,html.amz-light .btn,html.amz-light .mcp-cp,html.amz-light .mcp-open,html.amz-light .mcp-more{border:2px solid var(--dk)!important;border-radius:12px 9px 14px 10px/10px 14px 9px 12px!important;box-shadow:3px 3px 0 var(--dk)!important;color:var(--ink)!important}',
+    'html.amz-light button:active,html.amz-light .btn:active{transform:translate(2px,2px)!important;box-shadow:1px 1px 0 var(--dk)!important}',
+    'html.amz-light .hero{background:linear-gradient(135deg,#fff3cf 0%,#ffe6bd 46%,#ffd9e2 100%)!important;border-bottom:3px dashed var(--sun);color:var(--ink)!important}',
+    'html.amz-light.amz-fx .hero h1{color:var(--dk)!important;text-shadow:2px 3px 0 var(--yellow)!important;-webkit-text-fill-color:var(--dk)!important}',
+    'html.amz-light.amz-fx .hero .lead{color:var(--ink)!important;-webkit-text-fill-color:var(--ink)!important}',
+    'html.amz-light.amz-fx .hero .lead b{color:var(--sun)!important;-webkit-text-fill-color:var(--sun)!important}',
+    'html.amz-light.amz-fx .hero .kicker{background:var(--yellow)!important;color:var(--dk)!important;-webkit-text-fill-color:var(--dk)!important;border:2px solid var(--dk)!important}',
+    'html.amz-light .btn-p{background:var(--sun)!important;color:#fff!important;border-color:var(--dk)!important}',
+    'html.amz-light.amz-fx .hero .cta .btn-o,html.amz-light .btn-o{background:#fffdf7!important;color:var(--ink)!important;-webkit-text-fill-color:var(--ink)!important;border:2px solid var(--dk)!important}',
+    'html.amz-light.amz-fx .hero .stats div{background:#fffdf7!important;border-color:var(--dk)!important;box-shadow:4px 5px 0 rgba(42,40,56,.15)!important}',
+    'html.amz-light.amz-fx .hero .stats span{color:var(--ink2)!important;-webkit-text-fill-color:var(--ink2)!important}',
+    'html.amz-light.amz-fx .hero .stats b{color:var(--sun)!important;-webkit-text-fill-color:var(--sun)!important}',
+    'html.amz-light .sect::before{content:"✦";width:auto;height:auto;background:none;color:var(--sun);font-size:17px;transform:rotate(-14deg)}',
+    'html.amz-light .sect h3,html.amz-light .card h2{position:relative;display:inline-block}',
+    'html.amz-light .sect h3::after,html.amz-light .card h2::after{content:"";position:absolute;left:0;bottom:-3px;width:100%;height:5px;background:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 120 6\' preserveAspectRatio=\'none\'%3E%3Cpath d=\'M2 4 Q 16 0 32 4 T 64 4 T 96 4 T 119 4\' fill=\'none\' stroke=\'%23ffcf3f\' stroke-width=\'2.5\' stroke-linecap=\'round\'/%3E%3C/svg%3E") repeat-x left bottom/100px 5px;opacity:.85;pointer-events:none}',
+    'html.amz-light .tag,html.amz-light .badge{border:1.5px solid var(--dk)!important;border-radius:8px 5px 9px 6px/6px 9px 5px 8px!important;transform:rotate(-2deg);display:inline-block}',
+    'html.amz-light.amz-fx .tag{background:var(--yellow)!important;color:var(--dk)!important}',
+    'html.amz-light .go{color:var(--sun)!important}',
+    'html.amz-light.amz-fx table,html.amz-light.amz-fx th,html.amz-light.amz-fx td{border-color:rgba(42,40,56,.16)!important}',
+    'html.amz-light thead th,html.amz-light tr:first-child > th{background:#fff3d6!important}',
+    'html.amz-light tbody tr:nth-child(even){background:#fff9ec!important}',
+    'html.amz-light .co-info{background:#fff3d6!important;color:var(--ink)!important}',
+    'html.amz-light .co-ok{background:#e4f7ec!important;color:#237a4d!important}',
+    'html.amz-light .co-warn{background:#fff0cf!important;color:#9a6410!important}',
+    'html.amz-light .co-bad{background:#ffe3df!important;color:#a83a2c!important}',
+    'html.amz-light .ic{border:2px solid var(--dk)!important}',
+    'html.amz-light .step .n{background:var(--sun)!important;color:#fff!important;border:2px solid var(--dk)}',
+    'html.amz-light code{background:rgba(239,108,43,.12)!important;color:var(--sun)!important}',
+    'html.amz-light hr.sep,html.amz-light .sect .line{border-color:rgba(42,40,56,.18)!important;background:rgba(42,40,56,.18)!important}',
+    'html.amz-light #brightness-panel{background:#fffdf7!important;color:var(--ink)!important;border:2px solid var(--dk)!important;border-radius:15px 19px 16px 18px/18px 16px 19px 15px!important;box-shadow:4px 5px 0 rgba(42,40,56,.2)!important}',
+    'html.amz-light #brightness-panel .bp-title,html.amz-light #brightness-panel .bp-val b{color:var(--sun)!important}',
+    'html.amz-light #brightness-panel .bp-val,html.amz-light #brightness-panel .bp-sec{color:var(--ink2)!important}',
+    'html.amz-light #brightness-panel input[type=range]{accent-color:var(--sun)!important}',
+    'html.amz-light #brightness-panel .bp-toggle{background:#fff!important;color:var(--ink)!important;border-color:var(--dk)!important}',
+    'html.amz-light #brightness-panel .bp-presets button{background:#fffdf7!important;color:var(--ink)!important;border:1.5px solid var(--dk)!important;border-radius:8px 6px 9px 7px/7px 9px 6px 8px!important;font-weight:600}',
+    'html.amz-light #brightness-panel .bp-presets button:hover{background:var(--yellow)!important}',
+    'html.amz-light #brightness-panel .bp-presets button.on{background:var(--sun)!important;color:#fff!important;border-color:var(--dk)!important}',
+    'html.amz-light #gate .card{background:#fffdf7!important;border:2px solid var(--dk)!important;color:var(--ink)!important;box-shadow:5px 6px 0 rgba(42,40,56,.18)!important}',
+    'html.amz-light #gate .card h1,html.amz-light #gate .card .sub,html.amz-light #gate .card label,html.amz-light #gate .card .foot{color:var(--ink)!important}',
+    'html.amz-light #gate input[type=password]{background:#fff!important;color:var(--ink)!important;border:2px solid var(--dk)!important}'
+  ].join('\n') + '</style>';
+
   var VEIL =
     '<div id="amz-fx-veil"><div style="text-align:center">' +
     '<div class="af-ring"></div><div class="af-veil-t">正在载入工作区</div>' +
@@ -107,9 +190,13 @@
     '<div class="bp-presets">' +
     '<button data-f="100">标准</button><button data-f="120">大</button><button data-f="140">特大</button><button data-f="170">巨无霸</button>' +
     '</div>' +
+    '<div class="bp-sec">主 题 风 格</div>' +
+    '<div class="bp-presets">' +
+    '<button data-c="doodle">✎ 涂鸦明亮</button><button data-c="">经典深色</button>' +
+    '</div>' +
     '<div class="bp-sec">底 色 配 色</div>' +
     '<div class="bp-presets">' +
-    '<button data-c="">标准</button><button data-c="black">纯黑</button><button data-c="light">白底</button><button data-c="warm">暖褐</button>' +
+    '<button data-c="black">纯黑</button><button data-c="light">白底</button><button data-c="warm">暖褐</button>' +
     '</div>' +
     '<div class="bp-sec">字 体 颜 色</div>' +
     '<div class="bp-presets">' +
@@ -153,7 +240,7 @@
   /* 显示设置（展示用）：亮度 / 字体大小 / 底色配色 / 字体颜色，跨所有页面生效。
      亮度与配色（白底=反色滤镜）合并挂在 <html> 的 filter 上；面板自身用反向
      filter 抵消，始终保持在标准状态，避免被一起改变。 */
-  var AMZ_VIEW = { b: 100, c: '' };
+  var AMZ_VIEW = { b: 100, c: 'doodle' };
 
   function amzApplyFilter() {
     var b = (AMZ_VIEW.b / 100).toFixed(3);
@@ -161,6 +248,19 @@
     document.documentElement.style.filter = f + 'brightness(' + b + ')';
     var panel = document.getElementById('brightness-panel');
     if (panel) panel.style.filter = f + 'brightness(' + (100 / AMZ_VIEW.b).toFixed(3) + ')';
+  }
+
+  /* 明亮涂鸦主题开关：给 <html> 加 amz-light 让覆盖样式生效，
+     并给 <body> 加 data-amz-skip-normalize，让 fx.js 不再把浅色块重刷成深色。
+     切回深色主题时两个标记都撤掉，fx.js 恢复原样。 */
+  function applyDoodle(on) {
+    var h = document.documentElement;
+    if (on) h.classList.add('amz-light');
+    else h.classList.remove('amz-light');
+    if (document.body) {
+      if (on) document.body.setAttribute('data-amz-skip-normalize', '');
+      else document.body.removeAttribute('data-amz-skip-normalize');
+    }
   }
 
   function initBrightness() {
@@ -270,7 +370,7 @@
     }
   }
 
-  /* 底色配色：标准(默认深色) / 纯黑 / 白底(反色滤镜，整页翻成浅色) / 暖褐 */
+  /* 主题 / 配色：doodle(默认,手绘明亮) / 经典深色 / 纯黑 / 白底(反色滤镜) / 暖褐 */
   function initBgScheme() {
     var KEY = 'amz-color';
     var panel = document.getElementById('brightness-panel');
@@ -279,10 +379,17 @@
       AMZ_VIEW.c = v;
       var h = document.documentElement;
       h.classList.remove('amz-c-black', 'amz-c-light', 'amz-c-warm');
-      if (v) h.classList.add('amz-c-' + v);
+      if (v && v !== 'doodle') h.classList.add('amz-c-' + v);
+      applyDoodle(v === 'doodle');   /* doodle 走独立覆盖样式，其余走 fx 变量/滤镜 */
+      /* 旧配色(纯黑/白底/暖褐)彼此互斥，用于经典深色主题下的微调 */
       amzApplyFilter();
+      var presets = panel.querySelectorAll('[data-c]');
+      for (var j = 0; j < presets.length; j++) {
+        presets[j].classList.toggle('on', presets[j].getAttribute('data-c') === v);
+      }
     }
-    var saved = localStorage.getItem(KEY) || '';
+    var saved = localStorage.getItem(KEY);
+    if (saved === null || saved === '') saved = 'doodle';  /* 默认明亮涂鸦 */
     apply(saved);
     var presets = panel.querySelectorAll('[data-c]');
     for (var i = 0; i < presets.length; i++) {
@@ -476,15 +583,47 @@
     });
   }
 
+  /* ---------- 主题偏好 ---------- */
+  function savedTheme() {
+    var v = '';
+    try { v = localStorage.getItem('amz-color') || ''; } catch (e) {}
+    return (v === '') ? 'doodle' : v;   /* 默认手绘明亮 */
+  }
+
+  /* 把主题标记直接印进 HTML 字符串：首帧即生效，且 fx.js 初始化时
+     body 上已有 data-amz-skip-normalize，不会再重刷浅色块。 */
+  function stampTheme(html, theme) {
+    var doodle = (theme === 'doodle');
+    if (doodle) {
+      if (/<html([^>]*)>/i.test(html)) {
+        html = html.replace(/<html([^>]*)>/i, function (m, attrs) {
+          if (/\bclass\s*=/.test(attrs)) {
+            return m.replace(/class\s*=\s*"([^"]*)"/i, function (mm, c) {
+              return 'class="' + c + ' amz-light"';
+            });
+          }
+          return '<html' + attrs + ' class="amz-light">';
+        });
+      }
+      if (/<body([^>]*)>/i.test(html)) {
+        html = html.replace(/<body([^>]*)>/i, function (m, attrs) {
+          return '<body' + attrs + ' data-amz-skip-normalize';
+        });
+      }
+    }
+    return html;
+  }
+
   /* ---------- 渲染 ---------- */
   function render(html) {
     // document.open() 保留当前 URL，写回后页面内相对路径、脚本都照常工作
     setTimeout(function () {
-      // 防白闪：把关键深色样式与加载遮罩写进新文档，解析第一帧即为深色
+      html = stampTheme(html, savedTheme());
+      // 防白闪：把关键样式与加载遮罩写进新文档，解析第一帧即为目标主题
       if (/<head[^>]*>/i.test(html)) {
-        html = html.replace(/<head[^>]*>/i, function (m) { return m + CRITICAL; });
+        html = html.replace(/<head[^>]*>/i, function (m) { return m + CRITICAL + DOODLE; });
       } else {
-        html = CRITICAL + html;
+        html = CRITICAL + DOODLE + html;
       }
       if (/<body[^>]*>/i.test(html)) {
         html = html.replace(/<body[^>]*>/i, function (m) { return m + VEIL + PANEL; });
@@ -635,6 +774,18 @@
   if ($pw) $pw.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') submit();
   });
+
+  /* 门禁页（未解密）也同步主题：注入涂鸦样式并标记跳过重刷。
+     内容页由 render()/stampTheme() 处理，两条路径互不干扰。 */
+  (function initGateTheme() {
+    if (savedTheme() !== 'doodle') return;
+    var h = document.documentElement;
+    h.classList.add('amz-light');
+    if (document.body) document.body.setAttribute('data-amz-skip-normalize', '');
+    var st = document.createElement('style');
+    st.textContent = DOODLE.replace(/^<style[^>]*>/i, '').replace(/<\/style>\s*$/i, '');
+    document.head.appendChild(st);
+  })();
 
   loadFx();   // 门禁页也使用同一套视觉
   boot();
