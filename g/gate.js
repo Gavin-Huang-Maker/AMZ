@@ -168,6 +168,189 @@
     'html.amz-light #gate input[type=password]{background:#fff!important;color:var(--ink)!important;border:2px solid var(--dk)!important}'
   ].join('\n') + '</style>';
 
+  /* ================= 扩展主题引擎（6 套艺术风格） =================
+     思路：复用 doodle 的结构层（amz-light 类带来的描边/圆角/fx 覆盖），
+     每套主题只重定义 CSS 变量 + 被 DOODLE 写死的色值 + 少量专属效果。
+     这样新增一套风格只需往 THEME_DEFS 加一条，且 doodle 本身零改动。 */
+  var THEME_DEFS = {
+    neon: {
+      name: '霓虹赛博', dark: true,
+      paper: '#0b0f2b', bg: 'radial-gradient(120% 90% at 50% -8%,#1b1040 0%,#0b0f2b 52%,#07091c 100%)',
+      card: 'rgba(18,22,48,.84)', card2: 'rgba(34,211,238,.10)', hero: 'linear-gradient(135deg,#1b1040 0%,#0b2540 52%,#2a0f3a 100%)',
+      ink: '#cfe9ff', ink2: '#93a9d6', ink3: '#6c80b0', dk: '#7df9ff', accent: '#22d3ee', accent2: '#ff3df5',
+      yellow: 'rgba(255,61,245,.20)', c1: '#22d3ee', c2: '#ff3df5', c3: '#39f5b0',
+      line: 'rgba(34,211,238,.55)', shadow: 'rgba(34,211,238,.28)', radius: '10px 14px 11px 13px/13px 11px 14px 10px',
+      iradius: '9px 12px 10px 11px/11px 10px 12px 9px', bradius: '8px', tradius: '7px',
+      thead: 'rgba(34,211,238,.16)', alt: 'rgba(34,211,238,.05)', u: '22d3ee', h1s: '0 0 16px rgba(34,211,238,.6)',
+      ok: '#39f5b0', warn: '#ffcf6b', bad: '#ff6b9d', oks: 'rgba(57,245,176,.12)', warns: 'rgba(255,207,107,.12)', bads: 'rgba(255,107,157,.12)',
+      extras: [
+        'S .card,S a.card,S .mcpbox,S .flow,S .note,S .step,S .kv .box,S .risk,S .formula,S .callout,S .stats div,S #gate .card{box-shadow:0 0 0 1px rgba(34,211,238,.28),0 0 24px rgba(34,211,238,.12)!important}',
+        'S button,S .btn,S .mcp-cp,S .mcp-open,S .mcp-more{box-shadow:0 0 0 1px rgba(34,211,238,.5),0 0 14px rgba(34,211,238,.28)!important}',
+        'SF .hero h1{text-shadow:' + '0 0 16px rgba(34,211,238,.6)' + '!important}',
+        'SF .hero .stats b{text-shadow:0 0 12px rgba(34,211,238,.6)!important}'
+      ]
+    },
+    glass: {
+      name: '毛玻璃', dark: false,
+      paper: '#eef3fb', bg: 'radial-gradient(42% 52% at 12% 8%,#cfe8ff 0%,transparent 62%),radial-gradient(38% 48% at 88% 18%,#f7d6ff 0%,transparent 62%),radial-gradient(48% 46% at 50% 94%,#a7f3d0 0%,transparent 62%),linear-gradient(180deg,#f8fbff 0%,#eef3fb 100%)',
+      card: 'rgba(255,255,255,.58)', card2: 'rgba(207,232,255,.38)', hero: 'linear-gradient(135deg,rgba(207,232,255,.7) 0%,rgba(247,214,255,.6) 50%,rgba(167,243,208,.65) 100%)',
+      ink: '#26384b', ink2: '#5a6b7e', ink3: '#8695a6', dk: '#2a3a5c', accent: '#6c63e8', accent2: '#4f46c7',
+      yellow: 'rgba(199,210,254,.62)', c1: '#68b6f0', c2: '#e88ac0', c3: '#4fc8a0',
+      line: 'rgba(255,255,255,.9)', shadow: 'rgba(60,80,120,.16)', radius: '18px', iradius: '14px', bradius: '12px', tradius: '10px',
+      thead: 'rgba(108,99,232,.10)', alt: 'rgba(255,255,255,.35)', u: '8b7ff0', h1s: 'none',
+      ok: '#237a4d', warn: '#9a6410', bad: '#a83a2c', oks: 'rgba(36,122,77,.10)', warns: 'rgba(154,100,16,.10)', bads: 'rgba(168,58,44,.10)',
+      extras: [
+        'S .card,S a.card,S .mcpbox,S .flow,S .note,S .step,S .kv .box,S .risk,S .formula,S .callout,S .stats div,S #amz-fx-nav,S #amz-fx-scenes,S #amz-fx-guide,S #brightness-panel,S #gate .card{backdrop-filter:blur(16px) saturate(1.4)!important;-webkit-backdrop-filter:blur(16px) saturate(1.4)!important;border:1px solid rgba(255,255,255,.92)!important;box-shadow:0 10px 34px rgba(60,80,120,.16)!important}',
+        'S input,S textarea,S select{backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;background:rgba(255,255,255,.62)!important}',
+        'S #amz-fx-bg .af-aurora{opacity:.5!important}'
+      ]
+    },
+    qinghua: {
+      name: '青花瓷', dark: false,
+      paper: '#f7f9fc', bg: 'linear-gradient(rgba(43,95,168,.045) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,rgba(43,95,168,.045) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(180deg,#fbfdff 0%,#eef4fb 100%)',
+      card: '#ffffff', card2: '#eaf2fb', hero: 'linear-gradient(135deg,#eaf2fb 0%,#dceafa 48%,#f2f7fd 100%)',
+      ink: '#1c3352', ink2: '#4a6584', ink3: '#8095ac', dk: '#2b5fa8', accent: '#2b5fa8', accent2: '#1d4479',
+      yellow: '#dbe9f7', c1: '#2b5fa8', c2: '#8fb3d9', c3: '#4a8f7a',
+      line: 'rgba(43,95,168,.34)', shadow: 'rgba(43,95,168,.12)', radius: '6px', iradius: '6px', bradius: '5px', tradius: '4px',
+      thead: '#eaf2fb', alt: '#f5f9fe', u: '2b5fa8', h1s: 'none',
+      ok: '#237a4d', warn: '#9a6410', bad: '#a83a2c', oks: '#e4f7ec', warns: '#fff0cf', bads: '#ffe3df',
+      extras: [
+        'S .card,S a.card,S .mcpbox,S .flow,S .note,S .step,S .kv .box,S .risk,S .formula,S .callout,S .stats div,S #gate .card{border:1px solid rgba(43,95,168,.32)!important;box-shadow:0 2px 0 rgba(43,95,168,.10)!important}',
+        'S h1,S h2,S h3,S .hero h1,S #gate .card h1{font-family:"Songti SC","STSong","Noto Serif SC",Georgia,serif!important;letter-spacing:.04em}',
+        'S #amz-fx-bg .af-grid{opacity:.7!important}'
+      ]
+    },
+    macaron: {
+      name: '奶油马卡龙', dark: false,
+      paper: '#fffafc', bg: 'radial-gradient(38% 46% at 18% 8%,#ffe4e6 0%,transparent 66%),radial-gradient(36% 44% at 84% 18%,#e0e7ff 0%,transparent 66%),radial-gradient(42% 44% at 50% 96%,#fef3c7 0%,transparent 66%),linear-gradient(180deg,#fffafc 0%,#fdf7f2 100%)',
+      card: '#ffffff', card2: '#fff0f5', hero: 'linear-gradient(135deg,#ffe4e6 0%,#e0e7ff 50%,#fef3c7 100%)',
+      ink: '#4a3f52', ink2: '#7c7086', ink3: '#a89db0', dk: '#b0567a', accent: '#e8799f', accent2: '#cf5f88',
+      yellow: '#ffe0ec', c1: '#8fb8f0', c2: '#e8799f', c3: '#7ac9a6',
+      line: 'rgba(224,121,159,.34)', shadow: 'rgba(180,110,140,.16)', radius: '24px', iradius: '18px', bradius: '16px', tradius: '12px',
+      thead: '#ffeef4', alt: '#fff8fa', u: 'e8799f', h1s: 'none',
+      ok: '#2f9160', warn: '#a5741c', bad: '#c04a5a', oks: '#e6f7ee', warns: '#fff3da', bads: '#ffe8ea',
+      extras: [
+        'S .card,S a.card,S .mcpbox,S .flow,S .note,S .step,S .kv .box,S .risk,S .formula,S .callout,S .stats div,S #gate .card{border:1.5px solid rgba(224,121,159,.3)!important;box-shadow:0 8px 24px rgba(180,110,140,.16)!important}',
+        'S .grid a.card:nth-child(3n+1){border-color:#e8799f!important}S .grid a.card:nth-child(3n+2){border-color:#8fb8f0!important}S .grid a.card:nth-child(3n){border-color:#7ac9a6!important}'
+      ]
+    },
+    spring: {
+      name: '春日樱绿', dark: false,
+      paper: '#f8fdf4', bg: 'radial-gradient(42% 50% at 14% 6%,#eaf7d9 0%,transparent 62%),radial-gradient(36% 44% at 86% 16%,#f7c6d9 0%,transparent 62%),linear-gradient(180deg,#f8fdf4 0%,#f1f9ea 100%)',
+      card: '#ffffff', card2: '#f0f9e8', hero: 'linear-gradient(135deg,#eaf7d9 0%,#d9f0e0 46%,#f7c6d9 100%)',
+      ink: '#2f4a2a', ink2: '#5f7a55', ink3: '#93a889', dk: '#3f6b34', accent: '#7aa85c', accent2: '#5f8f45',
+      yellow: '#fde6ef', c1: '#6bb8d8', c2: '#e88fb0', c3: '#7aa85c',
+      line: 'rgba(122,168,92,.4)', shadow: 'rgba(90,130,70,.14)', radius: '16px', iradius: '12px', bradius: '11px', tradius: '9px',
+      thead: '#eef8e6', alt: '#f8fcf4', u: '7aa85c', h1s: 'none',
+      ok: '#237a4d', warn: '#9a6410', bad: '#a83a2c', oks: '#e4f7ec', warns: '#fff0cf', bads: '#ffe3df',
+      extras: [
+        'S .card,S a.card,S .mcpbox,S .flow,S .note,S .step,S .kv .box,S .risk,S .formula,S .callout,S .stats div,S #gate .card{border:1.5px solid rgba(122,168,92,.4)!important;box-shadow:0 6px 20px rgba(90,130,70,.14)!important}',
+        'S .grid a.card:nth-child(3n+1){border-color:#7aa85c!important}S .grid a.card:nth-child(3n+2){border-color:#e88fb0!important}S .grid a.card:nth-child(3n){border-color:#6bb8d8!important}'
+      ]
+    },
+    bamboo: {
+      name: '竹林青', dark: false,
+      paper: '#f6f9f0', bg: 'repeating-linear-gradient(90deg,rgba(107,143,94,.05) 0 2px,transparent 2px 48px),linear-gradient(180deg,#f6f9f0 0%,#eef4e6 100%)',
+      card: '#fbfdf8', card2: '#eef5e6', hero: 'linear-gradient(135deg,#eef5e6 0%,#dfeade 48%,#f3f7ee 100%)',
+      ink: '#2e3d2a', ink2: '#5a6b50', ink3: '#89967d', dk: '#3d5a3a', accent: '#5d804f', accent2: '#46683b',
+      yellow: '#e6efd8', c1: '#6f9a9a', c2: '#b98f8f', c3: '#5d804f',
+      line: 'rgba(93,128,79,.36)', shadow: 'rgba(70,100,60,.14)', radius: '10px', iradius: '9px', bradius: '8px', tradius: '7px',
+      thead: '#eef5e6', alt: '#f7fbf3', u: '5d804f', h1s: 'none',
+      ok: '#237a4d', warn: '#9a6410', bad: '#a83a2c', oks: '#e4f7ec', warns: '#fff0cf', bads: '#ffe3df',
+      extras: [
+        'S .card,S a.card,S .mcpbox,S .flow,S .note,S .step,S .kv .box,S .risk,S .formula,S .callout,S .stats div,S #gate .card{border:1px solid rgba(93,128,79,.32)!important;box-shadow:0 3px 0 rgba(93,128,79,.10)!important}',
+        'S h1,S h2,S h3,S .hero h1{font-family:"Songti SC","STSong","Noto Serif SC",Georgia,serif!important;letter-spacing:.03em}'
+      ]
+    }
+  };
+
+  function buildThemeStyles() {
+    var blocks = [];
+    Object.keys(THEME_DEFS).forEach(function (id) {
+      var T = THEME_DEFS[id];
+      var S = 'html.amz-light.amz-' + id;
+      var F = 'html.amz-light.amz-' + id + '.amz-fx';
+      var r = [];
+      r.push(S + '{--dk:' + T.dk + '!important;--paper:' + T.paper + '!important;--card:' + T.card + '!important;--card2:' + T.card2 + '!important;' +
+        '--ink:' + T.ink + '!important;--ink2:' + T.ink2 + '!important;--ink3:' + T.ink3 + '!important;' +
+        '--sun:' + T.accent + '!important;--yellow:' + T.yellow + '!important;--blue:' + T.c1 + '!important;--pink:' + T.c2 + '!important;' +
+        '--green:' + T.c3 + '!important;--purple:' + T.accent + '!important;' +
+        '--app-bg:' + T.paper + '!important;--bg:' + T.paper + '!important;--text:' + T.ink + '!important;' +
+        '--muted:' + T.ink2 + '!important;--hint:' + T.ink3 + '!important;--border:' + T.line + '!important;--border-strong:' + T.dk + '!important;' +
+        '--accent:' + T.accent + '!important;--accent-soft:' + T.card2 + '!important;--accent-2:' + T.accent2 + '!important;' +
+        '--row-alt:' + T.alt + '!important;--ok:' + T.ok + '!important;--warn:' + T.warn + '!important;--bad:' + T.bad + '!important;' +
+        '--oksoft:' + T.oks + '!important;--warnsoft:' + T.warns + '!important;--badsoft:' + T.bads + '!important;' +
+        '--soft:' + T.card2 + '!important;--ring:' + T.line + '!important;--danger:' + T.bad + '!important;' +
+        'color-scheme:' + (T.dark ? 'dark' : 'light') + '!important;background:' + T.paper + '!important}');
+      r.push(S + ' #amz-fx-bg{background:' + T.bg + '!important}');
+      r.push(S + ' #amz-fx-bg .af-aurora.a1{background:' + T.c1 + '!important}');
+      r.push(S + ' #amz-fx-bg .af-aurora.a2{background:' + T.c2 + '!important}');
+      r.push(S + ' #amz-fx-bg .af-aurora.a3{background:' + T.c3 + '!important}');
+      r.push(F + ' body,F p,F li,F dd,F dt,F td,F th,F label,F summary,F h2,F h3,F h4,F strong,F b,F .lead{color:' + T.ink + '!important}');
+      r.push(F + ' h1{color:' + T.dk + '!important;-webkit-text-fill-color:' + T.dk + '!important;text-shadow:' + T.h1s + '!important}');
+      r.push(F + ' .lead{color:' + T.ink2 + '!important;-webkit-text-fill-color:' + T.ink2 + '!important}');
+      r.push(F + ' small,F .desc,F .muted,F .hint,F .sub,F .tag,F .k,F .formula{color:' + T.ink2 + '!important}');
+      r.push(S + ' #amz-fx-nav{background:' + T.card + '!important;border:1.5px solid ' + T.line + '!important;box-shadow:0 4px 18px ' + T.shadow + '!important;border-radius:999px!important;backdrop-filter:none!important}');
+      r.push(S + ' #amz-fx-nav a,S #amz-fx-nav button,S #amz-fx-nav .af-cur,S #amz-fx-nav .af-k{color:' + T.ink + '!important}');
+      r.push(S + ' #amz-fx-nav .af-back{background:' + T.card2 + '!important;border:1px solid ' + T.line + '!important}');
+      r.push(S + ' #amz-fx-scenes,S #amz-fx-guide,S #amz-fx-toast{background:' + T.card + '!important;border:1px solid ' + T.line + '!important;box-shadow:0 6px 22px ' + T.shadow + '!important;color:' + T.ink + '!important;backdrop-filter:none!important}');
+      r.push(S + ' #amz-fx-scenes .af-sc-label,S #amz-fx-scenes button{color:' + T.ink2 + '!important}');
+      r.push(S + ' #amz-fx-scenes button.on{color:#fff!important;background:' + T.accent + '!important;border-color:' + T.accent + '!important;box-shadow:none!important}');
+      r.push(S + ' .card,S a.card,S .mcpbox,S .flow,S .note,S .step,S .kv .box,S .risk,S .formula,S .callout,S .stats div{background:' + T.card + '!important;border:1.5px solid ' + T.line + '!important;border-radius:' + T.radius + '!important;box-shadow:0 4px 16px ' + T.shadow + '!important;color:' + T.ink + '!important}');
+      r.push(S + ' .grid a.card:nth-child(3n+1){border-color:' + T.c1 + '!important}S .grid a.card:nth-child(3n+2){border-color:' + T.c2 + '!important}S .grid a.card:nth-child(3n){border-color:' + T.c3 + '!important}');
+      r.push(S + ' input,S textarea,S select{background:' + T.card + '!important;color:' + T.ink + '!important;border:1.5px solid ' + T.line + '!important;border-radius:' + T.iradius + '!important;box-shadow:none!important}');
+      r.push(F + ' input:focus,F textarea:focus,F select:focus,S input:focus,S textarea:focus,S select:focus{border-color:' + T.accent + '!important;box-shadow:0 0 0 3px ' + T.line + '!important}');
+      r.push(S + ' button,S .btn,S .mcp-cp,S .mcp-open,S .mcp-more{border:1.5px solid ' + T.accent + '!important;border-radius:' + T.bradius + '!important;box-shadow:none!important;color:' + T.ink + '!important}');
+      r.push(S + ' button:active,S .btn:active{transform:translateY(1px)!important}');
+      r.push(S + ' .hero{background:' + T.hero + '!important;border-bottom:2px solid ' + T.accent + '!important;color:' + T.ink + '!important}');
+      r.push(F + ' .hero h1{color:' + T.dk + '!important;-webkit-text-fill-color:' + T.dk + '!important}');
+      r.push(F + ' .hero .lead,F .hero .lead b{color:' + T.ink + '!important;-webkit-text-fill-color:' + T.ink + '!important}');
+      r.push(F + ' .hero .kicker{background:' + T.yellow + '!important;color:' + T.dk + '!important;-webkit-text-fill-color:' + T.dk + '!important;border:1px solid ' + T.accent + '!important}');
+      r.push(S + ' .btn-p{background:' + T.accent + '!important;color:#fff!important;border-color:' + T.accent + '!important}');
+      r.push(F + ' .hero .cta .btn-o,S .btn-o{background:' + T.card + '!important;color:' + T.ink + '!important;-webkit-text-fill-color:' + T.ink + '!important;border:1.5px solid ' + T.line + '!important}');
+      r.push(S + ' .stats div{background:' + T.card + '!important;border-color:' + T.line + '!important;box-shadow:0 4px 16px ' + T.shadow + '!important}');
+      /* DOODLE 对 .hero .stats div 用了 (0,4,1)，这里同结构 + amz-<id> 抬到 (0,5,1) 压过 */
+      r.push(S + '.amz-fx .hero .stats div{background:' + T.card + '!important;border-color:' + T.line + '!important;box-shadow:0 4px 16px ' + T.shadow + '!important}');
+      r.push(F + ' .hero .stats span{color:' + T.ink2 + '!important;-webkit-text-fill-color:' + T.ink2 + '!important}');
+      r.push(F + ' .hero .stats b{color:' + T.accent + '!important;-webkit-text-fill-color:' + T.accent + '!important}');
+      r.push(S + ' .sect::before{content:"✦";width:auto;height:auto;background:none;color:' + T.accent + ';font-size:17px;transform:rotate(-14deg)}');
+      r.push(S + ' .sect h3,S .card h2{position:relative;display:inline-block}');
+      r.push(S + ' .sect h3::after,S .card h2::after{content:"";position:absolute;left:0;bottom:-3px;width:100%;height:5px;background:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 120 6\' preserveAspectRatio=\'none\'%3E%3Cpath d=\'M2 4 Q 16 0 32 4 T 64 4 T 96 4 T 119 4\' fill=\'none\' stroke=\'%23' + T.u + '\' stroke-width=\'2.5\' stroke-linecap=\'round\'/%3E%3C/svg%3E") repeat-x left bottom/100px 5px;opacity:.85;pointer-events:none}');
+      r.push(S + ' .tag,S .badge{border:1.5px solid ' + T.line + '!important;border-radius:' + T.tradius + '!important;display:inline-block}');
+      r.push(F + ' .tag{background:' + T.yellow + '!important;color:' + T.dk + '!important}');
+      r.push(S + ' .go{color:' + T.accent + '!important}');
+      r.push(F + ' table,F th,F td{border-color:' + T.line + '!important}');
+      r.push(S + ' thead th,S tr:first-child > th{background:' + T.thead + '!important}');
+      r.push(S + ' tbody tr:nth-child(even){background:' + T.alt + '!important}');
+      r.push(S + ' .co-info{background:' + T.card2 + '!important;color:' + T.ink + '!important}');
+      r.push(S + ' .co-ok{background:' + T.oks + '!important;color:' + T.ok + '!important}');
+      r.push(S + ' .co-warn{background:' + T.warns + '!important;color:' + T.warn + '!important}');
+      r.push(S + ' .co-bad{background:' + T.bads + '!important;color:' + T.bad + '!important}');
+      r.push(S + ' .ic{border:1.5px solid ' + T.line + '!important}');
+      r.push(S + ' .step .n{background:' + T.accent + '!important;color:#fff!important;border:1px solid ' + T.accent + '}');
+      r.push(S + ' code{background:' + T.card2 + '!important;color:' + T.accent + '!important}');
+      r.push(S + ' hr.sep,S .sect .line{border-color:' + T.line + '!important;background:' + T.line + '!important}');
+      r.push(S + ' #brightness-panel{background:' + T.card + '!important;color:' + T.ink + '!important;border:1px solid ' + T.line + '!important;border-radius:' + T.radius + '!important;box-shadow:0 8px 30px ' + T.shadow + '!important}');
+      r.push(S + ' #brightness-panel .bp-title,S #brightness-panel .bp-val b{color:' + T.accent + '!important}');
+      r.push(S + ' #brightness-panel .bp-val,S #brightness-panel .bp-sec{color:' + T.ink2 + '!important}');
+      r.push(S + ' #brightness-panel input[type=range]{accent-color:' + T.accent + '!important}');
+      r.push(S + ' #brightness-panel .bp-toggle{background:' + T.card2 + '!important;color:' + T.ink + '!important;border-color:' + T.line + '!important}');
+      r.push(S + ' #brightness-panel .bp-presets button{background:' + T.card + '!important;color:' + T.ink + '!important;border:1px solid ' + T.line + '!important;border-radius:' + T.tradius + '!important;font-weight:600}');
+      r.push(S + ' #brightness-panel .bp-presets button:hover{background:' + T.card2 + '!important}');
+      r.push(S + ' #brightness-panel .bp-presets button.on{background:' + T.accent + '!important;color:#fff!important;border-color:' + T.accent + '!important}');
+      r.push(S + ' #gate .card{background:' + T.card + '!important;border:1.5px solid ' + T.line + '!important;color:' + T.ink + '!important;box-shadow:0 10px 40px ' + T.shadow + '!important}');
+      r.push(S + ' #gate .card h1,S #gate .card .sub,S #gate .card label,S #gate .card .foot{color:' + T.ink + '!important}');
+      r.push(S + ' #gate input[type=password]{background:' + T.card + '!important;color:' + T.ink + '!important;border:1.5px solid ' + T.line + '!important}');
+      T.extras.forEach(function (x) { r.push(x); });
+      // 统一展开占位符：规则串里所有独立的 S / F 都替换为对应选择器，
+      // 避免逗号分隔的多选择器只替换第一个导致后半段失效。
+      blocks.push('/* ' + T.name + ' */\n' + r.join('\n').replace(/\bS\b/g, S).replace(/\bF\b/g, F));
+    });
+    return '<style id="amz-themes">' + blocks.join('\n') + '</style>';
+  }
+  var THEMES = buildThemeStyles();
+  var THEME_IDS = Object.keys(THEME_DEFS);
+
   var VEIL =
     '<div id="amz-fx-veil"><div style="text-align:center">' +
     '<div class="af-ring"></div><div class="af-veil-t">正在载入工作区</div>' +
@@ -193,6 +376,16 @@
     '<div class="bp-sec">主 题 风 格</div>' +
     '<div class="bp-presets">' +
     '<button data-c="doodle">✎ 涂鸦明亮</button><button data-c="">经典深色</button>' +
+    '</div>' +
+    '<div class="bp-sec">艺 术 主 题</div>' +
+    '<div class="bp-presets" style="margin-top:6px">' +
+    '<button data-c="neon">霓虹赛博</button><button data-c="glass">毛玻璃</button>' +
+    '</div>' +
+    '<div class="bp-presets" style="margin-top:5px">' +
+    '<button data-c="qinghua">青花瓷</button><button data-c="macaron">奶油马卡龙</button>' +
+    '</div>' +
+    '<div class="bp-presets" style="margin-top:5px">' +
+    '<button data-c="spring">春日樱绿</button><button data-c="bamboo">竹林青</button>' +
     '</div>' +
     '<div class="bp-sec">底 色 配 色</div>' +
     '<div class="bp-presets">' +
@@ -250,15 +443,21 @@
     if (panel) panel.style.filter = f + 'brightness(' + (100 / AMZ_VIEW.b).toFixed(3) + ')';
   }
 
-  /* 明亮涂鸦主题开关：给 <html> 加 amz-light 让覆盖样式生效，
-     并给 <body> 加 data-amz-skip-normalize，让 fx.js 不再把浅色块重刷成深色。
-     切回深色主题时两个标记都撤掉，fx.js 恢复原样。 */
-  function applyDoodle(on) {
+  /* 明亮系主题开关（涂鸦 + 6 套艺术主题共用）：
+     amz-light 给结构层，amz-<id> 激活对应 token 覆盖（doodle 无此标记），
+     data-amz-skip-normalize 让 fx.js 停止把浅色块重刷成深色。
+     切回经典深色/纯黑/白底/暖褐时全部撤掉，fx.js 恢复原样。 */
+  function applyLightTheme(v) {
     var h = document.documentElement;
-    if (on) h.classList.add('amz-light');
-    else h.classList.remove('amz-light');
+    var light = (v === 'doodle' || THEME_IDS.indexOf(v) >= 0);
+    h.classList.remove('amz-light');
+    for (var i = 0; i < THEME_IDS.length; i++) h.classList.remove('amz-' + THEME_IDS[i]);
+    if (light) {
+      h.classList.add('amz-light');
+      if (v !== 'doodle') h.classList.add('amz-' + v);
+    }
     if (document.body) {
-      if (on) document.body.setAttribute('data-amz-skip-normalize', '');
+      if (light) document.body.setAttribute('data-amz-skip-normalize', '');
       else document.body.removeAttribute('data-amz-skip-normalize');
     }
   }
@@ -379,8 +578,8 @@
       AMZ_VIEW.c = v;
       var h = document.documentElement;
       h.classList.remove('amz-c-black', 'amz-c-light', 'amz-c-warm');
-      if (v && v !== 'doodle') h.classList.add('amz-c-' + v);
-      applyDoodle(v === 'doodle');   /* doodle 走独立覆盖样式，其余走 fx 变量/滤镜 */
+      if (v === 'black' || v === 'light' || v === 'warm') h.classList.add('amz-c-' + v);
+      applyLightTheme(v);   /* doodle + 6 套艺术主题走覆盖样式，其余走 fx 变量/滤镜 */
       /* 旧配色(纯黑/白底/暖褐)彼此互斥，用于经典深色主题下的微调 */
       amzApplyFilter();
       var presets = panel.querySelectorAll('[data-c]');
@@ -593,23 +792,23 @@
   /* 把主题标记直接印进 HTML 字符串：首帧即生效，且 fx.js 初始化时
      body 上已有 data-amz-skip-normalize，不会再重刷浅色块。 */
   function stampTheme(html, theme) {
-    var doodle = (theme === 'doodle');
-    if (doodle) {
-      if (/<html([^>]*)>/i.test(html)) {
-        html = html.replace(/<html([^>]*)>/i, function (m, attrs) {
-          if (/\bclass\s*=/.test(attrs)) {
-            return m.replace(/class\s*=\s*"([^"]*)"/i, function (mm, c) {
-              return 'class="' + c + ' amz-light"';
-            });
-          }
-          return '<html' + attrs + ' class="amz-light">';
-        });
-      }
-      if (/<body([^>]*)>/i.test(html)) {
-        html = html.replace(/<body([^>]*)>/i, function (m, attrs) {
-          return '<body' + attrs + ' data-amz-skip-normalize';
-        });
-      }
+    var light = (theme === 'doodle' || THEME_IDS.indexOf(theme) >= 0);
+    if (!light) return html;
+    var cls = (theme === 'doodle') ? 'amz-light' : ('amz-light amz-' + theme);
+    if (/<html([^>]*)>/i.test(html)) {
+      html = html.replace(/<html([^>]*)>/i, function (m, attrs) {
+        if (/\bclass\s*=/.test(attrs)) {
+          return m.replace(/class\s*=\s*"([^"]*)"/i, function (mm, c) {
+            return 'class="' + c + ' ' + cls + '"';
+          });
+        }
+        return '<html' + attrs + ' class="' + cls + '">';
+      });
+    }
+    if (/<body([^>]*)>/i.test(html)) {
+      html = html.replace(/<body([^>]*)>/i, function (m, attrs) {
+        return '<body' + attrs + ' data-amz-skip-normalize';
+      });
     }
     return html;
   }
@@ -621,9 +820,9 @@
       html = stampTheme(html, savedTheme());
       // 防白闪：把关键样式与加载遮罩写进新文档，解析第一帧即为目标主题
       if (/<head[^>]*>/i.test(html)) {
-        html = html.replace(/<head[^>]*>/i, function (m) { return m + CRITICAL + DOODLE; });
+        html = html.replace(/<head[^>]*>/i, function (m) { return m + CRITICAL + DOODLE + THEMES; });
       } else {
-        html = CRITICAL + DOODLE + html;
+        html = CRITICAL + DOODLE + THEMES + html;
       }
       if (/<body[^>]*>/i.test(html)) {
         html = html.replace(/<body[^>]*>/i, function (m) { return m + VEIL + PANEL; });
@@ -778,12 +977,15 @@
   /* 门禁页（未解密）也同步主题：注入涂鸦样式并标记跳过重刷。
      内容页由 render()/stampTheme() 处理，两条路径互不干扰。 */
   (function initGateTheme() {
-    if (savedTheme() !== 'doodle') return;
+    var theme = savedTheme();
+    var light = (theme === 'doodle' || THEME_IDS.indexOf(theme) >= 0);
+    if (!light) return;
     var h = document.documentElement;
     h.classList.add('amz-light');
+    if (theme !== 'doodle') h.classList.add('amz-' + theme);
     if (document.body) document.body.setAttribute('data-amz-skip-normalize', '');
     var st = document.createElement('style');
-    st.textContent = DOODLE.replace(/^<style[^>]*>/i, '').replace(/<\/style>\s*$/i, '');
+    st.textContent = (DOODLE + THEMES).replace(/<\/?style[^>]*>/gi, '');
     document.head.appendChild(st);
   })();
 
